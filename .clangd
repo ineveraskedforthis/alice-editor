@@ -1,0 +1,2 @@
+CompileFlags:
+    Add: [-std=c++20, -DWIN32, -I./modules/sdl, -I./modules/glew, -I./modules/imgui]
