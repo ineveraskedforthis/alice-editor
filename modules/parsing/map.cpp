@@ -920,6 +920,19 @@ border_cutoff = 1100.0
             available_b
         };
 
+        auto& old_province = provinces[index_to_vector_position[old_index]];
+
+        result.life_rating = old_province.life_rating;
+        result.owner_tag = old_province.owner_tag;
+        result.controller_tag = old_province.controller_tag;
+        result.main_trade_good = old_province.main_trade_good;
+        result.colonial = old_province.colonial;
+        result.historical_region = old_province.historical_region;
+
+        for (auto& core: old_province.cores) {
+            result.cores.push_back(core);
+        }
+
         provinces.push_back(result);
         auto rgb = rgb_to_uint(result.r, result.g, result.b);
         rgb_to_index.insert_or_assign(rgb, result.v2id);
@@ -933,6 +946,14 @@ border_cutoff = 1100.0
         data[4 * pixel + 1] = result.v2id >> 8;
 
         province_is_sea[result.v2id] = province_is_sea[old_index];
+
+        province_state[2 * result.v2id] = province_state[2 * old_index];
+        province_state[2 * result.v2id + 1] = province_state[2 * old_index + 1];
+
+        province_owner[3 * result.v2id] = province_owner[3 * old_index];
+        province_owner[3 * result.v2id + 1] = province_owner[3 * old_index + 1];
+        province_owner[3 * result.v2id + 2] = province_owner[3 * old_index + 2];
+
         return result;
     }
 }

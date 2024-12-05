@@ -962,7 +962,7 @@ int main(int argc, char* argv[]) {
 
                 for (int i = 0; i < def.cores.size(); i++) {
                     ImGui::PushID(i);
-                    ImGui::InputTextMultiline("Core", &(def.cores[i]));
+                    ImGui::InputText("Core", &(def.cores[i]));
                     ImGui::SameLine();
                     if (ImGui::Button("Clear core")) {
                         def.cores[i] = "";
