@@ -2,6 +2,7 @@
 Tool to edit maps and according files required to create Project Alice scenarios.
 
 # CAUTION: ALWAYS MAKE BACKUPS OF YOUR WORK
+# CURRENTLY DOESN'T SUPPORT MULTIPLE BOOKMARKS
 
 place vic2 files to corresponding folders in editor-input and run the editor
 
