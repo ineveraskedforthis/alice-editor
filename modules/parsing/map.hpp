@@ -7,6 +7,7 @@ namespace parsing{
     struct province_definition {
         uint32_t v2id;
         std::string name;
+
         uint8_t r;
         uint8_t g;
         uint8_t b;
@@ -15,6 +16,7 @@ namespace parsing{
         float pos_y;
         float pixels;
 
+        std::string history_file_name;
         std::string owner_tag;
         std::string controller_tag;
         std::vector<std::string> cores;

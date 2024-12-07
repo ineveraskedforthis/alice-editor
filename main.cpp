@@ -6,6 +6,7 @@
 #include <chrono>
 
 #include <SDL.h>
+#include <string>
 #include <thread>
 #include <vector>
 #include "GL/glew.h"
@@ -937,16 +938,32 @@ int main(int argc, char* argv[]) {
                     ImGuiWindowFlags_NoFocusOnAppearing
                 );
 
+
                 auto & def = map_state.provinces[map_state.index_to_vector_position[control_state.selected_province_id]];
 
-                if (ImGui::InputText("Owner: ", &def.owner_tag)) {
+                ImGui::Text("%s", (def.name + " (" + def.history_file_name + ") " + std::to_string(def.v2id)).c_str());
+
+                if (ImGui::InputText("Owner", &def.owner_tag)) {
                     map_state.province_owner[3 * def.v2id + 0] = def.owner_tag[0];
                     map_state.province_owner[3 * def.v2id + 1] = def.owner_tag[1];
                     map_state.province_owner[3 * def.v2id + 2] = def.owner_tag[2];
                     update_map_texture(control_state, map_state);
                 }
 
-                ImGui::InputText("Controller: ", &def.controller_tag);
+                ImGui::SameLine();
+                if (ImGui::Button("Clear owner")) {
+                    def.owner_tag = "";
+                    map_state.province_owner[3 * def.v2id + 0] = 0;
+                    map_state.province_owner[3 * def.v2id + 1] = 0;
+                    map_state.province_owner[3 * def.v2id + 2] = 0;
+                    update_map_texture(control_state, map_state);
+                }
+
+                ImGui::InputText("Controller", &def.controller_tag);
+                ImGui::SameLine();
+                if (ImGui::Button("Clear control")) {
+                    def.controller_tag = "";
+                }
 
                 ImGui::InputText("Main RGO: ", &def.main_trade_good);
 

@@ -677,7 +677,11 @@ namespace parsing{
                     auto id_string = name.substr(0, first_space);
                     auto id = std::stoi(id_string);
 
+                    std::cout << id << " ";
+
                     auto& def = map_state.provinces[map_state.index_to_vector_position[id]];
+
+                    def.history_file_name = name;
 
                     def.historical_region = entry.path().filename().string();
 
@@ -851,7 +855,7 @@ border_cutoff = 1100.0
 
                 auto folder_path = path + "/history/provinces/" + def.historical_region;
                 std::filesystem::create_directory(folder_path);
-                std::ofstream file(folder_path + "/" + std::to_string(def.v2id) + " - " + def.name + ".txt");
+                std::ofstream file(folder_path + "/" + def.history_file_name);
 
                 if (def.owner_tag.length() > 0)
                     file << "owner = " << def.owner_tag << std::endl;
@@ -919,6 +923,8 @@ border_cutoff = 1100.0
             available_g,
             available_b
         };
+
+        result.history_file_name = std::to_string(available_id) + " - " + result.name + ".txt";
 
         auto& old_province = provinces[index_to_vector_position[old_index]];
 
