@@ -207,7 +207,6 @@ namespace parsing{
                 if (c == '\n' or c =='\r') {
                     reading_comment = false;
                 }
-                return;
             }
 
             switch (task) {
