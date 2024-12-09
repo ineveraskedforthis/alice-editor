@@ -90,12 +90,15 @@ namespace parsing{
             adjacency to_add {
                 from, through, to, true_type, data, comment
             };
+
+            std::cout << " from: " << from << " through: " << through << " to: " << to << "\n";
             map.adjacencies.push_back(to_add);
             task = ADJ_PARSER_TASK::READING_FROM;
+            current_word.clear();
         }
 
         void parse(game_map& map, char c) {
-            // std::cout << c;
+            // std::cout << c << " " << current_word << "\n";
             if (c == '#') {
                 reading_comment = true;
 
@@ -437,7 +440,7 @@ namespace parsing{
                     state_definition def {current_word};
                     map.states.push_back(def);
                     current_state_def = map.states.size() - 1;
-                    // std::cout << "\n State detected: " << current_word << " " << current_state_def << "\n";
+                    std::cout << current_word << " ";
                     task = REGIONS_PARSER_TASK::AWAIT_PROVINCE_NAME;
                     current_word.clear();
                     break;
@@ -656,7 +659,7 @@ namespace parsing{
             std::string str;
             char c;
             parser_adj parser {};
-            std::cout << "parsing states\n";
+            std::cout << "parsing adjacencies\n";
             while (file.get(c)) {
                 parser.parse(map_state, c);
             }
