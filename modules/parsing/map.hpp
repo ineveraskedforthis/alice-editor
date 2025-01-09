@@ -4,6 +4,13 @@
 #include <string>
 
 namespace parsing{
+
+    struct state_building_definition {
+        int level;
+        std::string building_type;
+        std::string upgrade;
+    };
+
     struct province_definition {
         uint32_t v2id;
         std::string name;
@@ -28,7 +35,7 @@ namespace parsing{
         int fort;
         int colonial;
 
-        std::vector<std::string> buildings;
+        std::vector<state_building_definition> buildings;
 
         std::string historical_region;
     };

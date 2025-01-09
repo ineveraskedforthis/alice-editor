@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include "parser.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stbimage/stb_image.h"
@@ -185,7 +186,147 @@ namespace parsing{
         }
     };
 
+    struct parser_state_building {
+        int level;
+        std::string building_type;
+        std::string upgrade;
 
+        void parse(state_building_definition& def, std::ifstream& file, char& c) {
+            parser::word word;
+            while (parser::until_open_bracket(c) && file.get(c));
+            while (true) {
+                while (parser::nothing(c) && file.get(c));
+                word.reset();
+                while (word.parse(c) && file.get(c));
+                if (word.data == "level") {
+                    parser::word value;
+                    while (parser::equality(c) && file.get(c));
+                    while (value.parse(c) && file.get(c));
+
+                    def.level = std::stoi(value.data);
+                } else if (word.data == "building") {
+                    parser::word value;
+                    while (parser::equality(c) && file.get(c));
+                    while (value.parse(c) && file.get(c));
+
+                    def.building_type = value.data;
+                } else if (word.data == "upgrade") {
+                    parser::word value;
+                    while (parser::equality(c) && file.get(c));
+                    while (value.parse(c) && file.get(c));
+
+                    def.upgrade = value.data;
+                }
+
+                while (parser::end_of_the_line(c) && file.get(c));
+                if (parser::end_of_the_line(c)) {
+                    if (!file.get(c)){
+                        break;
+                    }
+                }
+
+                if (c == '}') {
+                    file.get(c);
+                    return;
+                }
+            }
+        }
+    };
+
+    struct parser_history_province2 {
+        void parse(game_map& map, province_definition& prov, std::ifstream& file) {
+            char c = ' ';
+
+            parser::word word;
+
+            while (true) {
+                // start with parsing the key
+                while (parser::nothing(c) && file.get(c));
+                word.reset();
+                while (word.parse(c) && file.get(c));
+
+                if (word.data == "owner") {
+                    parser::word value;
+                    while (parser::equality(c) && file.get(c));
+                    while (value.parse(c) && file.get(c));
+
+                    prov.owner_tag = value.data;
+                    map.province_owner[3 * prov.v2id + 0] = value.data[0];
+                    map.province_owner[3 * prov.v2id + 1] = value.data[1];
+                    map.province_owner[3 * prov.v2id + 2] = value.data[2];
+                } else if (word.data == "controller") {
+                    parser::word value;
+                    while (parser::equality(c) && file.get(c));
+                    while (value.parse(c) && file.get(c));
+
+                    prov.controller_tag = value.data;
+                } else if (word.data == "state_building") {
+                    std::cout << "detected state building";
+
+                    parser::word value;
+                    while (parser::equality(c) && file.get(c));
+                    parser_state_building building;
+                    state_building_definition def;
+
+                    building.parse(def, file, c);
+
+                    prov.buildings.push_back(def);
+
+                } else if (word.data == "add_core") {
+                    parser::word value;
+                    while (parser::equality(c) && file.get(c));
+                    while (value.parse(c) && file.get(c));
+
+                    prov.cores.push_back(value.data);
+                } else if (word.data == "trade_goods") {
+                    parser::word value;
+                    while (parser::equality(c) && file.get(c));
+                    while (value.parse(c) && file.get(c));
+
+                } else if (word.data == "life_rating") {
+                    parser::word value;
+                    while (parser::equality(c) && file.get(c));
+                    while (value.parse(c) && file.get(c));
+                } else if (word.data == "state_building") {
+
+                } else if (word.data == "naval_base") {
+                    parser::word value;
+                    while (parser::equality(c) && file.get(c));
+                    while (value.parse(c) && file.get(c));
+
+                    prov.naval_base = std::stoi(value.data);
+                } else if (word.data == "fort") {
+                    parser::word value;
+                    while (parser::equality(c) && file.get(c));
+                    while (value.parse(c) && file.get(c));
+
+                    prov.fort = std::stoi(value.data);
+                } else if (word.data == "railroad") {
+                    parser::word value;
+                    while (parser::equality(c) && file.get(c));
+                    while (value.parse(c) && file.get(c));
+
+                    prov.railroad = std::stoi(value.data);
+                } else if (word.data == "colonial") {
+                    parser::word value;
+                    while (parser::equality(c) && file.get(c));
+                    while (value.parse(c) && file.get(c));
+
+                    prov.colonial = std::stoi(value.data);
+                } else {
+                    std::cout << "unknown key: " << word.data << std::endl;
+                    while (parser::until_close_bracket(c) && file.get(c));
+                }
+
+                while (parser::end_of_the_line(c) && file.get(c));
+                if (parser::end_of_the_line(c)) {
+                    if (!file.get(c)){
+                        break;
+                    }
+                }
+            }
+        }
+    };
 
     struct parser_history_province {
         PROVINCE_HISTORY_PARSER_TASK task;
@@ -356,7 +497,7 @@ namespace parsing{
                 current_word += c;
                 if (c == '}') {
                     auto from = current_word.find_first_of('{');
-                    prov.buildings.push_back(current_word.substr(from));
+                    //prov.buildings.push_back(current_word.substr(from));
                     task = PROVINCE_HISTORY_PARSER_TASK::KEY;
                 }
             break;
@@ -687,14 +828,18 @@ namespace parsing{
 
                     def.historical_region = entry.path().filename().string();
 
-                    parser_history_province parser {};
-                    parser.task = PROVINCE_HISTORY_PARSER_TASK::KEY;
+                    parser_history_province2 parser {};
 
                     std::ifstream file(province_description.path());
-                    char c;
-                    while (file.get(c)) {
-                        parser.parse(map_state, def, c);
-                    }
+                    parser.parse(map_state, def, file);
+
+
+                    // parser.task = PROVINCE_HISTORY_PARSER_TASK::KEY;
+
+                    // char c;
+                    // while (file.get(c)) {
+                    //     parser.parse(map_state, def, c);
+                    // }
                 }
             }
         }
@@ -881,8 +1026,11 @@ border_cutoff = 1100.0
                 file << "fort = " << def.fort << std::endl;
 
                 for (auto& building : def.buildings) {
-                    if (building.length() == 0) continue;
-                    file << "state_building = " << building << std::endl;
+                    file << "state_building = {" << std::endl;
+                    file << "\tlevel = " << building.level << std::endl;
+                    file << "\tbuilding = " << building.building_type << std::endl;
+                    file << "\tupgrade = " << building.upgrade << std::endl;
+                    file << "}" << std::endl;
                 }
             }
         }

@@ -971,10 +971,30 @@ int main(int argc, char* argv[]) {
                 ImGui::InputInt("Naval base: ", &def.naval_base);
                 ImGui::InputInt("Fort: ", &def.fort);
 
+                bool remove_flag = false;
+                int remove_index = 0;
                 for (int i = 0; i < def.buildings.size(); i++) {
                     ImGui::PushID(i);
-                    ImGui::InputTextMultiline("Building", &(def.buildings[i]));
+                    if (ImGui::TreeNode("Building")) {
+                        ImGui::InputInt("Level", &def.buildings[i].level);
+                        ImGui::InputText("Type", &def.buildings[i].building_type);
+                        ImGui::InputText("Upgrade", &def.buildings[i].upgrade);
+                        if (ImGui::Button("Remove")) {
+                            remove_flag = true;
+                            remove_index = i;
+                        }
+                        ImGui::TreePop();
+                    }
                     ImGui::PopID();
+                }
+                if (remove_flag) {
+                    def.buildings.erase(def.buildings.begin() + remove_index);
+                }
+                if (ImGui::Button("Add building")) {
+                    parsing::state_building_definition bdef {
+                        .level = 1, .building_type = "?", .upgrade = "yes"
+                    };
+                    def.buildings.push_back(bdef);
                 }
 
                 for (int i = 0; i < def.cores.size(); i++) {
