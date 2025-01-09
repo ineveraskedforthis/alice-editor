@@ -34,10 +34,14 @@ namespace parsing{
         int naval_base;
         int fort;
         int colonial;
+        int colony;
 
         std::vector<state_building_definition> buildings;
 
         std::string historical_region;
+
+        std::string terrain;
+        std::string is_slave;
     };
 
     struct state_definition {

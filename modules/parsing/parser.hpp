@@ -78,10 +78,36 @@ namespace parser {
         return true;
     }
 
+    inline bool until_close_bracket_balance(char c, int& counter) {
+        if (c == '}') {
+            counter--;
+
+            if (counter == 0)
+                return false;
+        }
+        if (c == '{')
+            counter++;
+
+        return true;
+    }
+
+    inline bool until_end_of_the_line(char c) {
+        if (c == '\r')
+            return false;
+        if (c == '\n')
+            return false;
+
+        return true;
+    }
+
     inline bool end_of_the_line(char c) {
         if (c == '\r')
             return true;
         if (c == '\n')
+            return true;
+        if (c == ' ')
+            return true;
+        if (c == '\t')
             return true;
 
         return false;
