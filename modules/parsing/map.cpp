@@ -101,13 +101,11 @@ namespace parsing{
         }
 
         void parse(game_map& map, std::ifstream& file) {
-
-
             char c;
 
             while(true) {
                 current_word.clear();
-                while(file.get(c) && parser::nothing(c));
+                while(parser::nothing(c) && file.get(c));
                 current_word += c;
 
                 // handle comments in the body of csv
@@ -123,6 +121,8 @@ namespace parsing{
                             return;
                         }
                     };
+
+                    continue;
                 }
 
                 while(file.get(c) && parser::until_semicolon(c)) {
