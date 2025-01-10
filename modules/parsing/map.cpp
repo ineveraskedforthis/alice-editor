@@ -102,7 +102,7 @@ namespace parsing{
 
         void parse(game_map& map, std::ifstream& file) {
             char c;
-
+            file.get(c);
             while(true) {
                 current_word.clear();
                 while(parser::nothing(c) && file.get(c));
@@ -147,7 +147,6 @@ namespace parsing{
                     continue;
                 }
 
-                std::cout << current_word;
 
                 from = std::stoi(current_word);
                 current_word.clear();
@@ -431,7 +430,6 @@ namespace parsing{
                     state_definition def {current_word};
                     map.states.push_back(def);
                     current_state_def = map.states.size() - 1;
-                    std::cout << current_word << " ";
                     task = REGIONS_PARSER_TASK::AWAIT_PROVINCE_NAME;
                     current_word.clear();
                     break;
@@ -583,7 +581,6 @@ namespace parsing{
                                     found = true;
                                 } else {
                                     auto index = std::stoi(parser.last_word);
-                                    std::cout << index << " ";
                                     map_state.province_is_sea[index] = 255;
                                 }
                                 break;
@@ -645,22 +642,30 @@ namespace parsing{
             map_state.states.push_back({"INVALID"});
             parser_regions parser {};
             std::cout << "parsing states\n";
-            while (file.get(c)) {
-                parser.parse_symbol(map_state, c);
+            if (file) {
+                while (file.get(c)) {
+                    parser.parse_symbol(map_state, c);
+                }
+            } else {
+                std::cout << "bad states/areas" << std::endl;
             }
         }
 
         {
             std::cout << "reading adjacencies\n";
+
+            std::cout << path + "/map/adjacencies.csv\n";
+
             std::ifstream file(path + "/map/adjacencies.csv");
+
             std::string str;
             char c;
             parser_adj parser {};
-            std::cout << "parsing adjacencies\n";
-            if (file.good())
+            if (file) {
+                std::cout << "parsing adjacencies\n";
                 parser.parse(map_state, file);
-            else
-                std::cout << "bad /map/adjacencies.csv";
+            } else
+                std::cout << "bad /map/adjacencies.csv" << std::endl;
         }
 
         {
@@ -691,7 +696,7 @@ namespace parsing{
                     auto first_space = name.find_first_of(' ');
                     auto id_string = name.substr(0, first_space);
                     auto id = std::stoi(id_string);
-                    std::cout << id << " ";
+                    // std::cout << id << " ";
                     auto& def = map_state.provinces[map_state.index_to_vector_position[id]];
                     def.history_file_name = name;
                     def.historical_region = entry.path().filename().string();

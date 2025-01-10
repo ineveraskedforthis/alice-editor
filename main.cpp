@@ -54,13 +54,47 @@ void glew_fail(std::string_view message, GLenum error) {
 }
 
 enum class CONTROL_MODE {
-    NONE, PICKING_COLOR, PAINTING, FILL, SET_STATE
+    NONE, SELECT, PICKING_COLOR, PAINTING, FILL, SET_STATE
 };
+
+enum class SELECTION_MODE {
+    PROVINCE, NATION
+};
+
+std::string selection_mode_string(SELECTION_MODE MODE) {
+    switch (MODE) {
+    case SELECTION_MODE::PROVINCE:
+        return "Province";
+        break;
+    case SELECTION_MODE::NATION:
+        return "Nation";
+        break;
+    }
+}
+
+enum class FILL_MODE {
+    PROVINCE, OWNER_AND_CONTROLLER
+};
+
+std::string fill_mode_string(FILL_MODE MODE) {
+    switch (MODE) {
+    case FILL_MODE::PROVINCE:
+        return "Province";
+        break;
+    case FILL_MODE::OWNER_AND_CONTROLLER:
+        return "Owner&Control";
+        break;
+    }
+}
+
 
 struct control {
     uint32_t selected_pixel;
     glm::vec2 selected_province;
     uint32_t selected_province_id;
+
+    std::string fill_with_tag;
+
     bool selection_delay;
     glm::vec2 hovered_province;
     glm::vec2 mouse_map_coord;
@@ -75,6 +109,10 @@ struct control {
     glm::ivec2 pixel_context;
 
     CONTROL_MODE mode;
+    SELECTION_MODE selection_mode;
+    FILL_MODE fill_mode;
+
+    bool active;
 
     uint8_t r;
     uint8_t g;
@@ -305,6 +343,14 @@ void pick_color(control& control_state, parsing::game_map& map) {
     control_state.r = map.data_raw[pixel_index * 4];
     control_state.g = map.data_raw[pixel_index * 4 + 1];
     control_state.b = map.data_raw[pixel_index * 4 + 2];
+
+    auto selected_pixel = pixel_index;
+    auto selected_province = glm::vec2((float)map.data[pixel_index * 4] / 256.f, (float)map.data[pixel_index * 4 + 1] / 256.f);
+    auto selected_province_id = (int)map.data[pixel_index * 4] + (int)map.data[pixel_index * 4 + 1] * 256;
+
+    auto& def = map.provinces[map.index_to_vector_position[selected_province_id]];
+
+    control_state.fill_with_tag = def.owner_tag;
 }
 
 void paint(control& control_state, parsing::game_map& map) {
@@ -335,23 +381,50 @@ void paint_state(control& control_state, parsing::game_map& map) {
 }
 
 void paint_safe(control& control_state, parsing::game_map& map, int pixel_index, uint32_t province_index) {
-    auto target_r = map.data_raw[pixel_index * 4];
-    auto target_g = map.data_raw[pixel_index * 4 + 1];
-    auto target_b = map.data_raw[pixel_index * 4 + 2];
-    auto rgb_target = parsing::rgb_to_uint(target_r, target_g, target_b);
-    auto index_target = map.rgb_to_index[rgb_target];
+    if (control_state.fill_mode == FILL_MODE::PROVINCE) {
+        auto target_r = map.data_raw[pixel_index * 4];
+        auto target_g = map.data_raw[pixel_index * 4 + 1];
+        auto target_b = map.data_raw[pixel_index * 4 + 2];
+        auto rgb_target = parsing::rgb_to_uint(target_r, target_g, target_b);
+        auto index_target = map.rgb_to_index[rgb_target];
 
-    if (map.province_is_sea[province_index] != map.province_is_sea[index_target]) {
-        return;
+        if (map.province_is_sea[province_index] != map.province_is_sea[index_target]) {
+            return;
+        }
+
+        map.data_raw[pixel_index * 4] = control_state.r;
+        map.data_raw[pixel_index * 4 + 1] = control_state.g;
+        map.data_raw[pixel_index * 4 + 2] = control_state.b;
+
+
+        map.data[4 * pixel_index + 0] = province_index % 256;
+        map.data[4 * pixel_index + 1] = province_index / 256;
+    } else if (control_state.fill_mode == FILL_MODE::OWNER_AND_CONTROLLER) {
+        auto target_r = map.data_raw[pixel_index * 4];
+        auto target_g = map.data_raw[pixel_index * 4 + 1];
+        auto target_b = map.data_raw[pixel_index * 4 + 2];
+        auto rgb_target = parsing::rgb_to_uint(target_r, target_g, target_b);
+        auto index_target = map.rgb_to_index[rgb_target];
+        if (map.province_is_sea[index_target]) {
+            return;
+        }
+
+        auto selected_pixel = pixel_index;
+        auto selected_province = glm::vec2((float)map.data[pixel_index * 4] / 256.f, (float)map.data[pixel_index * 4 + 1] / 256.f);
+        auto selected_province_id = (int)map.data[pixel_index * 4] + (int)map.data[pixel_index * 4 + 1] * 256;
+
+        auto& def = map.provinces[map.index_to_vector_position[selected_province_id]];
+
+        if (def.owner_tag != control_state.fill_with_tag || def.controller_tag != control_state.fill_with_tag) {
+            def.owner_tag = control_state.fill_with_tag;
+            def.controller_tag = control_state.fill_with_tag;
+            map.province_owner[3 * def.v2id + 0] = def.owner_tag[0];
+            map.province_owner[3 * def.v2id + 1] = def.owner_tag[1];
+            map.province_owner[3 * def.v2id + 2] = def.owner_tag[2];
+
+            update_map_texture(control_state, map);
+        }
     }
-
-    map.data_raw[pixel_index * 4] = control_state.r;
-    map.data_raw[pixel_index * 4 + 1] = control_state.g;
-    map.data_raw[pixel_index * 4 + 2] = control_state.b;
-
-
-    map.data[4 * pixel_index + 0] = province_index % 256;
-    map.data[4 * pixel_index + 1] = province_index / 256;
 }
 
 void paint_line(control& control_state, parsing::game_map& map) {
@@ -614,7 +687,8 @@ struct window_wrapper {
                     control_state.mouse_map_coord.y = std::clamp(control_state.mouse_map_coord.y, 0.f, (float)map.size_y - 1.f);
                     control_state.mouse_map_coord.x = std::clamp(control_state.mouse_map_coord.x, 0.f, (float)map.size_x - 1.f);
 
-                    update_select(control_state, map);
+                    control_state.active = !control_state.active;
+                    control_state.fill_center = glm::vec2{control_state.mouse_map_coord.x,control_state.mouse_map_coord.y};
                 }
                 else if (event.button.button == SDL_BUTTON_RIGHT)
                 {
@@ -750,6 +824,10 @@ int main(int argc, char* argv[]) {
         check_gl_error("Before loading textures");
 
         load_map_texture(control_state, map_state);
+
+        // loading textures for icons:
+
+
 
         check_gl_error("Before shaders");
 
@@ -888,9 +966,91 @@ int main(int argc, char* argv[]) {
             ImGui_ImplSDL2_NewFrame();
             ImGui::NewFrame();
 
+            int status_bar_height = 25;
+
             {
-                ImGui::SetNextWindowSize(ImVec2(window.width, 25));
-                ImGui::SetNextWindowPos(ImVec2(0, window.height - 25));
+                ImGui::SetNextWindowSize(ImVec2(50, window.height - status_bar_height));
+                ImGui::SetNextWindowPos(ImVec2(0, 0));
+
+                ImGui::Begin(
+                    "Brushes",
+                    NULL,
+                    ImGuiWindowFlags_NoTitleBar
+                    | ImGuiWindowFlags_NoResize
+                    | ImGuiWindowFlags_NoScrollbar
+                    | ImGuiWindowFlags_NoFocusOnAppearing
+                );
+
+
+                if (ImGui::Button("S", ImVec2(35, 35))) {
+                    control_state.mode = CONTROL_MODE::SELECT;
+                    control_state.active = false;
+                };
+
+                if (ImGui::Button("F", ImVec2(35, 35))) {
+                    control_state.mode = CONTROL_MODE::FILL;
+                    control_state.active = false;
+                };
+
+                if (ImGui::Button("P", ImVec2(35, 35))) {
+                    control_state.mode = CONTROL_MODE::PICKING_COLOR;
+                    control_state.active = false;
+                };
+
+                ImGui::End();
+            }
+
+
+            {
+                ImGui::SetNextWindowSize(ImVec2(300, window.height - status_bar_height));
+                ImGui::SetNextWindowPos(ImVec2(window.width - 300, 0));
+
+                ImGui::Begin(
+                    "Brush settings",
+                    NULL,
+                    ImGuiWindowFlags_NoTitleBar
+                    | ImGuiWindowFlags_NoResize
+                    | ImGuiWindowFlags_NoScrollbar
+                    | ImGuiWindowFlags_NoFocusOnAppearing
+                );
+
+                if (control_state.mode == CONTROL_MODE::SELECT) {
+                    ImGui::Text("Selection mode");
+                    if (ImGui::BeginCombo("dropdown select", selection_mode_string(control_state.selection_mode).c_str())) {
+                        for (int n = 0; n < 2; n++) {
+                            const bool is_selected = (control_state.selection_mode == (SELECTION_MODE)n);
+                            if (ImGui::Selectable(selection_mode_string((SELECTION_MODE)n).c_str(), is_selected))
+                                control_state.selection_mode = (SELECTION_MODE)n;
+                            if (is_selected)
+                                ImGui::SetItemDefaultFocus();
+                        }
+                        ImGui::EndCombo();
+                    }
+                } else if (control_state.mode == CONTROL_MODE::FILL) {
+                    ImGui::Text("Fill mode");
+                    if (ImGui::BeginCombo("dropdown fill", fill_mode_string(control_state.fill_mode).c_str())) {
+                        for (int n = 0; n < 2; n++) {
+                            const bool is_selected = (control_state.fill_mode == (FILL_MODE)n);
+                            if (ImGui::Selectable(fill_mode_string((FILL_MODE)n).c_str(), is_selected))
+                                control_state.fill_mode = (FILL_MODE)n;
+                            if (is_selected)
+                                ImGui::SetItemDefaultFocus();
+                        }
+                        ImGui::EndCombo();
+                    }
+
+                    if (control_state.fill_mode == FILL_MODE::OWNER_AND_CONTROLLER) {
+                        ImGui::Text("Fill with:");
+                        ImGui::Text("%s", control_state.fill_with_tag.c_str());
+                    }
+                }
+
+                ImGui::End();
+            }
+
+            {
+                ImGui::SetNextWindowSize(ImVec2(window.width, status_bar_height));
+                ImGui::SetNextWindowPos(ImVec2(0, window.height - status_bar_height));
 
                 ImGui::Begin(
                     "Status",
@@ -921,6 +1081,10 @@ int main(int argc, char* argv[]) {
                     break;
                 case CONTROL_MODE::SET_STATE:
                     ImGui::Text("Set state");
+                    break;
+                case CONTROL_MODE::SELECT:
+                    ImGui::Text("Select");
+                    break;
                 break;
                 }
 
@@ -1043,6 +1207,8 @@ int main(int argc, char* argv[]) {
                     break;
                 case CONTROL_MODE::SET_STATE:
                     ImGui::Text("Set state");
+                case CONTROL_MODE::SELECT:
+                    ImGui::Text("Select");
                 break;
                 }
 
@@ -1180,24 +1346,29 @@ int main(int argc, char* argv[]) {
                 ImGui::End();
             }
 
-            switch (control_state.mode) {
-            case CONTROL_MODE::PICKING_COLOR:
-                pick_color(control_state, map_state);
-                control_state.mode = CONTROL_MODE::NONE;
-                break;
-            case CONTROL_MODE::PAINTING:
-                paint(control_state, map_state);
-                update_map_texture(control_state, map_state);
-                break;
-            case CONTROL_MODE::FILL:
-                paint_line(control_state, map_state);
-                update_map_texture(control_state, map_state);
-                break;
-            case CONTROL_MODE::SET_STATE:
-                paint_state(control_state, map_state);
-                update_map_texture(control_state, map_state);
-                break;
-            default: break;
+            if (control_state.active) {
+                switch (control_state.mode) {
+                    case CONTROL_MODE::PICKING_COLOR:
+                        pick_color(control_state, map_state);
+                        control_state.mode = CONTROL_MODE::NONE;
+                        break;
+                    case CONTROL_MODE::PAINTING:
+                        paint(control_state, map_state);
+                        update_map_texture(control_state, map_state);
+                        break;
+                    case CONTROL_MODE::FILL:
+                        paint_line(control_state, map_state);
+                        update_map_texture(control_state, map_state);
+                        break;
+                    case CONTROL_MODE::SET_STATE:
+                        paint_state(control_state, map_state);
+                        update_map_texture(control_state, map_state);
+                        break;
+                    case CONTROL_MODE::SELECT:
+                        update_select(control_state, map_state);
+                        break;
+                    default: break;
+                }
             }
 
 
