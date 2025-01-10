@@ -21,40 +21,33 @@ layout (location = 0) out vec4 out_color;
 
 void main()
 {
-    dvec2 dtex = texcoord;
-    dvec2 dchunk = chunk;
+    vec2 dtex = texcoord;
+    vec2 dchunk = chunk;
 
-    float chunks_size = 16.f;
+    float chunks_size = 2.f;
 
-    dvec2 true_textcoord = dchunk + dtex / chunks_size;
+    vec2 true_textcoord = dchunk + dtex / chunks_size;
 
-    double u = true_textcoord.x;
-    double v = true_textcoord.y;
+    float u = true_textcoord.x;
+    float v = true_textcoord.y;
 
     // vec2 modif = vec2(u * 10 - 5, v * 10 - 5);
 
     // out_color = vec4(texture(data, texcoord).r, 0.f, 0.f, 1.f);
     // return;
 
-    dvec2 base_shift = 1.f / size;
+    vec2 base_shift = 1.f / size;
 
-    dvec2 base_shift_y = vec2(0.f, 1/size.y);
-    dvec2 base_shift_x = vec2(1/size.x, 0.f);
+    vec2 base_shift_y = vec2(0.f, 1/size.y);
+    vec2 base_shift_x = vec2(1/size.x, 0.f);
 
-    dvec2 coord = vec2(u, v);
+    vec2 coord = vec2(u, v);
 
-    dvec2 pixel = floor(coord * size);
-    dvec2 local_coord = fract(coord * size);
-
-
+    vec2 pixel = floor(coord * size);
+    vec2 local_coord = fract(coord * size + 1.0/512.0);
     vec2 half_of_province_pixel = vec2(0.f, 0.f); //vec2(1.f, 1.f) / 1024.f / 4.f;
 
-    bool top = false;
-    bool bottom = false;
-    bool left = false;
-    bool right = false;
-
-    double border_inner;
+    float border_inner;
 
     if (zoom > 1.f) {
         border_inner = 1.f;
@@ -63,20 +56,6 @@ void main()
     } else {
         float t = (zoom - 1.f/16.f) / 1.f;
         border_inner = (1.f - t) * 0.1f + t * 1.f;
-    }
-
-
-    if (local_coord.y < border_inner) {
-        bottom = true;
-    }
-    if (local_coord.y > 1.f - border_inner) {
-        top = true;
-    }
-    if (local_coord.x < border_inner) {
-        left = true;
-    }
-    if (local_coord.x > 1.f - border_inner) {
-        right = true;
     }
 
     bool border_top = false;
@@ -152,10 +131,10 @@ void main()
 
     bool is_border = true;
 
-    if (top && border_top) {
-    } else if (bottom && border_bottom) {
-    } else if (left && border_left) {
-    } else if (right && border_right) {
+    if (border_top) {
+    } else if (border_bottom) {
+    } else if (border_left) {
+    } else if (border_right) {
     } else {
         border_color = vec4(0.0f, 0.0f, 0.0f, 1.0f);
         is_border = false;

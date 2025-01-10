@@ -1255,7 +1255,7 @@ int main(int argc, char* argv[]) {
 
 
             glBindVertexArray(fake_VAO);
-            glDrawArrays(GL_TRIANGLES, 0, 6 * 16 * 16);
+            glDrawArrays(GL_TRIANGLES, 0, 6 * 2 * 2);
 
             check_gl_error("After draw:");
 

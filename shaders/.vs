@@ -22,7 +22,7 @@ void main()
     vec2 base = VERTICES[gl_VertexID - int(floor(gl_VertexID / 6.f) * 6.f)];
     texcoord = (base.xy + 1.0) / 2.f;
 
-    float chunks_size = 16.f;
+    float chunks_size = 2.f;
 
     float square_index = floor(gl_VertexID / 6.f);
     float y = floor(square_index / chunks_size);
