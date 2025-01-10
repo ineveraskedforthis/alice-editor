@@ -74,6 +74,8 @@ namespace parsing{
 
         std::string current_word;
 
+        bool ignore_line = false;
+
         ADJ_PARSER_TASK task;
 
         bool reading_comment;
@@ -98,90 +100,101 @@ namespace parsing{
             current_word.clear();
         }
 
-        void parse(game_map& map, char c) {
-            // std::cout << c << " " << current_word << "\n";
-            if (c == '#') {
-                reading_comment = true;
+        void parse(game_map& map, std::ifstream& file) {
 
-                if (task == ADJ_PARSER_TASK::READING_COMMENT) {
-                    execute(map);
-                }
-            }
 
-            if (reading_comment) {
-                if (c == '\n') {
-                    reading_comment = false;
-                }
-                return;
-            }
+            char c;
 
-            switch (task) {
-            case ADJ_PARSER_TASK::READING_FROM :
-                if (c == ';') {
-                    from = std::stoi(current_word);
+            while(true) {
+                current_word.clear();
+                while(file.get(c) && parser::nothing(c));
+                current_word += c;
+
+                // handle comments in the body of csv
+                if (c == '#') {
                     current_word.clear();
+                    while(parser::until_end_of_the_line(c)) {
+                        if(!file.get(c)) {
+                            return;
+                        }
+                    };
+                    while(parser::end_of_the_line(c)) {
+                        if(!file.get(c)) {
+                            return;
+                        }
+                    };
+                }
 
-                    // std::cout << "adj from: " << from << std::endl;
-
-                    task = ADJ_PARSER_TASK::READING_TO;
-                } else {
+                while(file.get(c) && parser::until_semicolon(c)) {
                     current_word += c;
                 }
-                break;
-            case ADJ_PARSER_TASK::READING_TO:
-                if (c == ';') {
-                    to = std::stoi(current_word);
-                    current_word.clear();
 
-                    // std::cout << "adj to: " << to << std::endl;
-                    task = ADJ_PARSER_TASK::READING_TYPE;
-                } else {
+                // handle first line;
+                if (current_word == "From") {
+                    std::cout<< "csv desc detected" << std::endl;
+
+                    while(parser::until_end_of_the_line(c)) {
+                        if(!file.get(c)) {
+                            return;
+                        }
+                    };
+                    while(parser::end_of_the_line(c)) {
+                        if(!file.get(c)) {
+                            return;
+                        }
+                    };
+
+                    continue;
+                }
+
+                std::cout << current_word;
+
+                from = std::stoi(current_word);
+                current_word.clear();
+
+                while(file.get(c) && parser::until_semicolon(c)) {
                     current_word += c;
                 }
-                break;
-            case ADJ_PARSER_TASK::READING_TYPE:
-                if (c == ';') {
-                    type = current_word;
-                    current_word.clear();
+                to = std::stoi(current_word);
+                current_word.clear();
 
-                    // std::cout << "adj type: " << type << std::endl;
-                    task = ADJ_PARSER_TASK::READING_THROUGH;
-                } else {
+                while(file.get(c) && parser::until_semicolon(c)) {
                     current_word += c;
                 }
-                break;
-            case ADJ_PARSER_TASK::READING_THROUGH:
-                if (c == ';') {
-                    through = std::stoi(current_word);
-                    current_word.clear();
+                type = current_word;
+                current_word.clear();
 
-                    // std::cout << "adj through: " << through << std::endl;
-                    task = ADJ_PARSER_TASK::READING_DATA;
-                } else {
+                while(file.get(c) && parser::until_semicolon(c)) {
                     current_word += c;
                 }
-                break;
-            case ADJ_PARSER_TASK::READING_DATA:
-                if (c == ';') {
-                    data = current_word;
-                    current_word.clear();
+                through = std::stoi(current_word);
+                current_word.clear();
 
-                    // std::cout << "adj through: " << through << std::endl;
-                    task = ADJ_PARSER_TASK::READING_COMMENT;
-                } else {
+                while(file.get(c) && parser::until_end_of_the_line(c) && parser::until_comment(c)) {
                     current_word += c;
                 }
-                break;
-            case ADJ_PARSER_TASK::READING_COMMENT:
-                if (c == '\n' or c == '#') {
-                    comment = current_word;
-                    current_word.clear();
+                data = current_word;
+                current_word.clear();
 
-                    execute(map);
-                } else {
+                while(file.get(c) && parser::until_end_of_the_line(c)) {
                     current_word += c;
                 }
-                break;
+                comment = current_word;
+                current_word.clear();
+
+                execute(map);
+
+                while(parser::until_end_of_the_line(c)) {
+                    if(!file.get(c)) {
+                        return;
+                    }
+                };
+                while(parser::end_of_the_line(c)) {
+                    if(!file.get(c)) {
+                        return;
+                    }
+                };
+
             }
         }
     };
@@ -340,224 +353,30 @@ namespace parsing{
                             while (parser::until_close_bracket_balance(c, counter) && file.get(c));
                             file.get(c);
                         } else {
-                            std::cout << "unknown key: " << word.data << std::endl;
-                            abort();
+                            // std::cout << "unknown key: " << word.data << std::endl;
                         }
                     }
-                } else {
-                    while (parser::until_end_of_the_line(c)) {
-                        if (!file.get(c)){
-                            return;
-                        }
-                    };
+                }
+
+                // std::cout << c;
+
+                while (parser::until_end_of_the_line(c)) {
+                    // std::cout << c;
+                    if (!file.get(c)){
+                        // std::cout << " end of file detected, return ";
+                        return;
+                    }
+                };
+                if (!parser::end_of_the_line(c)) {
+                    // std::cout << " end of file detected, return ";
+                    return;
                 }
                 while (parser::end_of_the_line(c)) {
+                    // std::cout << c;
                     if (!file.get(c)){
                         return;
                     }
                 }
-            }
-        }
-    };
-
-    struct parser_history_province {
-        PROVINCE_HISTORY_PARSER_TASK task;
-        std::string current_word;
-
-        bool reading_comment;
-        int brackets_active;
-
-        void parse(game_map& map, province_definition& prov, char c) {
-            if (c == '\t'){
-                c = ' ';
-            }
-
-            if (c == '#') {
-                reading_comment = true;
-            }
-
-            if (reading_comment) {
-                if (c == '\n' or c =='\r') {
-                    reading_comment = false;
-                }
-            }
-
-            switch (task) {
-            case PROVINCE_HISTORY_PARSER_TASK::KEY:
-            if (c != '\n' && c != '\r' && c != ' ' && !reading_comment) {
-                current_word += c;
-            }
-            // std::cout << current_word << "\n";
-            if (current_word == "owner") {
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::OWNER;
-            } else if (current_word == "controller") {
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::CONTROLLER;
-            } else if (current_word == "add_core") {
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::CORE;
-            } else if (current_word == "trade_goods") {
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::MAIN_TRADE_GOOD;
-            } else if (current_word == "life_rating") {
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::LIFE_RATING;
-            } else if (current_word == "state_building") {
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::STATE_BUILDINGS;
-            } else if (current_word == "naval_base") {
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::NAVAL_BASE;
-            } else if (current_word == "fort") {
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::FORT;
-            } else if (current_word == "railroad") {
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::RAILROAD;
-            } else if (current_word == "colonial") {
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::COLONIAL;
-            } else {
-                if (current_word.ends_with('{')) {
-                    current_word.clear();
-                    brackets_active = 1;
-                    task = PROVINCE_HISTORY_PARSER_TASK::AWAIT_CLOSING_ALL_BRACKETS;
-                }
-            }
-            break;
-            case PROVINCE_HISTORY_PARSER_TASK::OWNER:
-            if (c == '\n' || c == '\r' || reading_comment) {
-                prov.owner_tag = current_word;
-                map.province_owner[3 * prov.v2id + 0] = current_word[0];
-                map.province_owner[3 * prov.v2id + 1] = current_word[1];
-                map.province_owner[3 * prov.v2id + 2] = current_word[2];
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::KEY;
-            } else {
-                if (c == ' ' || c == '=') {
-                } else {
-                    current_word += c;
-                }
-            }
-            break;
-            case PROVINCE_HISTORY_PARSER_TASK::CONTROLLER:
-            if (c == '\n' || c == '\r' || reading_comment) {
-                prov.controller_tag = current_word;
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::KEY;
-            } else {
-                if (c == ' ' || c == '=') {
-                } else {
-                    current_word += c;
-                }
-            }
-            break;
-            case PROVINCE_HISTORY_PARSER_TASK::CORE:
-            if (c == '\n' || c == '\r' || reading_comment) {
-                prov.cores.push_back(current_word);
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::KEY;
-            } else {
-                if (c == ' ' || c == '=') {
-                } else {
-                    current_word += c;
-                }
-            }
-            break;
-            case PROVINCE_HISTORY_PARSER_TASK::MAIN_TRADE_GOOD:
-            if (c == '\n' || c == '\r' || reading_comment) {
-                prov.main_trade_good = current_word;
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::KEY;
-            } else {
-                if (c == ' ' || c == '=') {
-                } else {
-                    current_word += c;
-                }
-            }
-            break;
-            case PROVINCE_HISTORY_PARSER_TASK::LIFE_RATING:
-            if (c == '\n' || c == '\r' || reading_comment) {
-                prov.life_rating = std::stoi(current_word);
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::KEY;
-            } else {
-                if (c == ' ' || c == '=') {
-                } else {
-                    current_word += c;
-                }
-            }
-            break;
-            case PROVINCE_HISTORY_PARSER_TASK::NAVAL_BASE:
-            if (c == '\n' || c == '\r' || reading_comment) {
-                prov.naval_base = std::stoi(current_word);
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::KEY;
-            } else {
-                if (c == ' ' || c == '=') {
-                } else {
-                    current_word += c;
-                }
-            }
-            break;
-            case PROVINCE_HISTORY_PARSER_TASK::RAILROAD:
-            if (c == '\n' || c == '\r' || reading_comment) {
-                prov.railroad = std::stoi(current_word);
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::KEY;
-            } else {
-                if (c == ' ' || c == '=') {
-                } else {
-                    current_word += c;
-                }
-            }
-            break;
-            case PROVINCE_HISTORY_PARSER_TASK::FORT:
-            if (c == '\n' || c == '\r' || reading_comment) {
-                prov.fort = std::stoi(current_word);
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::KEY;
-            } else {
-                if (c == ' ' || c == '=') {
-                } else {
-                    current_word += c;
-                }
-            }
-            break;
-            case PROVINCE_HISTORY_PARSER_TASK::STATE_BUILDINGS:
-                current_word += c;
-                if (c == '}') {
-                    auto from = current_word.find_first_of('{');
-                    //prov.buildings.push_back(current_word.substr(from));
-                    task = PROVINCE_HISTORY_PARSER_TASK::KEY;
-                }
-            break;
-            case PROVINCE_HISTORY_PARSER_TASK::COLONIAL:
-            if (c == '\n' || c == '\r' || reading_comment) {
-                prov.colonial = std::stoi(current_word);
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::KEY;
-            } else {
-                if (c == ' ' || c == '=') {
-                } else {
-                    current_word += c;
-                }
-            }
-            break;
-
-            case PROVINCE_HISTORY_PARSER_TASK::AWAIT_CLOSING_ALL_BRACKETS:
-            if (c == '{') {
-                brackets_active ++;
-            } else if (c == '}') {
-                brackets_active --;
-            }
-
-            if (brackets_active == 0) {
-                current_word.clear();
-                task = PROVINCE_HISTORY_PARSER_TASK::KEY;
-            }
-            break;
             }
         }
     };
@@ -686,7 +505,7 @@ namespace parsing{
             std::string str;
 
             std::getline(file, str);
-            std::cout << "reading file\n";
+            std::cout << "reading /map/definition.csv\n";
 
             while (std::getline(file, str)) {
                 auto end = str.find(";");
@@ -715,8 +534,6 @@ namespace parsing{
                 end = str.find(";");
                 std::string name = str.substr(0, end);
 
-                // std::cout << index << " ";
-
                 if (index) {
                     map_state.id_is_used[index] = true;
                     province_definition def {
@@ -737,11 +554,15 @@ namespace parsing{
             std::ifstream file(path + "/map/default.map");
 
             parser_of_defaul_file parser {};
+            std::cout << "reading /map/default.map\n";
 
             char c;
             bool found = false;
             while (file.get(c) && !found) {
-                if (c == ' ' || c == '\n') {
+                if (c == '#') {
+                    while(parser::until_end_of_the_line(c) && file.get(c));
+                }
+                if (parser::nothing(c)) {
                     if (parser.task == PARSER_TASK::READING_SPACE) continue;
                     else if (parser.task == PARSER_TASK::READING_WORD) {
                         switch (parser.mode) {
@@ -762,6 +583,7 @@ namespace parsing{
                                     found = true;
                                 } else {
                                     auto index = std::stoi(parser.last_word);
+                                    std::cout << index << " ";
                                     map_state.province_is_sea[index] = 255;
                                 }
                                 break;
@@ -814,7 +636,10 @@ namespace parsing{
 
         {
             std::cout << "reading states\n";
-            std::ifstream file(path + "/map/region.txt");
+            std::ifstream file(path + "/map/area.txt");
+            if (!file.good()) {
+                file.open(path + "/map/region.txt");
+            }
             std::string str;
             char c;
             map_state.states.push_back({"INVALID"});
@@ -832,16 +657,31 @@ namespace parsing{
             char c;
             parser_adj parser {};
             std::cout << "parsing adjacencies\n";
-            while (file.get(c)) {
-                parser.parse(map_state, c);
-            }
+            if (file.good())
+                parser.parse(map_state, file);
+            else
+                std::cout << "bad /map/adjacencies.csv";
         }
 
         {
             std::cout << "reading province history\n";
 
             for (auto& entry : std::filesystem::directory_iterator  {path + "/history" + "/provinces"}) {
-                if (!entry.is_directory()) {
+                if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
+                    auto name = entry.path().filename().string();
+                    // std::cout << name << std::endl;
+                    auto first_space = name.find_first_of(' ');
+                    auto id_string = name.substr(0, first_space);
+                    auto id = std::stoi(id_string);
+                    std::cout << id << " ";
+                    auto& def = map_state.provinces[map_state.index_to_vector_position[id]];
+                    def.history_file_name = name;
+                    def.historical_region = "other";
+                    parser_history_province2 parser {};
+                    std::ifstream file(entry.path());
+                    parser.parse(map_state, def, file);
+                    // std::cout << "parsing completed" << std::endl;
+
                     continue;
                 }
 
@@ -851,29 +691,16 @@ namespace parsing{
                     auto first_space = name.find_first_of(' ');
                     auto id_string = name.substr(0, first_space);
                     auto id = std::stoi(id_string);
-
                     std::cout << id << " ";
-
                     auto& def = map_state.provinces[map_state.index_to_vector_position[id]];
-
                     def.history_file_name = name;
-
                     def.historical_region = entry.path().filename().string();
-
                     parser_history_province2 parser {};
-
                     std::ifstream file(province_description.path());
                     parser.parse(map_state, def, file);
-
-
-                    // parser.task = PROVINCE_HISTORY_PARSER_TASK::KEY;
-
-                    // char c;
-                    // while (file.get(c)) {
-                    //     parser.parse(map_state, def, c);
-                    // }
                 }
             }
+
         }
     }
 

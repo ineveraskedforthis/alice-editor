@@ -25,3 +25,4 @@ build/shaders/*
 
 build/editor-output/*
 build/editor-input/*
+build/editor-input*

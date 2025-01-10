@@ -10,6 +10,7 @@ uniform float pixel_x;
 uniform float pixel_y;
 uniform vec2 hovered_province;
 uniform vec2 selected_province;
+uniform vec2 size;
 
 uniform sampler2D province_rgb;
 uniform sampler2D data;
@@ -23,7 +24,7 @@ void main()
     dvec2 dtex = texcoord;
     dvec2 dchunk = chunk;
 
-    float chunks_size = 8.f;
+    float chunks_size = 16.f;
 
     dvec2 true_textcoord = dchunk + dtex / chunks_size;
 
@@ -35,7 +36,6 @@ void main()
     // out_color = vec4(texture(data, texcoord).r, 0.f, 0.f, 1.f);
     // return;
 
-    dvec2 size = vec2(7000.f, 3500.f);
     dvec2 base_shift = 1.f / size;
 
     dvec2 base_shift_y = vec2(0.f, 1/size.y);

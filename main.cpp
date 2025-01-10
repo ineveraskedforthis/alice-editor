@@ -716,6 +716,7 @@ namespace SHADER_UNIFORMS {
         HOVERED_PROVINCE = 9,
         STATES_DATA = 10,
         OWNER_DATA,
+        SIZE,
         MODEL_LINE, VIEW_LINE
     };
 }
@@ -773,6 +774,7 @@ int main(int argc, char* argv[]) {
         TO_LOCATION[SHADER_UNIFORMS::VIEW] = glGetUniformLocation(program, "view");
         TO_LOCATION[SHADER_UNIFORMS::PROJECTION] = glGetUniformLocation(program, "projection");
         TO_LOCATION[SHADER_UNIFORMS::ZOOM] = glGetUniformLocation(program, "zoom");
+        TO_LOCATION[SHADER_UNIFORMS::SIZE] = glGetUniformLocation(program, "size");
 
         TO_LOCATION[SHADER_UNIFORMS::PIXEL_X] = glGetUniformLocation(program, "pixel_x");
         TO_LOCATION[SHADER_UNIFORMS::PIXEL_Y] = glGetUniformLocation(program, "pixel_y");
@@ -1220,6 +1222,7 @@ int main(int argc, char* argv[]) {
             glUseProgram(program);
 
             glUniform1f(TO_LOCATION[SHADER_UNIFORMS::ZOOM], zoom);
+            glUniform2f(TO_LOCATION[SHADER_UNIFORMS::SIZE], map_state.size_x, map_state.size_y);
             glUniform1f(TO_LOCATION[SHADER_UNIFORMS::PIXEL_X], control_state.mouse_map_coord.x);
             glUniform1f(TO_LOCATION[SHADER_UNIFORMS::PIXEL_Y], control_state.mouse_map_coord.y);
             glUniform2fv(
@@ -1230,8 +1233,6 @@ int main(int argc, char* argv[]) {
                 TO_LOCATION[SHADER_UNIFORMS::HOVERED_PROVINCE],
                 1, reinterpret_cast<float*>(&control_state.hovered_province)
             );
-
-
 
             glUniformMatrix4fv(TO_LOCATION[SHADER_UNIFORMS::MODEL], 1, false, reinterpret_cast<float*>(&model));
             glUniformMatrix4fv(TO_LOCATION[SHADER_UNIFORMS::VIEW], 1, false, reinterpret_cast<float*>(&view));
@@ -1254,7 +1255,7 @@ int main(int argc, char* argv[]) {
 
 
             glBindVertexArray(fake_VAO);
-            glDrawArrays(GL_TRIANGLES, 0, 6 * 64);
+            glDrawArrays(GL_TRIANGLES, 0, 6 * 16 * 16);
 
             check_gl_error("After draw:");
 

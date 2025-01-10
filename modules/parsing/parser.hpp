@@ -27,7 +27,11 @@ namespace parser {
         return false;
     };
 
-
+    bool inline until_semicolon(char c) {
+        if (c == ';')
+            return false;
+        return true;
+    };
 
     struct word {
         std::string data;
@@ -95,6 +99,13 @@ namespace parser {
         if (c == '\r')
             return false;
         if (c == '\n')
+            return false;
+
+        return true;
+    }
+
+    inline bool until_comment(char c) {
+        if (c == '#')
             return false;
 
         return true;
