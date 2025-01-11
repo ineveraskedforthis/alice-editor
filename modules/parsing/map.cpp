@@ -7,7 +7,9 @@
 #include <string>
 #include <vector>
 #include <filesystem>
+#include "adjacency.hpp"
 #include "parser.hpp"
+#include "state_building.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stbimage/stb_image.h"
@@ -40,215 +42,9 @@ namespace parsing{
         READING_PROVINCE_INDEX
     };
 
-    enum class ADJ_PARSER_TASK {
-        READING_FROM,
-        READING_TO,
-        READING_TYPE,
-        READING_THROUGH,
-        READING_DATA,
-        READING_COMMENT,
-    };
-
-    enum class PROVINCE_HISTORY_PARSER_TASK {
-        AWAIT_CLOSING_ALL_BRACKETS,
-        KEY,
-        OWNER,
-        CONTROLLER,
-        CORE,
-        MAIN_TRADE_GOOD,
-        LIFE_RATING,
-        NAVAL_BASE,
-        RAILROAD,
-        FORT,
-        STATE_BUILDINGS,
-        COLONIAL,
-    };
-
-    struct parser_adj {
-        uint32_t from;
-        uint32_t to;
-        std::string type;
-        uint32_t through;
-        std::string data;
-        std::string comment;
-
-        std::string current_word;
-
-        bool ignore_line = false;
-
-        ADJ_PARSER_TASK task;
-
-        bool reading_comment;
-        void execute(game_map& map) {
-            ADJACENCY_TYPE true_type;
-            if (type == "sea") {
-                true_type = ADJACENCY_TYPE::STRAIT_CROSSING;
-            } else if (type == "canal") {
-                true_type = ADJACENCY_TYPE::CANAL;
-            } else if (type == "impassable") {
-                true_type = ADJACENCY_TYPE::IMPASSABLE;
-            } else {
-                true_type = ADJACENCY_TYPE::INVALID;
-            }
-            adjacency to_add {
-                from, through, to, true_type, data, comment
-            };
-
-            std::cout << " from: " << from << " through: " << through << " to: " << to << "\n";
-            map.adjacencies.push_back(to_add);
-            task = ADJ_PARSER_TASK::READING_FROM;
-            current_word.clear();
-        }
-
-        void parse(game_map& map, std::ifstream& file) {
-            char c;
-            file.get(c);
-            while(true) {
-                current_word.clear();
-                while(parser::nothing(c) && file.get(c));
-                current_word += c;
-
-                // handle comments in the body of csv
-                if (c == '#') {
-                    current_word.clear();
-                    while(parser::until_end_of_the_line(c)) {
-                        if(!file.get(c)) {
-                            return;
-                        }
-                    };
-                    while(parser::end_of_the_line(c)) {
-                        if(!file.get(c)) {
-                            return;
-                        }
-                    };
-
-                    continue;
-                }
-
-                while(file.get(c) && parser::until_semicolon(c)) {
-                    current_word += c;
-                }
-
-                // handle first line;
-                if (current_word == "From") {
-                    std::cout<< "csv desc detected" << std::endl;
-
-                    while(parser::until_end_of_the_line(c)) {
-                        if(!file.get(c)) {
-                            return;
-                        }
-                    };
-                    while(parser::end_of_the_line(c)) {
-                        if(!file.get(c)) {
-                            return;
-                        }
-                    };
-
-                    continue;
-                }
-
-
-                from = std::stoi(current_word);
-                current_word.clear();
-
-                while(file.get(c) && parser::until_semicolon(c)) {
-                    current_word += c;
-                }
-                to = std::stoi(current_word);
-                current_word.clear();
-
-                while(file.get(c) && parser::until_semicolon(c)) {
-                    current_word += c;
-                }
-                type = current_word;
-                current_word.clear();
-
-                while(file.get(c) && parser::until_semicolon(c)) {
-                    current_word += c;
-                }
-                through = std::stoi(current_word);
-                current_word.clear();
-
-                while(file.get(c) && parser::until_end_of_the_line(c) && parser::until_comment(c)) {
-                    current_word += c;
-                }
-                data = current_word;
-                current_word.clear();
-
-                while(file.get(c) && parser::until_end_of_the_line(c)) {
-                    current_word += c;
-                }
-                comment = current_word;
-                current_word.clear();
-
-                execute(map);
-
-                while(parser::until_end_of_the_line(c)) {
-                    if(!file.get(c)) {
-                        return;
-                    }
-                };
-                while(parser::end_of_the_line(c)) {
-                    if(!file.get(c)) {
-                        return;
-                    }
-                };
-
-            }
-        }
-    };
-
-    struct parser_state_building {
-        int level;
-        std::string building_type;
-        std::string upgrade;
-
-        void parse(state_building_definition& def, std::ifstream& file, char& c) {
-            parser::word word;
-            while (parser::until_open_bracket(c) && file.get(c));
-            while (true) {
-                while (parser::nothing(c) && file.get(c));
-                if (c != '#') {
-                    word.reset();
-                    while (word.parse(c) && file.get(c));
-                    if (word.data == "level") {
-                        parser::word value;
-                        while (parser::equality(c) && file.get(c));
-                        while (value.parse(c) && file.get(c));
-
-                        def.level = std::stoi(value.data);
-                    } else if (word.data == "building") {
-                        parser::word value;
-                        while (parser::equality(c) && file.get(c));
-                        while (value.parse(c) && file.get(c));
-
-                        def.building_type = value.data;
-                    } else if (word.data == "upgrade") {
-                        parser::word value;
-                        while (parser::equality(c) && file.get(c));
-                        while (value.parse(c) && file.get(c));
-
-                        def.upgrade = value.data;
-                    }
-                }
-
-                while (parser::end_of_the_line(c) && file.get(c));
-                if (parser::end_of_the_line(c)) {
-                    if (!file.get(c)){
-                        break;
-                    }
-                }
-
-                if (c == '}') {
-                    file.get(c);
-                    return;
-                }
-            }
-        }
-    };
 
     struct parser_history_province2 {
-        void parse(game_map& map, province_definition& prov, std::ifstream& file) {
+        void parse(game_map& map, game_definition::province& prov, std::ifstream& file) {
             char c = ' ';
 
             parser::word word;
@@ -281,8 +77,8 @@ namespace parsing{
                         prov.controller_tag = value.data;
                     } else if (word.data == "state_building") {
                         while (parser::equality(c) && file.get(c));
-                        parser_state_building building;
-                        state_building_definition def;
+                        parser::state_building building;
+                        game_definition::state_building def;
                         building.parse(def, file, c);
                         prov.buildings.push_back(def);
                     } else if (word.data == "add_core") {
@@ -427,7 +223,7 @@ namespace parsing{
             }
             case REGIONS_PARSER_TASK::READING_STATE_NAME: {
                 if (c == ' ' || c == '\n' || c == '=') {
-                    state_definition def {current_word};
+                    game_definition::state def {current_word};
                     map.states.push_back(def);
                     current_state_def = map.states.size() - 1;
                     task = REGIONS_PARSER_TASK::AWAIT_PROVINCE_NAME;
@@ -534,7 +330,7 @@ namespace parsing{
 
                 if (index) {
                     map_state.id_is_used[index] = true;
-                    province_definition def {
+                    game_definition::province def {
                         (uint32_t)(index),
                         name,
                         (uint8_t)(r),
@@ -660,10 +456,10 @@ namespace parsing{
 
             std::string str;
             char c;
-            parser_adj parser {};
+            parser::adj parser {};
             if (file) {
                 std::cout << "parsing adjacencies\n";
-                parser.parse(map_state, file);
+                parser.parse(file, map_state.adjacencies);
             } else
                 std::cout << "bad /map/adjacencies.csv" << std::endl;
         }
@@ -838,16 +634,16 @@ border_cutoff = 1100.0
                 std::string type;
 
                 switch (adj.type) {
-                case ADJACENCY_TYPE::INVALID:
+                case game_definition::ADJACENCY_TYPE::INVALID:
                 type = "invalid";
                 break;
-                case ADJACENCY_TYPE::STRAIT_CROSSING:
+                case game_definition::ADJACENCY_TYPE::STRAIT_CROSSING:
                 type = "sea";
                 break;
-                case ADJACENCY_TYPE::CANAL:
+                case game_definition::ADJACENCY_TYPE::CANAL:
                 type = "canal";
                 break;
-                case ADJACENCY_TYPE::IMPASSABLE:
+                case game_definition::ADJACENCY_TYPE::IMPASSABLE:
                 type = "impassable";
                 break;
                 }
@@ -920,7 +716,7 @@ border_cutoff = 1100.0
                 }
     }
 
-    province_definition game_map::new_province(uint32_t pixel) {
+    game_definition::province game_map::new_province(uint32_t pixel) {
 
         auto old_r = data_raw[4 * pixel];
         auto old_g = data_raw[4 * pixel + 1];
@@ -936,7 +732,7 @@ border_cutoff = 1100.0
 
         update_available_colors();
 
-        province_definition result = {
+        game_definition::province result = {
             available_id,
             "UnknownProv" + std::to_string(available_id),
             available_r,

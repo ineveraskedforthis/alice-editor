@@ -1157,7 +1157,7 @@ int main(int argc, char* argv[]) {
                     def.buildings.erase(def.buildings.begin() + remove_index);
                 }
                 if (ImGui::Button("Add building")) {
-                    parsing::state_building_definition bdef {
+                    game_definition::state_building bdef {
                         .level = 1, .building_type = "?", .upgrade = "yes"
                     };
                     def.buildings.push_back(bdef);
@@ -1236,7 +1236,7 @@ int main(int argc, char* argv[]) {
                         update_adj_buffers(map_state, centers_buffer, adj_vertices_count);
                     }
 
-                    if (adj.type != parsing::ADJACENCY_TYPE::IMPASSABLE) {
+                    if (adj.type != game_definition::ADJACENCY_TYPE::IMPASSABLE) {
                         if (ImGui::Button("Set through")) {
                             adj.through = control_state.context_province;
                         }
@@ -1323,16 +1323,16 @@ int main(int argc, char* argv[]) {
                         ImGui::TableNextColumn();
                         switch (adj.type) {
 
-                        case parsing::ADJACENCY_TYPE::INVALID:
+                        case game_definition::ADJACENCY_TYPE::INVALID:
                         ImGui::Text("invalid");
                         break;
-                        case parsing::ADJACENCY_TYPE::STRAIT_CROSSING:
+                        case game_definition::ADJACENCY_TYPE::STRAIT_CROSSING:
                         ImGui::Text("crossing");
                         break;
-                        case parsing::ADJACENCY_TYPE::CANAL:
+                        case game_definition::ADJACENCY_TYPE::CANAL:
                         ImGui::Text("canal");
                         break;
-                        case parsing::ADJACENCY_TYPE::IMPASSABLE:
+                        case game_definition::ADJACENCY_TYPE::IMPASSABLE:
                         ImGui::Text("impassable");
                         break;
                         }

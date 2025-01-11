@@ -1,73 +1,16 @@
+#pragma once
 #include <cstdint>
 #include <map>
 #include <vector>
 #include <string>
+#include "definitions.hpp"
 
 namespace parsing{
-
-    struct state_building_definition {
-        int level;
-        std::string building_type;
-        std::string upgrade;
-    };
-
-    struct province_definition {
-        uint32_t v2id;
-        std::string name;
-
-        uint8_t r;
-        uint8_t g;
-        uint8_t b;
-
-        float pos_x;
-        float pos_y;
-        float pixels;
-
-        std::string history_file_name;
-        std::string owner_tag;
-        std::string controller_tag;
-        std::vector<std::string> cores;
-        std::string main_trade_good;
-
-        int life_rating;
-        int railroad;
-        int naval_base;
-        int fort;
-        int colonial;
-        int colony;
-
-        std::vector<state_building_definition> buildings;
-
-        std::string historical_region;
-
-        std::string terrain;
-        std::string is_slave;
-    };
-
-    struct state_definition {
-        std::string name;
-    };
-
-    enum class ADJACENCY_TYPE {
-        INVALID, STRAIT_CROSSING, CANAL, IMPASSABLE
-    };
-
-    struct adjacency {
-        uint32_t from;
-        uint32_t through;
-        uint32_t to;
-        ADJACENCY_TYPE type;
-        std::string data;
-        std::string comment;
-
-        bool mark_for_delete;
-    };
-
     struct game_map {
-        std::vector<province_definition> provinces;
-        std::vector<state_definition> states;
+        std::vector<game_definition::province> provinces;
+        std::vector<game_definition::state> states;
 
-        std::vector<adjacency> adjacencies;
+        std::vector<game_definition::adjacency> adjacencies;
 
         int size_x;
         int size_y;
@@ -89,7 +32,7 @@ namespace parsing{
         uint8_t available_g;
         uint8_t available_b;
 
-        province_definition new_province(uint32_t pixel);
+        game_definition::province new_province(uint32_t pixel);
         void update_available_colors();
     };
 
