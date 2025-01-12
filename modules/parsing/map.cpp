@@ -725,7 +725,7 @@ border_cutoff = 1100.0
 
                     for (auto key : local_rgo) {
                         file << "\tentry = {" << std::endl;
-                        file << "\t\trade_good = " << key << std::endl;
+                        file << "\t\ttrade_good = " << key << std::endl;
                         file << "\t\tmax_employment = " << def.secondary_rgo_size[key] << std::endl;
                         file << "\t}" << std::endl;
                     }
