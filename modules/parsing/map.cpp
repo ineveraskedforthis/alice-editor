@@ -8,8 +8,11 @@
 #include <vector>
 #include <filesystem>
 #include "adjacency.hpp"
+#include "definitions.hpp"
 #include "parser.hpp"
+#include "secondary_rgo.hpp"
 #include "state_building.hpp"
+#include "templates.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stbimage/stb_image.h"
@@ -81,6 +84,16 @@ namespace parsing{
                         game_definition::state_building def;
                         building.parse(def, file, c);
                         prov.buildings.push_back(def);
+                    } else if (word.data == "rgo_distribution") {
+                        std::vector<game_definition::secondary_rgo> rgos;
+                        parser::secondary_rgo(rgos, file, c);
+                        for (auto& item : rgos) {
+                            if (prov.secondary_rgo_size.contains((item.trade_good))) {
+                                prov.secondary_rgo_size[item.trade_good] += item.size;
+                            } else {
+                                prov.secondary_rgo_size[item.trade_good] = item.size;
+                            }
+                        }
                     } else if (word.data == "add_core") {
                         parser::word value;
                         while (parser::equality(c) && file.get(c));
@@ -449,11 +462,8 @@ namespace parsing{
 
         {
             std::cout << "reading adjacencies\n";
-
             std::cout << path + "/map/adjacencies.csv\n";
-
             std::ifstream file(path + "/map/adjacencies.csv");
-
             std::string str;
             char c;
             parser::adj parser {};
@@ -462,6 +472,17 @@ namespace parsing{
                 parser.parse(file, map_state.adjacencies);
             } else
                 std::cout << "bad /map/adjacencies.csv" << std::endl;
+        }
+
+        {
+            std::cout << "reading editor templates";
+            std::ifstream file(path + "/editor-templates/secondary_rgo.txt");
+
+            if (file) {
+                std::cout << "parsing rgo templates\n";
+                parser::secondary_rgo_template_file(map_state, file);
+            } else
+                std::cout << "no rgo distribution templates found" << std::endl;
         }
 
         {
@@ -691,6 +712,24 @@ border_cutoff = 1100.0
                     file << "\tlevel = " << building.level << std::endl;
                     file << "\tbuilding = " << building.building_type << std::endl;
                     file << "\tupgrade = " << building.upgrade << std::endl;
+                    file << "}" << std::endl;
+                }
+
+                std::vector<std::string> local_rgo;
+                for (auto const& [key, val] : def.secondary_rgo_size) {
+                    local_rgo.push_back(key);
+                }
+
+                if (local_rgo.size() > 0) {
+                    file << "rgo_distribution = {" << std::endl;
+
+                    for (auto key : local_rgo) {
+                        file << "\tentry = {" << std::endl;
+                        file << "\t\trade_good = " << key << std::endl;
+                        file << "\t\tmax_employment = " << def.secondary_rgo_size[key] << std::endl;
+                        file << "\t}" << std::endl;
+                    }
+
                     file << "}" << std::endl;
                 }
 

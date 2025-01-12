@@ -96,9 +96,6 @@ void adj::parse(std::ifstream& file, std::vector<game_definition::adjacency>& st
         }
         def.comment = current_word;
         current_word.clear();
-
-        std::cout << "new adj detected";
-
         storage.push_back(def);
 
         while(parser::until_end_of_the_line(c)) {

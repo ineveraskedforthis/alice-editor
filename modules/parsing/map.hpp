@@ -3,6 +3,7 @@
 #include <map>
 #include <vector>
 #include <string>
+#include <map>
 #include "definitions.hpp"
 
 namespace parsing{
@@ -11,6 +12,7 @@ namespace parsing{
         std::vector<game_definition::state> states;
 
         std::vector<game_definition::adjacency> adjacencies;
+
 
         int size_x;
         int size_y;
@@ -31,6 +33,7 @@ namespace parsing{
         uint8_t available_r;
         uint8_t available_g;
         uint8_t available_b;
+        std::map<std::string, std::map<std::string, int>> secondary_rgo_templates;
 
         game_definition::province new_province(uint32_t pixel);
         void update_available_colors();

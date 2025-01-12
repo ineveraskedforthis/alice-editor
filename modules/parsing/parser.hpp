@@ -57,6 +57,7 @@ namespace parser {
         }
     };
 
+
     inline bool equality(char c) {
         if (c == ' ')
             return true;
@@ -71,6 +72,22 @@ namespace parser {
 
         return false;
     }
+
+    struct word_after_equality : word {
+        bool equality_gone = false;
+        bool parse(char c) {
+            if (equality_gone) {
+                return word::parse(c);
+            } else {
+                if (!equality(c)) {
+                    word::parse(c);
+                    equality_gone = true;
+                }
+            }
+            return true;
+        }
+    };
+
 
     inline bool until_open_bracket(char c) {
         if (c == '{')

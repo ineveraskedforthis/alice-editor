@@ -5,6 +5,12 @@
 #include <vector>
 
 namespace game_definition {
+
+    struct secondary_rgo {
+        int size;
+        std::string trade_good;
+    };
+
     struct state_building {
         int level;
         std::string building_type;
@@ -29,7 +35,7 @@ namespace game_definition {
         std::vector<std::string> cores;
         std::string main_trade_good;
 
-        std::map<std::string, float> secondary_rgo_size;
+        std::map<std::string, int> secondary_rgo_size;
 
         int life_rating;
         int railroad;

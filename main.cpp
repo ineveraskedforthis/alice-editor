@@ -1133,6 +1133,91 @@ int main(int argc, char* argv[]) {
 
                 ImGui::InputText("Main RGO: ", &def.main_trade_good);
 
+                if (ImGui::TreeNode("Secondary RGO")) {
+
+                    std::vector<std::string> template_names = {};
+                    for (auto const& [key, val] : map_state.secondary_rgo_templates) {
+                        template_names.push_back(key);
+                    }
+
+                    ImGui::Text("Apply template");
+
+                    ImGui::SameLine();
+
+                    if (ImGui::BeginCombo("Select", "")) {
+                        for (int n = 0; n < template_names.size(); n++) {
+                            if (ImGui::Selectable(template_names[n].c_str(), false)) {
+                                def.secondary_rgo_size.clear();
+                                for (auto const& [key, val] : map_state.secondary_rgo_templates[template_names[n]]) {
+                                    def.secondary_rgo_size[key] = val;
+                                }
+                            }
+                        }
+                        ImGui::EndCombo();
+                    }
+
+                    if (ImGui::BeginTable("adj", 3)) {
+
+                        ImGui::TableSetupColumn("Commodity");
+                        ImGui::TableSetupColumn("Max employment");
+                        ImGui::TableSetupColumn("Delete rgo");
+
+                        ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+                        for (int column = 0; column < 3; column++)
+                        {
+                            ImGui::TableSetColumnIndex(column);
+                            const char* column_name = ImGui::TableGetColumnName(column);
+                            ImGui::PushID(column);
+                            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+                            ImGui::PopStyleVar();
+                            ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+                            ImGui::TableHeader(column_name);
+                            ImGui::PopID();
+                        }
+
+                        std::vector<std::string> local_rgo;
+
+                        for (auto const& [key, val] : def.secondary_rgo_size) {
+                            local_rgo.push_back(key);
+                        }
+
+                        for (int row = 0; row < local_rgo.size(); row++)
+                        {
+                            auto size = def.secondary_rgo_size[local_rgo[row]];
+                            auto new_size = size;
+                            ImGui::TableNextRow();
+                            ImGui::TableNextColumn();
+                            ImGui::PushID(row);
+                            ImGui::Text("%s", local_rgo[row].c_str());
+                            ImGui::TableNextColumn();
+                            ImGui::InputInt("", &new_size);
+                            if (new_size != size) {
+                                def.secondary_rgo_size[local_rgo[row]] = new_size;
+                            }
+                            ImGui::TableNextColumn();
+                            if (ImGui::Button("Delete")) {
+                                def.secondary_rgo_size.erase(local_rgo[row]);
+                            }
+                            ImGui::PopID();
+                        }
+
+                        ImGui::TableNextRow();
+                        static std::string new_secondary_rgo_entry;
+                        ImGui::TableNextColumn();
+                        ImGui::InputText("Commodity", &new_secondary_rgo_entry);
+                        ImGui::TableNextColumn();
+                        if (!def.secondary_rgo_size.contains(new_secondary_rgo_entry) && new_secondary_rgo_entry.length() > 0) {
+                            if (ImGui::Button("Insert")) {
+                                def.secondary_rgo_size[new_secondary_rgo_entry] = 0;
+                            }
+                        }
+                        ImGui::TableNextColumn();
+
+                        ImGui::EndTable();
+                    }
+                    ImGui::TreePop();
+                }
+
                 ImGui::InputInt("Railroad: ", &def.railroad);
                 ImGui::InputInt("Naval base: ", &def.naval_base);
                 ImGui::InputInt("Fort: ", &def.fort);
