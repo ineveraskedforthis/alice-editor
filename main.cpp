@@ -103,7 +103,7 @@ struct control {
 
     int selected_adjacency;
 
-    glm::vec2 fill_center;
+    glm::ivec2 fill_center;
 
     uint32_t context_province;
     glm::ivec2 pixel_context;
@@ -119,9 +119,12 @@ struct control {
     uint8_t b;
 
     GLuint main_texture;
+    GLuint rivers_texture;
     GLuint sea_texture;
     GLuint state_texture;
     GLuint nation_texture;
+
+    std::vector<float> rivers_mesh = {};
 };
 
 void load_map_texture(control& control, parsing::game_map& map_state) {
@@ -141,6 +144,23 @@ void load_map_texture(control& control, parsing::game_map& map_state) {
         map_state.data
     );
     check_gl_error("Map texture update");
+
+    glGenTextures(1, &control.rivers_texture);
+    glBindTexture(GL_TEXTURE_2D, control.rivers_texture);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_RGBA,
+        map_state.size_x,
+        map_state.size_y,
+        0,
+        GL_RGBA,
+        GL_UNSIGNED_BYTE,
+        map_state.rivers_raw
+    );
+    check_gl_error("Rivers texture update");
 
     glGenTextures(1, &control.sea_texture);
     glBindTexture(GL_TEXTURE_2D, control.sea_texture);
@@ -206,6 +226,19 @@ void update_map_texture(control& control, parsing::game_map& map_state) {
         GL_RGBA,
         GL_UNSIGNED_BYTE,
         map_state.data
+    );
+
+    glBindTexture(GL_TEXTURE_2D, control.rivers_texture);
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        GL_RGBA,
+        map_state.size_x,
+        map_state.size_y,
+        0,
+        GL_RGBA,
+        GL_UNSIGNED_BYTE,
+        map_state.rivers_raw
     );
 
     glBindTexture(GL_TEXTURE_2D, control.sea_texture);
@@ -308,10 +341,14 @@ glm::vec2 screen_to_texture(
     return glm::vec2(x, y);
 }
 
+int coord_to_pixel(parsing::game_map& map, glm::ivec2 coord) {
+    return coord.y * map.size_x + coord.x;
+}
+
 int coord_to_pixel(parsing::game_map& map, glm::vec2 coord) {
-    return int(std::floor(coord.y)
+    return int(std::floor(coord.y))
         * map.size_x
-        + std::floor(coord.x));
+        + int(std::floor(coord.x));
 }
 
 int pixel(control& control_state, parsing::game_map& map) {
@@ -430,7 +467,7 @@ void paint_safe(control& control_state, parsing::game_map& map, int pixel_index,
 void paint_line(control& control_state, parsing::game_map& map) {
     glm::vec2 brush = control_state.fill_center;
 
-    if (glm::distance(control_state.mouse_map_coord,brush) < 0.5f) {
+    if (glm::distance(control_state.mouse_map_coord, glm::vec2(brush)) < 0.5f) {
         auto rgb = parsing::rgb_to_uint(control_state.r, control_state.g, control_state.b);
         auto index = map.rgb_to_index[rgb];
         auto pixel_index = coord_to_pixel(map, brush);
@@ -439,8 +476,8 @@ void paint_line(control& control_state, parsing::game_map& map) {
     }
 
 
-    while (glm::distance(brush, control_state.mouse_map_coord) > 0.105f) {
-        auto speed = control_state.mouse_map_coord - brush;
+    while (glm::distance(glm::vec2(brush), control_state.mouse_map_coord) > 0.105f) {
+        auto speed = control_state.mouse_map_coord - glm::vec2(brush);
         auto norm = glm::length(speed) * 2.f;
         if (norm > 1) {
             speed /= norm;
@@ -791,12 +828,83 @@ namespace SHADER_UNIFORMS {
         STATES_DATA = 10,
         OWNER_DATA,
         SIZE,
-        MODEL_LINE, VIEW_LINE
+        RIVERS,
+        MODEL_LINE, VIEW_LINE,
+        MODEL_RIVER, VIEW_RIVER
     };
 }
 
 std::array<GLuint, 256> TO_LOCATION {};
 
+void update_rivers_mesh(control& state, parsing::game_map& map) {
+    auto count = 0;
+    for (int i = 0; i < map.size_x; i++) {
+        for (int j = 0; j < map.size_y; j++) {
+            auto pixel = coord_to_pixel(map, glm::ivec2{i, j});
+            if (map.rivers_raw[pixel * 4] < 255) {
+                auto width = (40.f + 255.f - float(map.rivers_raw[pixel * 4])) / 500.f;
+                if (i + 1 < map.size_x){
+                    auto next = coord_to_pixel(map, glm::ivec2{i + 1, j});
+                    if (map.rivers_raw[next * 4] < 255) {
+                        //std::cout << i << " " << j << " " << next << " " << pixel << " i + 1" << std::endl;
+                        auto width_next = (40.f + 255.f - float(map.rivers_raw[next * 4])) / 500.f;
+                        count++;
+                        // triangle 1
+                        state.rivers_mesh.push_back(i / (float)map.size_x * 2.f - 1.f);
+                        state.rivers_mesh.push_back((j - width) / (float)map.size_y * 2.f - 1.f);
+
+                        state.rivers_mesh.push_back(i / (float)map.size_x * 2.f - 1.f);
+                        state.rivers_mesh.push_back((j + width) / (float)map.size_y * 2.f - 1.f);
+
+                        state.rivers_mesh.push_back((i + 1) / (float)map.size_x * 2.f - 1.f);
+                        state.rivers_mesh.push_back((j + width_next) / (float)map.size_y * 2.f - 1.f);
+
+                        // triangle 2
+                        state.rivers_mesh.push_back(i / (float)map.size_x * 2.f - 1.f);
+                        state.rivers_mesh.push_back((j - width) / (float)map.size_y * 2.f - 1.f);
+
+                        state.rivers_mesh.push_back((i + 1) / (float)map.size_x * 2.f - 1.f);
+                        state.rivers_mesh.push_back((j + width_next) / (float)map.size_y * 2.f - 1.f);
+
+                        state.rivers_mesh.push_back((i + 1) / (float)map.size_x * 2.f - 1.f);
+                        state.rivers_mesh.push_back((j - width_next) / (float)map.size_y * 2.f - 1.f);
+                    }
+                }
+
+                if (j + 1 < map.size_y){
+                    auto next = coord_to_pixel(map, glm::ivec2{i, j + 1});
+                    if (map.rivers_raw[next * 4] < 255) {
+                        //std::cout << i << " " << j << " " << next << " " << pixel << " " << " j + 1" << std::endl;
+                        auto width_next = (40.f + 255.f - float(map.rivers_raw[next * 4])) / 500.f;
+                        count++;
+                        // triangle 1
+                        state.rivers_mesh.push_back((i - width) / (float)map.size_x * 2.f - 1.f);
+                        state.rivers_mesh.push_back((j) / (float)map.size_y * 2.f - 1.f);
+
+                        state.rivers_mesh.push_back((i + width) / (float)map.size_x * 2.f - 1.f);
+                        state.rivers_mesh.push_back((j) / (float)map.size_y * 2.f - 1.f);
+
+                        state.rivers_mesh.push_back((i + width_next) / (float)map.size_x * 2.f - 1.f);
+                        state.rivers_mesh.push_back((j + 1) / (float)map.size_y * 2.f - 1.f);
+
+                        // triangle 2
+                        state.rivers_mesh.push_back((i - width) / (float)map.size_x * 2.f - 1.f);
+                        state.rivers_mesh.push_back(j / (float)map.size_y * 2.f - 1.f );
+
+                        state.rivers_mesh.push_back((i + width_next) / (float)map.size_x * 2.f - 1.f);
+                        state.rivers_mesh.push_back((j + 1) / (float)map.size_y * 2.f - 1.f );
+
+                        state.rivers_mesh.push_back((i - width_next) / (float)map.size_x * 2.f - 1.f);
+                        state.rivers_mesh.push_back((j + 1) / (float)map.size_y * 2.f - 1.f);
+                    }
+                }
+            }
+        }
+    }
+
+    std::cout << "Edges: " << count << "\n";
+    std::cout << "state.rivers_mesh: " << state.rivers_mesh.size() << "\n";
+}
 
 
 int main(int argc, char* argv[]) {
@@ -821,9 +929,58 @@ int main(int argc, char* argv[]) {
             province_data[i * 3 + 2] = colormaps::viridis[id][2] * 255;
         }
 
+        std::cout << "loading shaders2\n";
+        auto line_vertex_shader = create_shader(
+            GL_VERTEX_SHADER,
+            read_shader("./shaders/line.vs").c_str()
+        );
+        auto line_fragment_shader = create_shader(
+            GL_FRAGMENT_SHADER,
+            read_shader("./shaders/line.fs").c_str()
+        );
+        auto line_program = create_program(line_vertex_shader, line_fragment_shader);
+        auto rivers_program = create_program(line_vertex_shader, line_fragment_shader);
+
+        TO_LOCATION[SHADER_UNIFORMS::MODEL_RIVER] = glGetUniformLocation(rivers_program, "model");
+        TO_LOCATION[SHADER_UNIFORMS::VIEW_RIVER] = glGetUniformLocation(rivers_program, "view");
+
         check_gl_error("Before loading textures");
 
         load_map_texture(control_state, map_state);
+
+        update_rivers_mesh(control_state, map_state);
+
+        std::cout << "Rivers mesh created. Amount of vertices: " << control_state.rivers_mesh.size();
+
+        GLuint rivers_array;
+        glGenVertexArrays(1, &rivers_array);
+        GLuint rivers_buffer;
+        glGenBuffers(1, &rivers_buffer);
+        glBindVertexArray(rivers_array);
+        glBindBuffer(GL_ARRAY_BUFFER, rivers_buffer);
+        glVertexAttribPointer(
+            0,
+            2,
+            GL_FLOAT,
+            GL_FALSE,
+            2 * sizeof(float),
+            (void*)0
+        );
+        glEnableVertexAttribArray(0);
+        glBindAttribLocation(rivers_program, 0, "vertex");
+
+        glBindBuffer(GL_ARRAY_BUFFER, rivers_buffer);
+
+        glBufferData(
+            GL_ARRAY_BUFFER,
+            sizeof(float) * control_state.rivers_mesh.size(),
+            control_state.rivers_mesh.data(),
+            GL_STATIC_DRAW
+        );
+
+        glBindBuffer(GL_ARRAY_BUFFER, 0);
+        glBindVertexArray(0);
+        check_gl_error("rivers buffers");
 
         // loading textures for icons:
 
@@ -848,6 +1005,8 @@ int main(int argc, char* argv[]) {
         TO_LOCATION[SHADER_UNIFORMS::PROVINCES_DATA] = glGetUniformLocation(program, "data");
         TO_LOCATION[SHADER_UNIFORMS::STATES_DATA] = glGetUniformLocation(program, "state_data");
         TO_LOCATION[SHADER_UNIFORMS::OWNER_DATA] = glGetUniformLocation(program, "owner_data");
+        TO_LOCATION[SHADER_UNIFORMS::RIVERS] = glGetUniformLocation(program, "rivers");
+
         TO_LOCATION[SHADER_UNIFORMS::MODEL] = glGetUniformLocation(program, "model");
         TO_LOCATION[SHADER_UNIFORMS::VIEW] = glGetUniformLocation(program, "view");
         TO_LOCATION[SHADER_UNIFORMS::PROJECTION] = glGetUniformLocation(program, "projection");
@@ -873,7 +1032,7 @@ int main(int argc, char* argv[]) {
         float zoom = 1.f;
         glm::vec3 scale {1.f, (float)map_state.size_y / (float)map_state.size_x, 1.f};
 
-        std::cout << map_state.size_y << " " << map_state.size_x << "\n";
+        std::cout << " " << map_state.size_x << " " << map_state.size_y <<"\n";
 
         std::cout << scale.x << " " << scale.y << " " << scale.z << "\n";
 
@@ -886,16 +1045,7 @@ int main(int argc, char* argv[]) {
 
         std::cout << "Start the main loop";
 
-        std::cout << "loading shaders2\n";
-        auto line_vertex_shader = create_shader(
-            GL_VERTEX_SHADER,
-            read_shader("./shaders/line.vs").c_str()
-        );
-        auto line_fragment_shader = create_shader(
-            GL_FRAGMENT_SHADER,
-            read_shader("./shaders/line.fs").c_str()
-        );
-        auto line_program = create_program(line_vertex_shader, line_fragment_shader);
+
 
         TO_LOCATION[SHADER_UNIFORMS::MODEL_LINE] = glGetUniformLocation(line_program, "model");
         TO_LOCATION[SHADER_UNIFORMS::VIEW_LINE] = glGetUniformLocation(line_program, "view");
@@ -908,8 +1058,6 @@ int main(int argc, char* argv[]) {
         glGenVertexArrays(1, &center_vertex_array);
         GLuint centers_buffer;
         glGenBuffers(1, &centers_buffer);
-
-
         glBindVertexArray(center_vertex_array);
         glBindBuffer(GL_ARRAY_BUFFER, centers_buffer);
         glVertexAttribPointer(
@@ -1509,6 +1657,10 @@ int main(int argc, char* argv[]) {
             glBindTexture(GL_TEXTURE_2D, control_state.nation_texture);
             glUniform1i(TO_LOCATION[SHADER_UNIFORMS::OWNER_DATA], 3);
 
+            glActiveTexture(GL_TEXTURE4);
+            glBindTexture(GL_TEXTURE_2D, control_state.rivers_texture);
+            glUniform1i(TO_LOCATION[SHADER_UNIFORMS::RIVERS], 3);
+
 
             glBindVertexArray(fake_VAO);
             glDrawArrays(GL_TRIANGLES, 0, 6 * 2 * 2);
@@ -1525,6 +1677,16 @@ int main(int argc, char* argv[]) {
             glDrawArrays(GL_TRIANGLES, 0, adj_vertices_count);
 
             check_gl_error("After draw line:");
+
+            glUseProgram(rivers_program);
+
+            glUniformMatrix4fv(TO_LOCATION[SHADER_UNIFORMS::MODEL_RIVER], 1, false, reinterpret_cast<float*>(&model));
+            glUniformMatrix4fv(TO_LOCATION[SHADER_UNIFORMS::VIEW_RIVER], 1, false, reinterpret_cast<float*>(&view));
+
+            glBindVertexArray(rivers_array);
+            glDrawArrays(GL_TRIANGLES, 0, control_state.rivers_mesh.size());
+
+            check_gl_error("After draw rivers:");
 
             if (control_state.reset_focus) {
                 ImGui::SetWindowFocus(NULL);

@@ -294,7 +294,24 @@ namespace parsing{
         int size_y;
         int channels;
 
-        auto result = stbi_load((path + "/map/alice_provinces.png").c_str(), &size_x, &size_y, &channels, 4);
+        auto result = stbi_load(
+            (path + "/map/alice_provinces.png").c_str(),
+            &size_x,
+            &size_y,
+            &channels,
+            4
+        );
+
+        int rivers_size_x;
+        int rivers_size_y;
+        int rivers_channels;
+        auto result_rivers = stbi_load(
+            (path + "/map/alice_rivers.png").c_str(),
+            &rivers_size_x,
+            &rivers_size_y,
+            &rivers_channels,
+            4
+        );
 
         return {
             {},
@@ -302,7 +319,8 @@ namespace parsing{
             {},
             size_x, size_y,
             result,
-            (uint8_t *)calloc(size_x * size_y * 4, 1)
+            (uint8_t *)calloc(size_x * size_y * 4, 1),
+            result_rivers
         };
     }
 

@@ -19,6 +19,8 @@ namespace parsing{
         uint8_t* data_raw;
         uint8_t* data;
 
+        uint8_t* rivers_raw;
+
         std::map<uint32_t, uint32_t> index_to_vector_position;
         std::map<uint32_t, uint32_t> rgb_to_index;
         std::map<uint32_t, uint32_t> prov_to_market;
