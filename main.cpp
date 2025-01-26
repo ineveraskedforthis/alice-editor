@@ -6,6 +6,7 @@
 #include <chrono>
 
 #include <SDL.h>
+#include <limits>
 #include <string>
 #include <thread>
 #include <vector>
@@ -37,6 +38,16 @@ void check_gl_error(std::string message) {
         std::cout << "Gl Error " << error << ": ";
         std::cout << glewGetErrorString(error) << "\n";
     }
+}
+
+int coord_to_pixel(parsing::game_map& map, glm::ivec2 coord) {
+    return coord.y * map.size_x + coord.x;
+}
+
+int coord_to_pixel(parsing::game_map& map, glm::vec2 coord) {
+    return int(std::floor(coord.y))
+        * map.size_x
+        + int(std::floor(coord.x));
 }
 
 std::string to_string(std::string_view str) {
@@ -98,8 +109,16 @@ struct control {
     bool selection_delay;
     glm::vec2 hovered_province;
     glm::vec2 mouse_map_coord;
+    glm::ivec2 delayed_map_coord;
 
     bool reset_focus;
+
+    bool update_texture;
+    bool update_texture_part;
+    int update_texture_x_top = 0;
+    int update_texture_y_top = 0;
+    int update_texture_x_bottom = std::numeric_limits<int>::max();
+    int update_texture_y_bottom = std::numeric_limits<int>::max();
 
     int selected_adjacency;
 
@@ -215,31 +234,46 @@ void load_map_texture(control& control, parsing::game_map& map_state) {
 }
 
 void update_map_texture(control& control, parsing::game_map& map_state) {
-    glBindTexture(GL_TEXTURE_2D, control.main_texture);
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGBA,
-        map_state.size_x,
-        map_state.size_y,
-        0,
-        GL_RGBA,
-        GL_UNSIGNED_BYTE,
-        map_state.data
-    );
+    if (control.update_texture) {
+        glBindTexture(GL_TEXTURE_2D, control.main_texture);
+        glTexImage2D(
+            GL_TEXTURE_2D,
+            0,
+            GL_RGBA,
+            map_state.size_x,
+            map_state.size_y,
+            0,
+            GL_RGBA,
+            GL_UNSIGNED_BYTE,
+            map_state.data
+        );
+        control.update_texture = false;
+        control.update_texture_part = false;
+    }
 
-    glBindTexture(GL_TEXTURE_2D, control.rivers_texture);
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGBA,
-        map_state.size_x,
-        map_state.size_y,
-        0,
-        GL_RGBA,
-        GL_UNSIGNED_BYTE,
-        map_state.rivers_raw
-    );
+    if (control.update_texture_part) {
+        glBindTexture(GL_TEXTURE_2D, control.main_texture);
+        auto width = control.update_texture_x_top - control.update_texture_x_bottom;
+        for (int y = control.update_texture_y_bottom; y <= control.update_texture_y_top; y++) {
+            auto pixel_index = coord_to_pixel(map_state, glm::ivec2{control.update_texture_x_bottom, y});
+            glTexSubImage2D(
+                GL_TEXTURE_2D,
+                0,
+                control.update_texture_x_bottom,
+                y,
+                width,
+                1,
+                GL_RGBA,
+                GL_UNSIGNED_BYTE,
+                map_state.data + pixel_index * 4
+            );
+        }
+
+        control.update_texture_x_top = 0;
+        control.update_texture_y_top = 0;
+        control.update_texture_x_bottom = std::numeric_limits<int>::max();
+        control.update_texture_y_bottom = std::numeric_limits<int>::max();
+    }
 
     glBindTexture(GL_TEXTURE_2D, control.sea_texture);
     glTexImage2D(
@@ -341,16 +375,6 @@ glm::vec2 screen_to_texture(
     return glm::vec2(x, y);
 }
 
-int coord_to_pixel(parsing::game_map& map, glm::ivec2 coord) {
-    return coord.y * map.size_x + coord.x;
-}
-
-int coord_to_pixel(parsing::game_map& map, glm::vec2 coord) {
-    return int(std::floor(coord.y))
-        * map.size_x
-        + int(std::floor(coord.x));
-}
-
 int pixel(control& control_state, parsing::game_map& map) {
     return int(std::floor(control_state.mouse_map_coord.y)
         * map.size_x
@@ -436,6 +460,7 @@ void paint_safe(control& control_state, parsing::game_map& map, int pixel_index,
 
         map.data[4 * pixel_index + 0] = province_index % 256;
         map.data[4 * pixel_index + 1] = province_index / 256;
+        control_state.update_texture_part = true;
     } else if (control_state.fill_mode == FILL_MODE::OWNER_AND_CONTROLLER) {
         auto target_r = map.data_raw[pixel_index * 4];
         auto target_g = map.data_raw[pixel_index * 4 + 1];
@@ -459,35 +484,56 @@ void paint_safe(control& control_state, parsing::game_map& map, int pixel_index,
             map.province_owner[3 * def.v2id + 1] = def.owner_tag[1];
             map.province_owner[3 * def.v2id + 2] = def.owner_tag[2];
 
-            update_map_texture(control_state, map);
+            control_state.update_texture_part = true;
         }
     }
 }
 
-void paint_line(control& control_state, parsing::game_map& map) {
-    glm::vec2 brush = control_state.fill_center;
+int inline pairing(glm::ivec2 a, glm::ivec2 b) {
+    return a.x * b.x + a.y * b.y;
+}
 
-    if (glm::distance(control_state.mouse_map_coord, glm::vec2(brush)) < 0.5f) {
-        auto rgb = parsing::rgb_to_uint(control_state.r, control_state.g, control_state.b);
-        auto index = map.rgb_to_index[rgb];
-        auto pixel_index = coord_to_pixel(map, brush);
-        paint_safe(control_state, map, pixel_index, index);
-        return;
+void paint_line(control& control_state, parsing::game_map& map) {
+    auto start = control_state.fill_center;
+    auto end = glm::ivec2(control_state.delayed_map_coord);
+
+    auto direction = end - start;
+    auto normal = glm::ivec2(direction.y, -direction.x);
+
+    auto shift_x = 1;
+    if (direction.x < 0) {
+        shift_x = -1;
+    }
+    auto shift_y = 1;
+    if (direction.y < 0) {
+        shift_y = -1;
     }
 
+    auto error_change_x = shift_x * normal.x;
+    auto error_change_y = shift_y * normal.y;
 
-    while (glm::distance(glm::vec2(brush), control_state.mouse_map_coord) > 0.105f) {
-        auto speed = control_state.mouse_map_coord - glm::vec2(brush);
-        auto norm = glm::length(speed) * 2.f;
-        if (norm > 1) {
-            speed /= norm;
+    auto x = start.x;
+    auto y = start.y;
+
+    while (x != end.x || y != end.y) {
+        {
+            auto rgb = parsing::rgb_to_uint(control_state.r, control_state.g, control_state.b);
+            auto index = map.rgb_to_index[rgb];
+            auto pixel_index = coord_to_pixel(map, glm::ivec2{x, y});
+            paint_safe(control_state, map, pixel_index, index);
+            control_state.update_texture_x_bottom = std::min(x, control_state.update_texture_x_bottom);
+            control_state.update_texture_y_bottom = std::min(y, control_state.update_texture_y_bottom);
+            control_state.update_texture_x_top = std::max(x, control_state.update_texture_x_top);
+            control_state.update_texture_y_top = std::max(y, control_state.update_texture_y_top);
         }
-        auto rgb = parsing::rgb_to_uint(control_state.r, control_state.g, control_state.b);
-        auto index = map.rgb_to_index[rgb];
-        auto pixel_index = coord_to_pixel(map, brush);
-        paint_safe(control_state, map, pixel_index, index);
 
-        brush += speed;
+        auto error = pairing(normal, {x - start.x, y - start.y});
+
+        if (std::abs(error + error_change_x) < std::abs(error + error_change_y)) {
+            x += shift_x;
+        } else {
+            y += shift_y;
+        }
     }
 }
 
@@ -726,6 +772,7 @@ struct window_wrapper {
 
                     control_state.active = !control_state.active;
                     control_state.fill_center = glm::vec2{control_state.mouse_map_coord.x,control_state.mouse_map_coord.y};
+                    control_state.delayed_map_coord = glm::ivec2{ control_state.mouse_map_coord };
                 }
                 else if (event.button.button == SDL_BUTTON_RIGHT)
                 {
@@ -777,8 +824,9 @@ struct window_wrapper {
                     glBindTexture(GL_TEXTURE_2D, control_state.main_texture);
                     update_map_texture(control_state, map);
                 } else if (event.key.keysym.sym == SDLK_f) {
-                    control_state.fill_center = glm::vec2{control_state.mouse_map_coord.x,control_state.mouse_map_coord.y};
+                    control_state.fill_center = glm::vec2{control_state.mouse_map_coord.x, control_state.mouse_map_coord.y};
                     control_state.mode = CONTROL_MODE::FILL;
+                    control_state.delayed_map_coord = glm::ivec2{control_state.mouse_map_coord};
                 } else if (event.key.keysym.sym == SDLK_p) {
                     parsing::unload_data(map, "./editor-output");
                 } else if (event.key.keysym.sym == SDLK_r) {
@@ -1037,7 +1085,7 @@ int main(int argc, char* argv[]) {
         std::cout << scale.x << " " << scale.y << " " << scale.z << "\n";
 
         float updates_delay = 1.f / 60.f;
-        float update_texture_timer;
+        float update_texture_timer = 0.f;
 
         float framerate = 60.f;
         float frame_time = 1.f / framerate;
@@ -1094,7 +1142,7 @@ int main(int argc, char* argv[]) {
 
             time += dt;
             update_timer += dt;
-            // update_texture_timer -= dt;
+            update_texture_timer += dt;
 
             if (update_timer < frame_time) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));
@@ -1579,6 +1627,8 @@ int main(int argc, char* argv[]) {
                 ImGui::End();
             }
 
+            auto target = glm::ivec2(control_state.mouse_map_coord);
+
             if (control_state.active) {
                 switch (control_state.mode) {
                     case CONTROL_MODE::PICKING_COLOR:
@@ -1590,8 +1640,21 @@ int main(int argc, char* argv[]) {
                         update_map_texture(control_state, map_state);
                         break;
                     case CONTROL_MODE::FILL:
-                        paint_line(control_state, map_state);
-                        update_map_texture(control_state, map_state);
+                        while(target.x != control_state.delayed_map_coord.x || target.y != control_state.delayed_map_coord.y) {
+                            if (target.x > control_state.delayed_map_coord.x) {
+                                control_state.delayed_map_coord.x++;
+                            }
+                            if (target.x < control_state.delayed_map_coord.x) {
+                                control_state.delayed_map_coord.x--;
+                            }
+                            if (target.y > control_state.delayed_map_coord.y) {
+                                control_state.delayed_map_coord.y++;
+                            }
+                            if (target.y < control_state.delayed_map_coord.y) {
+                                control_state.delayed_map_coord.y--;
+                            }
+                            paint_line(control_state, map_state);
+                        }
                         break;
                     case CONTROL_MODE::SET_STATE:
                         paint_state(control_state, map_state);
@@ -1605,11 +1668,12 @@ int main(int argc, char* argv[]) {
             }
 
 
-            // if (update_texture_timer <= 0) {
-            //     glBindTexture(GL_TEXTURE_2D, control_state.main_texture);
-            //     update_map_texture(control_state, map_state);
-            //     update_texture_timer = updates_delay;
-            // }
+            if ((control_state.update_texture || control_state.update_texture_part) && (update_texture_timer >= frame_time * 5.f)) {
+                update_map_texture(control_state, map_state);
+                update_texture_timer = 0.f;
+                control_state.update_texture = false;
+            }
+
 
 
 

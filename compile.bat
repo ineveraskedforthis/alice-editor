@@ -1,2 +1,2 @@
-clang++ -std=c++20 -O3 -DWIN32 -DSDL_MAIN_HANDLED  -I./modules/sdl -I./modules/imgui -I./modules/glew -L./libs main.cpp modules/parsing/map.cpp modules/parsing/parser.cpp modules/parsing/state_building.cpp modules/parsing/secondary_rgo.cpp modules/parsing/templates.cpp modules/parsing/adjacency.cpp modules/imgui/*.cpp modules/imgui/misc/cpp/*.cpp modules/imgui/backends/imgui_impl_sdl2.cpp modules/imgui/backends/imgui_impl_opengl3.cpp -lws2_32.lib -o ./build/editor.exe -Xlinker /subsystem:console -lShell32 -lSDL2main -lSDL2 -lopengl32 -lglew32
+ninja
 xcopy "shaders" "build/shaders/*" /s /e /Y

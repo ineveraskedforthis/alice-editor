@@ -26,3 +26,7 @@ build/shaders/*
 build/editor-output/*
 build/editor-input/*
 build/editor-input*
+build/*.pdb
+build/*.ilk
+.ninja_log
+cache
