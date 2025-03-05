@@ -10,7 +10,7 @@ namespace parsing{
     struct game_map {
         std::vector<game_definition::province> provinces;
         std::vector<game_definition::state> states;
-
+        std::vector<game_definition::nation> nations;
         std::vector<game_definition::adjacency> adjacencies;
 
 
@@ -23,7 +23,8 @@ namespace parsing{
 
         std::map<uint32_t, uint32_t> index_to_vector_position;
         std::map<uint32_t, uint32_t> rgb_to_index;
-        std::map<uint32_t, uint32_t> prov_to_market;
+
+        std::map<int32_t, uint32_t> tag_to_vector_position;
 
         bool id_is_used[256 * 256];
 

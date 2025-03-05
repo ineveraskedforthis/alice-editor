@@ -47,8 +47,29 @@ namespace parser {
                 return false;
             if (c == '#')
                 return false;
+            if (c == '}')
+                return false;
 
             data += c;
+            return true;
+        }
+
+        void reset() {
+            data.clear();
+        }
+    };
+
+    struct quoted_string {
+
+        int quotes_count = 0;
+        std::string data;
+        bool parse(char c) {
+            if (c == '"')
+                quotes_count++;
+            else
+                data += c;
+            if (quotes_count == 2)
+                return false;
             return true;
         }
 
@@ -81,6 +102,21 @@ namespace parser {
             } else {
                 if (!equality(c)) {
                     word::parse(c);
+                    equality_gone = true;
+                }
+            }
+            return true;
+        }
+    };
+
+    struct string_after_equality : quoted_string {
+        bool equality_gone = false;
+        bool parse(char c) {
+            if (equality_gone) {
+                return quoted_string::parse(c);
+            } else {
+                if (!equality(c)) {
+                    quoted_string::parse(c);
                     equality_gone = true;
                 }
             }
@@ -127,6 +163,14 @@ namespace parser {
             return false;
 
         return true;
+    }
+
+    inline bool strict_end_of_the_line(char c) {
+        if (c == '\r')
+            return true;
+        if (c == '\n')
+            return true;
+        return false;
     }
 
     inline bool end_of_the_line(char c) {

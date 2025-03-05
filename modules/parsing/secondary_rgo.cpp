@@ -8,7 +8,6 @@
 namespace parser {
 void secondary_rgo_entry(game_definition::secondary_rgo& rgo, std::ifstream& file, char& c) {
     parser::word key;
-
     std::string trade_good;
     int max_employment;
 

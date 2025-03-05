@@ -2,19 +2,22 @@
 
 
 #cflags = -std=c++20 -O3 -DWIN32 -DSDL_MAIN_HANDLED -Wall -I./modules/sdl -I./modules/imgui -I./modules/glew
-cflags = -std=c++20 -O3 -DWIN32 -DSDL_MAIN_HANDLED -I./modules/sdl -I./modules/imgui -I./modules/glew
+cflags = -std=c++20 -O0 -DWIN32 -DSDL_MAIN_HANDLED -I./modules/sdl -I./modules/imgui -I./modules/glew
 
 rule cc
-  command = clang++ -g -gdwarf-3 -gcodeview $cflags -c $in -o $out
+  command = clang++ $cflags -g -gdwarf-3 -gcodeview -c $in -o $out
   description = compile $out
 
 rule link
-  command = clang++ -g -gdwarf-3 $cflags -o $out $in -L./libs -lws2_32.lib -lShell32 -lSDL2main -lSDL2 -lopengl32 -lglew32 -Xlinker /subsystem:console
+  command = clang++ $cflags -g -gdwarf-3 -o $out $in -L./libs -lws2_32.lib -lShell32 -lSDL2main -lSDL2 -lopengl32 -lglew32 -Xlinker /subsystem:console
   description = link $out
 
+build cache/state.o: cc modules/editor-state/editor-state.cpp
 build cache/main.o: cc main.cpp
+build cache/selection_widget.o: cc modules/widgets/selection_widget.cpp
 build cache/parsing_map.o: cc modules/parsing/map.cpp
 build cache/parser.o: cc modules/parsing/parser.cpp
+build cache/parsing_countries.o: cc modules/parsing/countries.cpp
 build cache/parsing_state_building.o: cc modules/parsing/state_building.cpp
 build cache/parsing_secondary_rgo.o: cc modules/parsing/secondary_rgo.cpp
 build cache/parsing_templates.o: cc modules/parsing/templates.cpp
@@ -29,4 +32,4 @@ build cache/imgui_backend_sdl.o: cc modules/imgui/backends/imgui_impl_sdl2.cpp
 build cache/imgui_backend_opengl.o: cc modules/imgui/backends/imgui_impl_opengl3.cpp
 build cache/imgui_stdlib.o: cc modules/imgui/misc/cpp/imgui_stdlib.cpp
 
-build build/editor.exe: link cache/main.o cache/parsing_map.o cache/parser.o cache/parsing_state_building.o cache/parsing_secondary_rgo.o cache/parsing_templates.o cache/parsing_adjacency.o cache/imgui.o cache/imgui_draw.o cache/imgui_demo.o cache/imgui_tables.o cache/imgui_widgets.o cache/imgui_backend_sdl.o cache/imgui_backend_opengl.o cache/imgui_stdlib.o
+build build/editor.exe: link cache/main.o cache/state.o cache/selection_widget.o cache/parsing_map.o cache/parser.o cache/parsing_state_building.o cache/parsing_secondary_rgo.o cache/parsing_templates.o cache/parsing_adjacency.o cache/parsing_countries.o cache/imgui.o cache/imgui_draw.o cache/imgui_demo.o cache/imgui_tables.o cache/imgui_widgets.o cache/imgui_backend_sdl.o cache/imgui_backend_opengl.o cache/imgui_stdlib.o

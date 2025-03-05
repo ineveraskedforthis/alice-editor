@@ -12,6 +12,7 @@ _deps
 CMakeUserPresets.json
 
 .vscode
+.cache
 
 modules/imgui/*
 

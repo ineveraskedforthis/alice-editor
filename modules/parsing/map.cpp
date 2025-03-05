@@ -13,6 +13,7 @@
 #include "secondary_rgo.hpp"
 #include "state_building.hpp"
 #include "templates.hpp"
+#include "countries.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stbimage/stb_image.h"
@@ -317,6 +318,7 @@ namespace parsing{
             {},
             {},
             {},
+            {},
             size_x, size_y,
             result,
             (uint8_t *)calloc(size_x * size_y * 4, 1),
@@ -456,6 +458,8 @@ namespace parsing{
             // std::cout << "prov center " << prov.pos_x << " " << prov.pos_y << "\n";
         }
 
+        std::cout << "\nupdating available colors\n";
+
         map_state.update_available_colors();
 
         {
@@ -493,7 +497,7 @@ namespace parsing{
         }
 
         {
-            std::cout << "reading editor templates";
+            std::cout << "reading editor templates\n";
             std::ifstream file(path + "/editor-templates/secondary_rgo.txt");
 
             if (file) {
@@ -501,6 +505,22 @@ namespace parsing{
                 parser::secondary_rgo_template_file(map_state, file);
             } else
                 std::cout << "no rgo distribution templates found" << std::endl;
+        }
+
+        {
+            std::cout << "reading nations list\n";
+            std::ifstream file(path + "/common/countries.txt");
+            parser::countries_list(map_state, file);
+
+            for (auto& n : map_state.nations) {
+                std::ifstream file(path + "/common/countries/" + n.filename + ".txt");
+                if (file) {
+                    parser::country_file_common(n, file);
+                    n.defined_in_common = true;
+                } else {
+                    std::cout << "Common file for " << n.filename << " was not provided.\n";
+                }
+            }
         }
 
         {

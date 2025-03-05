@@ -10,45 +10,33 @@
 #include <string>
 #include <thread>
 #include <vector>
+
 #include "GL/glew.h"
+
 #include "SDL_events.h"
 #include "SDL_keycode.h"
+
+
 #include "modules/glm/fwd.hpp"
-#include "modules/glm/geometric.hpp"
+#include "modules/parsing/definitions.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
 #include "modules/glm/ext/matrix_transform.hpp"
+
+
 #include "imgui.h"
 #include "misc/cpp/imgui_stdlib.h"
 #include "backends/imgui_impl_sdl2.h"
 #include "backends/imgui_impl_opengl3.h"
 
 #include "modules/colormaps/viridis.hpp"
-
 #include "modules/read_shader.hpp"
 #include "modules/parsing/map.hpp"
+#include "modules/widgets/selection_widget.hpp"
+#include "modules/editor-state/editor-state.hpp"
+
 #undef max
 #undef min
 #undef clamp
-
-void check_gl_error(std::string message) {
-    auto error = glGetError();
-    if (error != GL_NO_ERROR) {
-        std::cout << "Error at ";
-        std::cout << message << "\n";
-        std::cout << "Gl Error " << error << ": ";
-        std::cout << glewGetErrorString(error) << "\n";
-    }
-}
-
-int coord_to_pixel(parsing::game_map& map, glm::ivec2 coord) {
-    return coord.y * map.size_x + coord.x;
-}
-
-int coord_to_pixel(parsing::game_map& map, glm::vec2 coord) {
-    return int(std::floor(coord.y))
-        * map.size_x
-        + int(std::floor(coord.x));
-}
 
 std::string to_string(std::string_view str) {
     return std::string(str.begin(), str.end());
@@ -62,257 +50,6 @@ void sdl2_fail(std::string_view message) {
 void glew_fail(std::string_view message, GLenum error) {
     std::cout << (to_string(message) + reinterpret_cast<const char *>(glewGetErrorString(error)));
     abort();
-}
-
-enum class CONTROL_MODE {
-    NONE, SELECT, PICKING_COLOR, PAINTING, FILL, SET_STATE
-};
-
-enum class SELECTION_MODE {
-    PROVINCE, NATION
-};
-
-std::string selection_mode_string(SELECTION_MODE MODE) {
-    switch (MODE) {
-    case SELECTION_MODE::PROVINCE:
-        return "Province";
-        break;
-    case SELECTION_MODE::NATION:
-        return "Nation";
-        break;
-    }
-}
-
-enum class FILL_MODE {
-    PROVINCE, OWNER_AND_CONTROLLER
-};
-
-std::string fill_mode_string(FILL_MODE MODE) {
-    switch (MODE) {
-    case FILL_MODE::PROVINCE:
-        return "Province";
-        break;
-    case FILL_MODE::OWNER_AND_CONTROLLER:
-        return "Owner&Control";
-        break;
-    }
-}
-
-
-struct control {
-    uint32_t selected_pixel;
-    glm::vec2 selected_province;
-    uint32_t selected_province_id;
-
-    std::string fill_with_tag;
-
-    bool selection_delay;
-    glm::vec2 hovered_province;
-    glm::vec2 mouse_map_coord;
-    glm::ivec2 delayed_map_coord;
-
-    bool reset_focus;
-
-    bool update_texture;
-    bool update_texture_part;
-    int update_texture_x_top = 0;
-    int update_texture_y_top = 0;
-    int update_texture_x_bottom = std::numeric_limits<int>::max();
-    int update_texture_y_bottom = std::numeric_limits<int>::max();
-
-    int selected_adjacency;
-
-    glm::ivec2 fill_center;
-
-    uint32_t context_province;
-    glm::ivec2 pixel_context;
-
-    CONTROL_MODE mode;
-    SELECTION_MODE selection_mode;
-    FILL_MODE fill_mode;
-
-    bool active;
-
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-
-    GLuint main_texture;
-    GLuint rivers_texture;
-    GLuint sea_texture;
-    GLuint state_texture;
-    GLuint nation_texture;
-
-    std::vector<float> rivers_mesh = {};
-};
-
-void load_map_texture(control& control, parsing::game_map& map_state) {
-    glGenTextures(1, &control.main_texture);
-    glBindTexture(GL_TEXTURE_2D, control.main_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGBA,
-        map_state.size_x,
-        map_state.size_y,
-        0,
-        GL_RGBA,
-        GL_UNSIGNED_BYTE,
-        map_state.data
-    );
-    check_gl_error("Map texture update");
-
-    glGenTextures(1, &control.rivers_texture);
-    glBindTexture(GL_TEXTURE_2D, control.rivers_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGBA,
-        map_state.size_x,
-        map_state.size_y,
-        0,
-        GL_RGBA,
-        GL_UNSIGNED_BYTE,
-        map_state.rivers_raw
-    );
-    check_gl_error("Rivers texture update");
-
-    glGenTextures(1, &control.sea_texture);
-    glBindTexture(GL_TEXTURE_2D, control.sea_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RED,
-        256,
-        256,
-        0,
-        GL_RED,
-        GL_UNSIGNED_BYTE,
-        map_state.province_is_sea
-    );
-    check_gl_error("Province texture update");
-
-    glGenTextures(1, &control.state_texture);
-    glBindTexture(GL_TEXTURE_2D, control.state_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RG,
-        256,
-        256,
-        0,
-        GL_RG,
-        GL_UNSIGNED_BYTE,
-        map_state.province_state
-    );
-    check_gl_error("Province texture update");
-
-    glGenTextures(1, &control.nation_texture);
-    glBindTexture(GL_TEXTURE_2D, control.nation_texture);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGB,
-        256,
-        256,
-        0,
-        GL_RGB,
-        GL_UNSIGNED_BYTE,
-        map_state.province_owner
-    );
-    check_gl_error("Province texture update");
-}
-
-void update_map_texture(control& control, parsing::game_map& map_state) {
-    if (control.update_texture) {
-        glBindTexture(GL_TEXTURE_2D, control.main_texture);
-        glTexImage2D(
-            GL_TEXTURE_2D,
-            0,
-            GL_RGBA,
-            map_state.size_x,
-            map_state.size_y,
-            0,
-            GL_RGBA,
-            GL_UNSIGNED_BYTE,
-            map_state.data
-        );
-        control.update_texture = false;
-        control.update_texture_part = false;
-    }
-
-    if (control.update_texture_part) {
-        glBindTexture(GL_TEXTURE_2D, control.main_texture);
-        auto width = control.update_texture_x_top - control.update_texture_x_bottom;
-        for (int y = control.update_texture_y_bottom; y <= control.update_texture_y_top; y++) {
-            auto pixel_index = coord_to_pixel(map_state, glm::ivec2{control.update_texture_x_bottom, y});
-            glTexSubImage2D(
-                GL_TEXTURE_2D,
-                0,
-                control.update_texture_x_bottom,
-                y,
-                width,
-                1,
-                GL_RGBA,
-                GL_UNSIGNED_BYTE,
-                map_state.data + pixel_index * 4
-            );
-        }
-
-        control.update_texture_x_top = 0;
-        control.update_texture_y_top = 0;
-        control.update_texture_x_bottom = std::numeric_limits<int>::max();
-        control.update_texture_y_bottom = std::numeric_limits<int>::max();
-    }
-
-    glBindTexture(GL_TEXTURE_2D, control.sea_texture);
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RED,
-        256,
-        256,
-        0,
-        GL_RED,
-        GL_UNSIGNED_BYTE,
-        map_state.province_is_sea
-    );
-
-    glBindTexture(GL_TEXTURE_2D, control.state_texture);
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RG,
-        256,
-        256,
-        0,
-        GL_RG,
-        GL_UNSIGNED_BYTE,
-        map_state.province_state
-    );
-
-    glBindTexture(GL_TEXTURE_2D, control.nation_texture);
-    glTexImage2D(
-        GL_TEXTURE_2D,
-        0,
-        GL_RGB,
-        256,
-        256,
-        0,
-        GL_RGB,
-        GL_UNSIGNED_BYTE,
-        map_state.province_owner
-    );
 }
 
 GLuint create_shader(GLenum type, const char *source) {
@@ -352,10 +89,6 @@ GLuint create_program(GLuint vertex_shader, GLuint fragment_shader) {
     return result;
 }
 
-
-
-
-
 glm::vec2 screen_to_texture(
     int x_in,
     int y_in,
@@ -373,168 +106,6 @@ glm::vec2 screen_to_texture(
     float y = height_texture - ((y_adjusted) * zoom + (float)height_texture / 2.f) - shift_true.y ;
 
     return glm::vec2(x, y);
-}
-
-int pixel(control& control_state, parsing::game_map& map) {
-    return int(std::floor(control_state.mouse_map_coord.y)
-        * map.size_x
-        + std::floor(control_state.mouse_map_coord.x));
-}
-
-void update_hover(control& control_state, parsing::game_map& map){
-    auto pixel_index = pixel(control_state, map);
-    control_state.hovered_province = glm::vec2((float)map.data[pixel_index * 4] / 256.f, (float)map.data[pixel_index * 4 + 1] / 256.f);
-}
-
-void update_select(control& control_state, parsing::game_map& map){
-    auto pixel_index = pixel(control_state, map);
-    control_state.selected_pixel = pixel_index;
-    control_state.selected_province = glm::vec2((float)map.data[pixel_index * 4] / 256.f, (float)map.data[pixel_index * 4 + 1] / 256.f);
-    control_state.selected_province_id = (int)map.data[pixel_index * 4] + (int)map.data[pixel_index * 4 + 1] * 256;
-    control_state.selection_delay = true;
-}
-
-void update_context(control& control_state, parsing::game_map& map) {
-    auto pixel_index = pixel(control_state, map);
-    control_state.context_province = (int)map.data[pixel_index * 4] + (int)map.data[pixel_index * 4 + 1] * 256;
-}
-
-void pick_color(control& control_state, parsing::game_map& map) {
-    auto pixel_index = pixel(control_state, map);
-    control_state.r = map.data_raw[pixel_index * 4];
-    control_state.g = map.data_raw[pixel_index * 4 + 1];
-    control_state.b = map.data_raw[pixel_index * 4 + 2];
-
-    auto selected_pixel = pixel_index;
-    auto selected_province = glm::vec2((float)map.data[pixel_index * 4] / 256.f, (float)map.data[pixel_index * 4 + 1] / 256.f);
-    auto selected_province_id = (int)map.data[pixel_index * 4] + (int)map.data[pixel_index * 4 + 1] * 256;
-
-    auto& def = map.provinces[map.index_to_vector_position[selected_province_id]];
-
-    control_state.fill_with_tag = def.owner_tag;
-}
-
-void paint(control& control_state, parsing::game_map& map) {
-    auto pixel_index = pixel(control_state, map);
-
-    map.data_raw[pixel_index * 4] = control_state.r;
-    map.data_raw[pixel_index * 4 + 1] = control_state.g;
-    map.data_raw[pixel_index * 4 + 2] = control_state.b;
-
-    auto rgb = parsing::rgb_to_uint(control_state.r, control_state.g, control_state.b);
-
-    auto index = map.rgb_to_index[rgb];
-    map.data[4 * pixel_index + 0] = index % 256;
-    map.data[4 * pixel_index + 1] = index / 256;
-}
-
-void paint_state(control& control_state, parsing::game_map& map) {
-    auto prov_x = map.data[4 * control_state.selected_pixel];
-    auto prov_y = map.data[4 * control_state.selected_pixel + 1];
-    auto prov = (int)prov_x + (int)(prov_y) * 256;
-
-    auto pixel_index = pixel(control_state, map);
-    auto target_prov_x = map.data[4 * pixel_index];
-    auto target_prov_y = map.data[4 * pixel_index + 1];
-    auto target_prov = (int)target_prov_x + (int)(target_prov_y) * 256;
-    map.province_state[2 * target_prov] = map.province_state[2 * prov];
-    map.province_state[2 * target_prov+1] = map.province_state[2 * prov+1];
-}
-
-void paint_safe(control& control_state, parsing::game_map& map, int pixel_index, uint32_t province_index) {
-    if (control_state.fill_mode == FILL_MODE::PROVINCE) {
-        auto target_r = map.data_raw[pixel_index * 4];
-        auto target_g = map.data_raw[pixel_index * 4 + 1];
-        auto target_b = map.data_raw[pixel_index * 4 + 2];
-        auto rgb_target = parsing::rgb_to_uint(target_r, target_g, target_b);
-        auto index_target = map.rgb_to_index[rgb_target];
-
-        if (map.province_is_sea[province_index] != map.province_is_sea[index_target]) {
-            return;
-        }
-
-        map.data_raw[pixel_index * 4] = control_state.r;
-        map.data_raw[pixel_index * 4 + 1] = control_state.g;
-        map.data_raw[pixel_index * 4 + 2] = control_state.b;
-
-
-        map.data[4 * pixel_index + 0] = province_index % 256;
-        map.data[4 * pixel_index + 1] = province_index / 256;
-        control_state.update_texture_part = true;
-    } else if (control_state.fill_mode == FILL_MODE::OWNER_AND_CONTROLLER) {
-        auto target_r = map.data_raw[pixel_index * 4];
-        auto target_g = map.data_raw[pixel_index * 4 + 1];
-        auto target_b = map.data_raw[pixel_index * 4 + 2];
-        auto rgb_target = parsing::rgb_to_uint(target_r, target_g, target_b);
-        auto index_target = map.rgb_to_index[rgb_target];
-        if (map.province_is_sea[index_target]) {
-            return;
-        }
-
-        auto selected_pixel = pixel_index;
-        auto selected_province = glm::vec2((float)map.data[pixel_index * 4] / 256.f, (float)map.data[pixel_index * 4 + 1] / 256.f);
-        auto selected_province_id = (int)map.data[pixel_index * 4] + (int)map.data[pixel_index * 4 + 1] * 256;
-
-        auto& def = map.provinces[map.index_to_vector_position[selected_province_id]];
-
-        if (def.owner_tag != control_state.fill_with_tag || def.controller_tag != control_state.fill_with_tag) {
-            def.owner_tag = control_state.fill_with_tag;
-            def.controller_tag = control_state.fill_with_tag;
-            map.province_owner[3 * def.v2id + 0] = def.owner_tag[0];
-            map.province_owner[3 * def.v2id + 1] = def.owner_tag[1];
-            map.province_owner[3 * def.v2id + 2] = def.owner_tag[2];
-
-            control_state.update_texture_part = true;
-        }
-    }
-}
-
-int inline pairing(glm::ivec2 a, glm::ivec2 b) {
-    return a.x * b.x + a.y * b.y;
-}
-
-void paint_line(control& control_state, parsing::game_map& map) {
-    auto start = control_state.fill_center;
-    auto end = glm::ivec2(control_state.delayed_map_coord);
-
-    auto direction = end - start;
-    auto normal = glm::ivec2(direction.y, -direction.x);
-
-    auto shift_x = 1;
-    if (direction.x < 0) {
-        shift_x = -1;
-    }
-    auto shift_y = 1;
-    if (direction.y < 0) {
-        shift_y = -1;
-    }
-
-    auto error_change_x = shift_x * normal.x;
-    auto error_change_y = shift_y * normal.y;
-
-    auto x = start.x;
-    auto y = start.y;
-
-    while (x != end.x || y != end.y) {
-        {
-            auto rgb = parsing::rgb_to_uint(control_state.r, control_state.g, control_state.b);
-            auto index = map.rgb_to_index[rgb];
-            auto pixel_index = coord_to_pixel(map, glm::ivec2{x, y});
-            paint_safe(control_state, map, pixel_index, index);
-            control_state.update_texture_x_bottom = std::min(x, control_state.update_texture_x_bottom);
-            control_state.update_texture_y_bottom = std::min(y, control_state.update_texture_y_bottom);
-            control_state.update_texture_x_top = std::max(x, control_state.update_texture_x_top);
-            control_state.update_texture_y_top = std::max(y, control_state.update_texture_y_top);
-        }
-
-        auto error = pairing(normal, {x - start.x, y - start.y});
-
-        if (std::abs(error + error_change_x) < std::abs(error + error_change_y)) {
-            x += shift_x;
-        } else {
-            y += shift_y;
-        }
-    }
 }
 
 void update_adj_buffers(parsing::game_map& map_state, GLuint buffer, int& counter) {
@@ -721,7 +292,7 @@ struct window_wrapper {
         SDL_Quit();
     }
 
-    void update(parsing::game_map& map, control& control_state, ImGuiIO& io, glm::vec2& camera_shift, float & zoom) {
+    void update(parsing::game_map& map, state::control& control_state, ImGuiIO& io, glm::vec2& camera_shift, float & zoom) {
         for (SDL_Event event; SDL_PollEvent(&event);) {
             ImGui_ImplSDL2_ProcessEvent(&event);
 
@@ -741,20 +312,14 @@ struct window_wrapper {
             case SDL_MOUSEMOTION:
                 {
                     if (io.WantCaptureMouse) break;
-                    control_state.mouse_map_coord = screen_to_texture(
-                        event.motion.x, event.motion.y,
+                    mouse_x = event.motion.x;
+                    mouse_y = event.motion.y;
+                    state::update_mouse_move(control_state, map, screen_to_texture(
+                        mouse_x, mouse_y,
                         map.size_x, map.size_y,
                         width, height,
                         zoom, camera_shift
-                    );
-
-                    mouse_x = event.motion.x;
-                    mouse_y = event.motion.y;
-
-                    control_state.mouse_map_coord.y = std::clamp(control_state.mouse_map_coord.y, 0.f, (float)map.size_y - 1.f);
-                    control_state.mouse_map_coord.x = std::clamp(control_state.mouse_map_coord.x, 0.f, (float)map.size_x - 1.f);
-
-                    update_hover(control_state, map);
+                    ));
                 }
             case SDL_MOUSEBUTTONDOWN:
                 if (event.button.button == SDL_BUTTON_LEFT)
@@ -811,11 +376,11 @@ struct window_wrapper {
                 {
                     zoom *= 2.0;
                 } else if (event.key.keysym.sym == SDLK_z) {
-                    control_state.mode = CONTROL_MODE::PICKING_COLOR;
+                    control_state.mode = state::CONTROL_MODE::PICKING_COLOR;
                 } else if (event.key.keysym.sym == SDLK_x) {
                     // control_state.mode = CONTROL_MODE::PAINTING;
                 } else if (event.key.keysym.sym == SDLK_c) {
-                    control_state.mode = CONTROL_MODE::NONE;
+                    control_state.mode = state::CONTROL_MODE::NONE;
                 } else if (event.key.keysym.sym == SDLK_n) {
                     auto prov = map.new_province(pixel(control_state, map));
                     control_state.r = prov.r;
@@ -825,7 +390,7 @@ struct window_wrapper {
                     update_map_texture(control_state, map);
                 } else if (event.key.keysym.sym == SDLK_f) {
                     control_state.fill_center = glm::vec2{control_state.mouse_map_coord.x, control_state.mouse_map_coord.y};
-                    control_state.mode = CONTROL_MODE::FILL;
+                    control_state.mode = state::CONTROL_MODE::FILL;
                     control_state.delayed_map_coord = glm::ivec2{control_state.mouse_map_coord};
                 } else if (event.key.keysym.sym == SDLK_p) {
                     parsing::unload_data(map, "./editor-output");
@@ -838,7 +403,7 @@ struct window_wrapper {
                         auto state_g = map.province_state[prov * 2 + 1];
 
                         if (state_r || state_g) {
-                            control_state.mode = CONTROL_MODE::SET_STATE;
+                            control_state.mode = state::CONTROL_MODE::SET_STATE;
                         }
                     }
                 }
@@ -884,15 +449,15 @@ namespace SHADER_UNIFORMS {
 
 std::array<GLuint, 256> TO_LOCATION {};
 
-void update_rivers_mesh(control& state, parsing::game_map& map) {
+void update_rivers_mesh(state::control& state, parsing::game_map& map) {
     auto count = 0;
     for (int i = 0; i < map.size_x; i++) {
         for (int j = 0; j < map.size_y; j++) {
-            auto pixel = coord_to_pixel(map, glm::ivec2{i, j});
+            auto pixel = state::coord_to_pixel(map, glm::ivec2{i, j});
             if (map.rivers_raw[pixel * 4] < 255) {
                 auto width = (40.f + 255.f - float(map.rivers_raw[pixel * 4])) / 500.f;
                 if (i + 1 < map.size_x){
-                    auto next = coord_to_pixel(map, glm::ivec2{i + 1, j});
+                    auto next = state::coord_to_pixel(map, glm::ivec2{i + 1, j});
                     if (map.rivers_raw[next * 4] < 255) {
                         //std::cout << i << " " << j << " " << next << " " << pixel << " i + 1" << std::endl;
                         auto width_next = (40.f + 255.f - float(map.rivers_raw[next * 4])) / 500.f;
@@ -920,7 +485,7 @@ void update_rivers_mesh(control& state, parsing::game_map& map) {
                 }
 
                 if (j + 1 < map.size_y){
-                    auto next = coord_to_pixel(map, glm::ivec2{i, j + 1});
+                    auto next = state::coord_to_pixel(map, glm::ivec2{i, j + 1});
                     if (map.rivers_raw[next * 4] < 255) {
                         //std::cout << i << " " << j << " " << next << " " << pixel << " " << " j + 1" << std::endl;
                         auto width_next = (40.f + 255.f - float(map.rivers_raw[next * 4])) / 500.f;
@@ -960,7 +525,7 @@ int main(int argc, char* argv[]) {
 
     {
         window_wrapper window {};
-        control control_state {};
+        state::control control_state {};
 
         float data_buffer[2000];
         uint8_t province_data[256 * 256 * 3];
@@ -992,7 +557,7 @@ int main(int argc, char* argv[]) {
         TO_LOCATION[SHADER_UNIFORMS::MODEL_RIVER] = glGetUniformLocation(rivers_program, "model");
         TO_LOCATION[SHADER_UNIFORMS::VIEW_RIVER] = glGetUniformLocation(rivers_program, "view");
 
-        check_gl_error("Before loading textures");
+        state::check_gl_error("Before loading textures");
 
         load_map_texture(control_state, map_state);
 
@@ -1028,13 +593,13 @@ int main(int argc, char* argv[]) {
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
-        check_gl_error("rivers buffers");
+        state::check_gl_error("rivers buffers");
 
         // loading textures for icons:
 
 
 
-        check_gl_error("Before shaders");
+        state::check_gl_error("Before shaders");
 
         std::cout << "loading shaders\n";
         auto vertex_shader = create_shader(
@@ -1047,7 +612,7 @@ int main(int argc, char* argv[]) {
         );
         auto program = create_program(vertex_shader, fragment_shader);
 
-        check_gl_error("Shaders");
+        state::check_gl_error("Shaders");
 
         TO_LOCATION[SHADER_UNIFORMS::PROVINCES_RGB] = glGetUniformLocation(program, "province_rgb");
         TO_LOCATION[SHADER_UNIFORMS::PROVINCES_DATA] = glGetUniformLocation(program, "data");
@@ -1073,7 +638,7 @@ int main(int argc, char* argv[]) {
 
         GLuint fake_VAO;
         glGenVertexArrays(1, &fake_VAO);
-        check_gl_error("Vertex array");
+        state::check_gl_error("Vertex array");
 
         glm::vec3 shift {0, 0, 0.5};
         glm::vec2 camera {0, 0};
@@ -1091,14 +656,14 @@ int main(int argc, char* argv[]) {
         float frame_time = 1.f / framerate;
         float update_timer = 0.f;
 
-        std::cout << "Start the main loop";
+        std::cout << "Prepare data";
 
 
 
         TO_LOCATION[SHADER_UNIFORMS::MODEL_LINE] = glGetUniformLocation(line_program, "model");
         TO_LOCATION[SHADER_UNIFORMS::VIEW_LINE] = glGetUniformLocation(line_program, "view");
 
-        check_gl_error("line shaders");
+        state::check_gl_error("line shaders");
 
 
         // prepare centers buffers:
@@ -1126,7 +691,7 @@ int main(int argc, char* argv[]) {
         glBindVertexArray(0);
 
 
-        check_gl_error("line buffers");
+        state::check_gl_error("line buffers");
 
         window.running = true;
 
@@ -1134,6 +699,8 @@ int main(int argc, char* argv[]) {
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
         control_state.reset_focus = true;
+
+        std::cout << "Start the main loop";
 
         while (window.running) {
             auto now = std::chrono::high_resolution_clock::now();
@@ -1179,17 +746,17 @@ int main(int argc, char* argv[]) {
 
 
                 if (ImGui::Button("S", ImVec2(35, 35))) {
-                    control_state.mode = CONTROL_MODE::SELECT;
+                    control_state.mode = state::CONTROL_MODE::SELECT;
                     control_state.active = false;
                 };
 
                 if (ImGui::Button("F", ImVec2(35, 35))) {
-                    control_state.mode = CONTROL_MODE::FILL;
+                    control_state.mode = state::CONTROL_MODE::FILL;
                     control_state.active = false;
                 };
 
                 if (ImGui::Button("P", ImVec2(35, 35))) {
-                    control_state.mode = CONTROL_MODE::PICKING_COLOR;
+                    control_state.mode = state::CONTROL_MODE::PICKING_COLOR;
                     control_state.active = false;
                 };
 
@@ -1210,32 +777,32 @@ int main(int argc, char* argv[]) {
                     | ImGuiWindowFlags_NoFocusOnAppearing
                 );
 
-                if (control_state.mode == CONTROL_MODE::SELECT) {
+                if (control_state.mode == state::CONTROL_MODE::SELECT) {
                     ImGui::Text("Selection mode");
                     if (ImGui::BeginCombo("dropdown select", selection_mode_string(control_state.selection_mode).c_str())) {
                         for (int n = 0; n < 2; n++) {
-                            const bool is_selected = (control_state.selection_mode == (SELECTION_MODE)n);
-                            if (ImGui::Selectable(selection_mode_string((SELECTION_MODE)n).c_str(), is_selected))
-                                control_state.selection_mode = (SELECTION_MODE)n;
+                            const bool is_selected = (control_state.selection_mode == (state::SELECTION_MODE)n);
+                            if (ImGui::Selectable(selection_mode_string((state::SELECTION_MODE)n).c_str(), is_selected))
+                                control_state.selection_mode = (state::SELECTION_MODE)n;
                             if (is_selected)
                                 ImGui::SetItemDefaultFocus();
                         }
                         ImGui::EndCombo();
                     }
-                } else if (control_state.mode == CONTROL_MODE::FILL) {
+                } else if (control_state.mode == state::CONTROL_MODE::FILL) {
                     ImGui::Text("Fill mode");
                     if (ImGui::BeginCombo("dropdown fill", fill_mode_string(control_state.fill_mode).c_str())) {
                         for (int n = 0; n < 2; n++) {
-                            const bool is_selected = (control_state.fill_mode == (FILL_MODE)n);
-                            if (ImGui::Selectable(fill_mode_string((FILL_MODE)n).c_str(), is_selected))
-                                control_state.fill_mode = (FILL_MODE)n;
+                            const bool is_selected = (control_state.fill_mode == (state::FILL_MODE)n);
+                            if (ImGui::Selectable(fill_mode_string((state::FILL_MODE)n).c_str(), is_selected))
+                                control_state.fill_mode = (state::FILL_MODE)n;
                             if (is_selected)
                                 ImGui::SetItemDefaultFocus();
                         }
                         ImGui::EndCombo();
                     }
 
-                    if (control_state.fill_mode == FILL_MODE::OWNER_AND_CONTROLLER) {
+                    if (control_state.fill_mode == state::FILL_MODE::OWNER_AND_CONTROLLER) {
                         ImGui::Text("Fill with:");
                         ImGui::Text("%s", control_state.fill_with_tag.c_str());
                     }
@@ -1263,22 +830,22 @@ int main(int argc, char* argv[]) {
 
                 switch (control_state.mode) {
 
-                case CONTROL_MODE::NONE:
+                case state::CONTROL_MODE::NONE:
                     ImGui::Text("None");
                     break;
-                case CONTROL_MODE::PICKING_COLOR:
+                case state::CONTROL_MODE::PICKING_COLOR:
                     ImGui::Text("Pick color");
                     break;
-                case CONTROL_MODE::PAINTING:
+                case state::CONTROL_MODE::PAINTING:
                     ImGui::Text("Paint");
                     break;
-                case CONTROL_MODE::FILL:
+                case state::CONTROL_MODE::FILL:
                     ImGui::Text("Fill");
                     break;
-                case CONTROL_MODE::SET_STATE:
+                case state::CONTROL_MODE::SET_STATE:
                     ImGui::Text("Set state");
                     break;
-                case CONTROL_MODE::SELECT:
+                case state::CONTROL_MODE::SELECT:
                     ImGui::Text("Select");
                     break;
                 break;
@@ -1294,171 +861,19 @@ int main(int argc, char* argv[]) {
 
 
             if (control_state.selected_province_id && !control_state.selection_delay) {
-                ImGui::Begin(
-                    "Province history",
-                    NULL,
-                    ImGuiWindowFlags_NoFocusOnAppearing
-                );
-
-
-                auto & def = map_state.provinces[map_state.index_to_vector_position[control_state.selected_province_id]];
-
-                ImGui::Text("%s", (def.name + " (" + def.history_file_name + ") " + std::to_string(def.v2id)).c_str());
-
-                if (ImGui::InputText("Owner", &def.owner_tag)) {
-                    map_state.province_owner[3 * def.v2id + 0] = def.owner_tag[0];
-                    map_state.province_owner[3 * def.v2id + 1] = def.owner_tag[1];
-                    map_state.province_owner[3 * def.v2id + 2] = def.owner_tag[2];
-                    update_map_texture(control_state, map_state);
-                }
-
-                ImGui::SameLine();
-                if (ImGui::Button("Clear owner")) {
-                    def.owner_tag = "";
-                    map_state.province_owner[3 * def.v2id + 0] = 0;
-                    map_state.province_owner[3 * def.v2id + 1] = 0;
-                    map_state.province_owner[3 * def.v2id + 2] = 0;
-                    update_map_texture(control_state, map_state);
-                }
-
-                ImGui::InputText("Controller", &def.controller_tag);
-                ImGui::SameLine();
-                if (ImGui::Button("Clear control")) {
-                    def.controller_tag = "";
-                }
-
-                ImGui::InputText("Main RGO: ", &def.main_trade_good);
-
-                if (ImGui::TreeNode("Secondary RGO")) {
-
-                    std::vector<std::string> template_names = {};
-                    for (auto const& [key, val] : map_state.secondary_rgo_templates) {
-                        template_names.push_back(key);
+                if (control_state.selection_mode == state::SELECTION_MODE::PROVINCE)
+                    widgets::selection_province(map_state, control_state);
+                if (control_state.selection_mode == state::SELECTION_MODE::NATION) {
+                    auto & def = map_state.provinces[map_state.index_to_vector_position[control_state.selected_province_id]];
+                    if (def.owner_tag.length() == 0) {
+                        widgets::selection_nation(map_state, control_state, 0);
+                    } else {
+                        auto id = game_definition::tag_to_int({
+                            def.owner_tag[0], def.owner_tag[1], def.owner_tag[2]
+                        });
+                        widgets::selection_nation(map_state, control_state, id);
                     }
-
-                    ImGui::Text("Apply template");
-
-                    ImGui::SameLine();
-
-                    if (ImGui::BeginCombo("Select", "")) {
-                        for (int n = 0; n < template_names.size(); n++) {
-                            if (ImGui::Selectable(template_names[n].c_str(), false)) {
-                                def.secondary_rgo_size.clear();
-                                for (auto const& [key, val] : map_state.secondary_rgo_templates[template_names[n]]) {
-                                    def.secondary_rgo_size[key] = val;
-                                }
-                            }
-                        }
-                        ImGui::EndCombo();
-                    }
-
-                    if (ImGui::BeginTable("adj", 3)) {
-
-                        ImGui::TableSetupColumn("Commodity");
-                        ImGui::TableSetupColumn("Max employment");
-                        ImGui::TableSetupColumn("Delete rgo");
-
-                        ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
-                        for (int column = 0; column < 3; column++)
-                        {
-                            ImGui::TableSetColumnIndex(column);
-                            const char* column_name = ImGui::TableGetColumnName(column);
-                            ImGui::PushID(column);
-                            ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-                            ImGui::PopStyleVar();
-                            ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-                            ImGui::TableHeader(column_name);
-                            ImGui::PopID();
-                        }
-
-                        std::vector<std::string> local_rgo;
-
-                        for (auto const& [key, val] : def.secondary_rgo_size) {
-                            local_rgo.push_back(key);
-                        }
-
-                        for (int row = 0; row < local_rgo.size(); row++)
-                        {
-                            auto size = def.secondary_rgo_size[local_rgo[row]];
-                            auto new_size = size;
-                            ImGui::TableNextRow();
-                            ImGui::TableNextColumn();
-                            ImGui::PushID(row);
-                            ImGui::Text("%s", local_rgo[row].c_str());
-                            ImGui::TableNextColumn();
-                            ImGui::InputInt("", &new_size);
-                            if (new_size != size) {
-                                def.secondary_rgo_size[local_rgo[row]] = new_size;
-                            }
-                            ImGui::TableNextColumn();
-                            if (ImGui::Button("Delete")) {
-                                def.secondary_rgo_size.erase(local_rgo[row]);
-                            }
-                            ImGui::PopID();
-                        }
-
-                        ImGui::TableNextRow();
-                        static std::string new_secondary_rgo_entry;
-                        ImGui::TableNextColumn();
-                        ImGui::InputText("Commodity", &new_secondary_rgo_entry);
-                        ImGui::TableNextColumn();
-                        if (!def.secondary_rgo_size.contains(new_secondary_rgo_entry) && new_secondary_rgo_entry.length() > 0) {
-                            if (ImGui::Button("Insert")) {
-                                def.secondary_rgo_size[new_secondary_rgo_entry] = 0;
-                            }
-                        }
-                        ImGui::TableNextColumn();
-
-                        ImGui::EndTable();
-                    }
-                    ImGui::TreePop();
                 }
-
-                ImGui::InputInt("Railroad: ", &def.railroad);
-                ImGui::InputInt("Naval base: ", &def.naval_base);
-                ImGui::InputInt("Fort: ", &def.fort);
-
-                bool remove_flag = false;
-                int remove_index = 0;
-                for (int i = 0; i < def.buildings.size(); i++) {
-                    ImGui::PushID(i);
-                    if (ImGui::TreeNode("Building")) {
-                        ImGui::InputInt("Level", &def.buildings[i].level);
-                        ImGui::InputText("Type", &def.buildings[i].building_type);
-                        ImGui::InputText("Upgrade", &def.buildings[i].upgrade);
-                        if (ImGui::Button("Remove")) {
-                            remove_flag = true;
-                            remove_index = i;
-                        }
-                        ImGui::TreePop();
-                    }
-                    ImGui::PopID();
-                }
-                if (remove_flag) {
-                    def.buildings.erase(def.buildings.begin() + remove_index);
-                }
-                if (ImGui::Button("Add building")) {
-                    game_definition::state_building bdef {
-                        .level = 1, .building_type = "?", .upgrade = "yes"
-                    };
-                    def.buildings.push_back(bdef);
-                }
-
-                for (int i = 0; i < def.cores.size(); i++) {
-                    ImGui::PushID(i);
-                    ImGui::InputText("Core", &(def.cores[i]));
-                    ImGui::SameLine();
-                    if (ImGui::Button("Clear core")) {
-                        def.cores[i] = "";
-                    }
-                    ImGui::PopID();
-                }
-
-                if (ImGui::Button("Add core")) {
-                    def.cores.push_back("");
-                }
-
-                ImGui::End();
             }
 
             if (control_state.context_province == 0) {
@@ -1474,21 +889,21 @@ int main(int argc, char* argv[]) {
                     | ImGuiWindowFlags_NoFocusOnAppearing
                 );
                 switch (control_state.mode) {
-                case CONTROL_MODE::NONE:
+                case state::CONTROL_MODE::NONE:
                     ImGui::Text("None");
                     break;
-                case CONTROL_MODE::PICKING_COLOR:
+                case state::CONTROL_MODE::PICKING_COLOR:
                     ImGui::Text("Pick color");
                     break;
-                case CONTROL_MODE::PAINTING:
+                case state::CONTROL_MODE::PAINTING:
                     ImGui::Text("Paint");
                     break;
-                case CONTROL_MODE::FILL:
+                case state::CONTROL_MODE::FILL:
                     ImGui::Text("Fill");
                     break;
-                case CONTROL_MODE::SET_STATE:
+                case state::CONTROL_MODE::SET_STATE:
                     ImGui::Text("Set state");
-                case CONTROL_MODE::SELECT:
+                case state::CONTROL_MODE::SELECT:
                     ImGui::Text("Select");
                 break;
                 }
@@ -1631,15 +1046,15 @@ int main(int argc, char* argv[]) {
 
             if (control_state.active) {
                 switch (control_state.mode) {
-                    case CONTROL_MODE::PICKING_COLOR:
+                    case state::CONTROL_MODE::PICKING_COLOR:
                         pick_color(control_state, map_state);
-                        control_state.mode = CONTROL_MODE::NONE;
+                        control_state.mode = state::CONTROL_MODE::NONE;
                         break;
-                    case CONTROL_MODE::PAINTING:
+                    case state::CONTROL_MODE::PAINTING:
                         paint(control_state, map_state);
                         update_map_texture(control_state, map_state);
                         break;
-                    case CONTROL_MODE::FILL:
+                    case state::CONTROL_MODE::FILL:
                         while(target.x != control_state.delayed_map_coord.x || target.y != control_state.delayed_map_coord.y) {
                             if (target.x > control_state.delayed_map_coord.x) {
                                 control_state.delayed_map_coord.x++;
@@ -1656,11 +1071,11 @@ int main(int argc, char* argv[]) {
                             paint_line(control_state, map_state);
                         }
                         break;
-                    case CONTROL_MODE::SET_STATE:
+                    case state::CONTROL_MODE::SET_STATE:
                         paint_state(control_state, map_state);
                         update_map_texture(control_state, map_state);
                         break;
-                    case CONTROL_MODE::SELECT:
+                    case state::CONTROL_MODE::SELECT:
                         update_select(control_state, map_state);
                         break;
                     default: break;
@@ -1729,7 +1144,7 @@ int main(int argc, char* argv[]) {
             glBindVertexArray(fake_VAO);
             glDrawArrays(GL_TRIANGLES, 0, 6 * 2 * 2);
 
-            check_gl_error("After draw:");
+            state::check_gl_error("After draw:");
 
 
             glUseProgram(line_program);
@@ -1740,7 +1155,7 @@ int main(int argc, char* argv[]) {
             glBindVertexArray(center_vertex_array);
             glDrawArrays(GL_TRIANGLES, 0, adj_vertices_count);
 
-            check_gl_error("After draw line:");
+            state::check_gl_error("After draw line:");
 
             glUseProgram(rivers_program);
 
@@ -1750,7 +1165,7 @@ int main(int argc, char* argv[]) {
             glBindVertexArray(rivers_array);
             glDrawArrays(GL_TRIANGLES, 0, control_state.rivers_mesh.size());
 
-            check_gl_error("After draw rivers:");
+            state::check_gl_error("After draw rivers:");
 
             if (control_state.reset_focus) {
                 ImGui::SetWindowFocus(NULL);
