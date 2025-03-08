@@ -1,6 +1,7 @@
 #include <fstream>
 #include <iostream>
 #include <string>
+#include <array>
 
 #include "countries.hpp"
 #include "definitions.hpp"
@@ -158,19 +159,17 @@ namespace parser {
 
                         std::cout << "tag: " << key.data << "\n";
                         std::cout << "file: " << country_string << "\n";
-
-                        game_definition::nation n {
-                            .tag = {
-                                (key.data[0]),
-                                (key.data[1]),
-                                (key.data[2])
-                            },
-                            .filename = country_string.substr(10, country_string.length() - 10 - 4),
-                            .dynamic = dynamic_tags
+                        std::array<int8_t, 3> tag = {
+                            (key.data[0]),
+                            (key.data[1]),
+                            (key.data[2])
                         };
-
-                        map.nations.push_back(n);
-                        auto tag_id = game_definition::tag_to_int(n.tag);
+                        std::string filename = country_string.substr(10, country_string.length() - 10 - 4);
+                        auto tag_id = game_definition::tag_to_int(tag);
+                        game_definition::nation n {
+                            tag, filename, "", dynamic_tags
+                        };
+                        map.nations.emplace_back(n);
                         map.tag_to_vector_position[tag_id] = map.nations.size() - 1;
                     }
                 }

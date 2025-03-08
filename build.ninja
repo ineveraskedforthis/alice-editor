@@ -5,12 +5,33 @@
 cflags = -std=c++20 -O0 -DWIN32 -DSDL_MAIN_HANDLED -I./modules/sdl -I./modules/imgui -I./modules/glew
 
 rule cc
-  command = clang++ $cflags -g -gdwarf-3 -gcodeview -c $in -o $out
+  command = clang++ -MD -MF $out.d $cflags -g -gdwarf-3 -gcodeview -c $in -o $out
   description = compile $out
+  depfile = $out.d
+
+rule cc_simple
+  command = clang++ -std=c++20 -O3 -o $out $in
+  description = compile $out without complex flags
 
 rule link
   command = clang++ $cflags -g -gdwarf-3 -o $out $in -L./libs -lws2_32.lib -lShell32 -lSDL2main -lSDL2 -lopengl32 -lglew32 -Xlinker /subsystem:console
   description = link $out
+
+rule generate_parser
+  command = ./ParserGenerator/ParserGenerator.exe $in
+  description = generating parser $out for $in
+
+rule copy
+  command = xcopy $in $out /y
+  description = copying file $in to $out
+
+build build\shaders\.fs: copy shaders\.fs
+build build\shaders\.vs: copy shaders\.vs | build/shaders\.fs
+build build\shaders\line.fs: copy shaders\line.fs | build\shaders\.vs
+build build\shaders\line.vs: copy shaders\line.vs | build\shaders\line.fs
+
+build ParserGenerator/ParserGenerator.exe: cc_simple ParserGenerator/parser_generator.cpp
+build modules/parsing/generated/defs_generated.hpp: generate_parser modules/parsing/generated/defs.txt | ParserGenerator/ParserGenerator.exe
 
 build cache/state.o: cc modules/editor-state/editor-state.cpp
 build cache/main.o: cc main.cpp
@@ -22,6 +43,9 @@ build cache/parsing_state_building.o: cc modules/parsing/state_building.cpp
 build cache/parsing_secondary_rgo.o: cc modules/parsing/secondary_rgo.cpp
 build cache/parsing_templates.o: cc modules/parsing/templates.cpp
 build cache/parsing_adjacency.o: cc modules/parsing/adjacency.cpp
+build cache/parsing_core.o: cc modules/parsing/generated/parsers_core.cpp
+build cache/parsing_parsers.o: cc modules/parsing/generated/parsers.cpp
+build cache/parsing_floats.o: cc modules/parsing/generated/float_from_chars.cpp
 
 build cache/imgui.o: cc modules/imgui/imgui.cpp
 build cache/imgui_draw.o: cc modules/imgui/imgui_draw.cpp
@@ -32,4 +56,4 @@ build cache/imgui_backend_sdl.o: cc modules/imgui/backends/imgui_impl_sdl2.cpp
 build cache/imgui_backend_opengl.o: cc modules/imgui/backends/imgui_impl_opengl3.cpp
 build cache/imgui_stdlib.o: cc modules/imgui/misc/cpp/imgui_stdlib.cpp
 
-build build/editor.exe: link cache/main.o cache/state.o cache/selection_widget.o cache/parsing_map.o cache/parser.o cache/parsing_state_building.o cache/parsing_secondary_rgo.o cache/parsing_templates.o cache/parsing_adjacency.o cache/parsing_countries.o cache/imgui.o cache/imgui_draw.o cache/imgui_demo.o cache/imgui_tables.o cache/imgui_widgets.o cache/imgui_backend_sdl.o cache/imgui_backend_opengl.o cache/imgui_stdlib.o
+build build/editor.exe: link cache/main.o cache/state.o cache/selection_widget.o cache/parsing_map.o cache/parsing_core.o cache/parsing_parsers.o cache/parsing_floats.o cache/parser.o cache/parsing_state_building.o cache/parsing_secondary_rgo.o cache/parsing_templates.o cache/parsing_adjacency.o cache/parsing_countries.o cache/imgui.o cache/imgui_draw.o cache/imgui_demo.o cache/imgui_tables.o cache/imgui_widgets.o cache/imgui_backend_sdl.o cache/imgui_backend_opengl.o cache/imgui_stdlib.o

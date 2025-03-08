@@ -1,0 +1,103 @@
+#include "parsers_core.hpp"
+
+
+namespace parsers {
+void upper_house_handler::any_value(std::string_view label, association_type, float value, error_handler& err, int32_t line, nation_history_file& context){
+    std::string actual_key = {label.begin(), label.end()};
+    context.nation.upper_house[actual_key] = value;
+};
+void foreign_investment_handler::any_value(std::string_view label, association_type, float value, error_handler& err, int32_t line, nation_history_file& context){
+    std::string actual_key = {label.begin(), label.end()};
+    context.nation.foreign_investment[actual_key] = value;
+};
+
+void national_flag_handler::flag(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+    _government = value;
+};
+void national_flag_handler::government(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+    _flag = value;
+};
+
+void enter_country_file_dated_block(std::string_view label, token_generator& gen, error_handler& err, nation_history_file& context) {};
+
+void nation_handler::finish(nation_history_file&){
+
+};
+void nation_handler::govt_flag(national_flag_handler const& value, error_handler& err, int32_t line, nation_history_file& context){
+    game_definition::scripted_flag flag {
+        .government = value._government,
+        .flag = value._flag
+    };
+    context.nation.govt_flag.push_back((flag));
+};
+void nation_handler::set_country_flag(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.nation.set_country_flag.push_back(actual_value);
+};
+void nation_handler::set_global_flag(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.nation.set_global_flag.push_back(actual_value);
+};
+void nation_handler::colonial_points(association_type, int32_t value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.colonial_points = value;
+};
+void nation_handler::capital(association_type, int32_t value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.capital = value;
+};
+void nation_handler::any_value(std::string_view label, association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+
+};
+void nation_handler::primary_culture(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.primary_culture = value;
+};
+void nation_handler::culture(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.nation.culture.push_back(actual_value);
+};
+void nation_handler::remove_culture(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+
+};
+void nation_handler::religion(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.religion = value;
+};
+void nation_handler::government(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.government = value;
+};
+void nation_handler::plurality(association_type, float value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.plurality = value;
+};
+void nation_handler::prestige(association_type, float value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.prestige = value;
+};
+void nation_handler::nationalvalue(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.nationalvalue = value;
+};
+void nation_handler::schools(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.schools = value;
+};
+void nation_handler::civilized(association_type, bool value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.civilized = value;
+};
+void nation_handler::is_releasable_vassal(association_type, bool value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.is_releasable_vassal = value;
+};
+void nation_handler::literacy(association_type, float value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.literacy = value;
+};
+void nation_handler::non_state_culture_literacy(association_type, float value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.non_state_culture_literacy = value;
+};
+void nation_handler::consciousness(association_type, float value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.consciousness = value;
+};
+void nation_handler::nonstate_consciousness(association_type, float value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.nonstate_consciousness = value;
+};
+void nation_handler::ruling_party(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+    context.nation.ruling_party = value;
+};
+void nation_handler::decision(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.nation.decision.push_back(actual_value);
+};
+}

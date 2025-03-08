@@ -9,6 +9,9 @@
 #include <filesystem>
 #include "adjacency.hpp"
 #include "definitions.hpp"
+#include "generated/defs_generated.hpp"
+#include "generated/parsers.hpp"
+#include "generated/parsers_core.hpp"
 #include "parser.hpp"
 #include "secondary_rgo.hpp"
 #include "state_building.hpp"
@@ -512,13 +515,45 @@ namespace parsing{
             std::ifstream file(path + "/common/countries.txt");
             parser::countries_list(map_state, file);
 
-            for (auto& n : map_state.nations) {
-                std::ifstream file(path + "/common/countries/" + n.filename + ".txt");
-                if (file) {
-                    parser::country_file_common(n, file);
-                    n.defined_in_common = true;
-                } else {
-                    std::cout << "Common file for " << n.filename << " was not provided.\n";
+            for (size_t i = 0; i < map_state.nations.size(); i++) {
+                {
+                    auto& n = map_state.nations[i];
+                    std::ifstream file(path + "/common/countries/" + n.filename + ".txt");
+                    if (file) {
+                        parser::country_file_common(n, file);
+                        n.defined_in_common = true;
+                    } else {
+                        std::cout << "Common file for " << n.filename << " was not provided.\n";
+                    }
+                }
+            }
+
+            parsers::error_handler errors("parsing_errors.txt");
+
+            for (auto& entry : std::filesystem::directory_iterator  {path + "/history" + "/countries"}) {
+                if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
+                    auto name = entry.path().filename().string();
+                    // std::cout << name << std::endl;
+                    auto first_space = name.find_first_of(' ');
+                    auto tag_string = name.substr(0, first_space);
+                    auto tag_int = game_definition::tag_to_int({
+                        tag_string[0], tag_string[1], tag_string[2]
+                    });
+                    auto index = map_state.tag_to_vector_position[tag_int];
+                    auto& def = map_state.nations[index];
+                    def.history_file_name = name;
+                    std::ifstream file(entry.path());
+
+                    parsers::nation_history_file context {
+                        def,
+                        map_state
+                    };
+
+                    std::stringstream buffer;
+                    buffer << file.rdbuf();
+                    auto str = buffer.str();
+                    parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+                    parsers::parse_nation_handler(tk, errors, context);
                 }
             }
         }

@@ -11,6 +11,10 @@ CTestTestfile.cmake
 _deps
 CMakeUserPresets.json
 
+ParserGenerator/.ninja_log
+ParserGenerator/ParserGenerator.exe
+ParserGenerator/ParserGenerator.exe.d
+
 .vscode
 .cache
 

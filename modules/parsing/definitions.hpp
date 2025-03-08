@@ -30,9 +30,15 @@ namespace game_definition {
         std::string war_policy = "pro_military";
     };
 
+    struct scripted_flag {
+        std::string government{};
+        std::string flag{};
+    };
+
     struct nation {
-        std::array<int8_t, 3> tag= {};
-        std::string filename="";
+        std::array<int8_t, 3> tag {};
+        std::string filename {};
+        std::string history_file_name{};
         bool dynamic=false;
 
         bool defined_in_common=false;
@@ -42,10 +48,37 @@ namespace game_definition {
         uint8_t G = 0;
         uint8_t B = 0;
 
-        std::string graphical_culture="";
-        std::vector<party> parties={};
+        std::string graphical_culture{};
+        std::vector<party> parties{};
 
-        std::string unit_names={};
+        std::string primary_culture{};
+        std::vector<std::string> culture{};
+
+        // remove_culture
+        std::string religion{};
+        std::string government{};
+        float plurality = 0.f;
+        float prestige = 0.f;
+        std::string nationalvalue{};
+        float literacy = 0.f;
+        float non_state_culture_literacy = 0.f;
+        bool civilized = true;
+        bool is_releasable_vassal = true;
+        std::vector<scripted_flag> govt_flag{};
+        std::map<std::string, float> foreign_investment{};
+        std::map<std::string, float> upper_house{};
+        std::string ruling_party{};
+        std::string schools{};
+        float consciousness = 0.f;
+        float nonstate_consciousness = 0.f;
+        std::string last_election{};
+        std::string oob{};
+        int capital = -1;
+        int colonial_points = 0;
+        std::vector<std::string> set_country_flag{};
+        std::vector<std::string> set_global_flag{};
+        std::vector<std::string> decision{};
+        std::string unit_names{};
     };
 
     inline void define_nation_common(nation& n) {

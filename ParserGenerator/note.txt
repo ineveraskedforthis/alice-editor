@@ -1,0 +1,2 @@
+This generator (parser_generator.cpp) is a part of Project Alice: https://github.com/schombert/Project-Alice
+See the license in LICENSE file.

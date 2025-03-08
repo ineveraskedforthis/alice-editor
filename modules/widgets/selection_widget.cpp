@@ -267,6 +267,80 @@ namespace widgets {
                 ImGui::TextUnformatted("%s", def.unit_names.c_str());
                 ImGui::EndTabItem();
             }
+            if (ImGui::BeginTabItem("History"))
+            {
+                ImGui::InputInt("Capital", &def.capital);
+                if (def.capital == -1) {
+                    ImGui::Text("Undefined");
+                } else {
+                    if (map.index_to_vector_position.contains(def.capital)) {
+                        auto& prov = map.provinces[map.index_to_vector_position[def.capital]];
+                        ImGui::Text("%s", (prov.name + "(" + prov.history_file_name + ")").c_str());
+                    } else {
+                        ImGui::Text("Invalid id");
+                    }
+                }
+
+                ImGui::InputText("Primary culture", &def.primary_culture);
+
+                for (int i = 0; i < def.culture.size(); i++) {
+                    ImGui::PushID(i);
+                    ImGui::InputText("Culture", &(def.culture[i]));
+                    ImGui::SameLine();
+                    if (ImGui::Button("Clear culture")) {
+                        def.culture[i] = "";
+                    }
+                    ImGui::PopID();
+                }
+
+                if (ImGui::Button("Add culture")) {
+                    def.culture.push_back("");
+                }
+
+                ImGui::InputText("Religion", &def.religion);
+                ImGui::Checkbox("Civilized", &def.civilized);
+                ImGui::Checkbox("Releasable", &def.is_releasable_vassal);
+
+                ImGui::InputText("Government", &def.government);
+                ImGui::InputText("National value", &def.nationalvalue);
+
+                ImGui::InputFloat("Plurality", &def.plurality);
+                ImGui::InputFloat("Prestige", &def.prestige);
+                ImGui::InputFloat("Literacy", &def.literacy);
+                ImGui::InputFloat("Literacy(non-state)", &def.non_state_culture_literacy);
+
+                ImGui::InputFloat("Consciousness", &def.consciousness);
+                ImGui::InputFloat("Consciousness(non-state)", &def.nonstate_consciousness);
+                ImGui::EndTabItem();
+            }
+
+            if (ImGui::BeginTabItem("Flags"))
+            {
+                auto remove_flag = false;
+                auto remove_index = -1;
+                for (int i = 0; i < def.govt_flag.size(); i++) {
+                    ImGui::PushID(i);
+                    std::string label = "Flag(" + def.govt_flag[i].government + ")";
+                    if (ImGui::TreeNode(label.c_str())) {
+                        ImGui::InputText("Government", &def.govt_flag[i].government);
+                        ImGui::InputText("Flag", &def.govt_flag[i].flag);
+
+                        if (ImGui::Button("Remove")) {
+                            remove_flag = true;
+                            remove_index = i;
+                        }
+                        ImGui::TreePop();
+                    }
+                    ImGui::PopID();
+                }
+                if (remove_flag) {
+                    def.govt_flag.erase(def.govt_flag.begin() + remove_index);
+                }
+                if (ImGui::Button("Add flag override")) {
+                    def.govt_flag.emplace_back();
+                }
+                ImGui::EndTabItem();
+            }
             ImGui::EndTabBar();
         }
 
