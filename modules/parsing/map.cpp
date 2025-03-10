@@ -9,9 +9,9 @@
 #include <filesystem>
 #include "adjacency.hpp"
 #include "definitions.hpp"
-#include "generated/defs_generated.hpp"
 #include "generated/parsers.hpp"
 #include "generated/parsers_core.hpp"
+#include "generated/defs_generated.hpp"
 #include "parser.hpp"
 #include "secondary_rgo.hpp"
 #include "state_building.hpp"
@@ -24,7 +24,16 @@
 #include "../stbimage/stb_image_write.h"
 
 
-namespace parsing{
+namespace parsers{
+
+    void create_government_type(std::string_view name, parsers::token_generator &gen, parsers::error_handler &err, parsers::generic_context &context) {
+        context.map.governments.emplace_back();
+        context.map.governments.back().name = name;
+        parsers::government_type_context ctx {
+            context.map, context.map.governments.back()
+        };
+        parse_government_type(gen, err, ctx);
+    }
 
     enum class PARSER_TASK {
         READING_SPACE, READING_WORD
@@ -322,6 +331,8 @@ namespace parsing{
             {},
             {},
             {},
+            {},
+            {},
             size_x, size_y,
             result,
             (uint8_t *)calloc(size_x * size_y * 4, 1),
@@ -329,7 +340,7 @@ namespace parsing{
         };
     }
 
-    void load_provs(game_map &map_state, std::string path) {
+    void load(game_map &map_state, std::string path) {
         {
             std::ifstream file(path + "/map/definition.csv");
             std::string str;
@@ -510,6 +521,23 @@ namespace parsing{
                 std::cout << "no rgo distribution templates found" << std::endl;
         }
 
+        parsers::error_handler errors("parsing_errors.txt");
+
+        parsers::generic_context ctx_generic {
+            map_state
+        };
+
+        {
+            std::cout << "reading governments\n";
+            std::ifstream file(path + "/common/governments.txt");
+
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+            auto str = buffer.str();
+            parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+            parsers::parse_governments_file(tk, errors, ctx_generic);
+        }
+
         {
             std::cout << "reading nations list\n";
             std::ifstream file(path + "/common/countries.txt");
@@ -528,7 +556,7 @@ namespace parsing{
                 }
             }
 
-            parsers::error_handler errors("parsing_errors.txt");
+
 
             for (auto& entry : std::filesystem::directory_iterator  {path + "/history" + "/countries"}) {
                 if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
@@ -595,8 +623,9 @@ namespace parsing{
                     parser.parse(map_state, def, file);
                 }
             }
-
         }
+
+        std::cout << errors.accumulated_errors;
     }
 
     void unload_data(game_map& map_state, std::string path) {

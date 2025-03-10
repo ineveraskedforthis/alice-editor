@@ -1,7 +1,36 @@
+#include <string>
 #include "parsers_core.hpp"
-
+#include "../map.hpp"
 
 namespace parsers {
+void government_type::duration(association_type, int value, error_handler& err, int32_t line, government_type_context& context){
+    context.current.duration = value;
+};
+void government_type::election(association_type, bool value, error_handler& err, int32_t line, government_type_context& context){
+    context.current.election = value;
+};
+void government_type::flagtype(association_type, std::string_view value, error_handler& err, int32_t line, government_type_context& context){
+    std::string actual_string {value};
+    context.current.flagtype = actual_string;
+
+    bool flag_type_found = false;
+    for (auto& existing : context.map.detected_flags)
+        if (existing == value)
+            flag_type_found = true;
+
+    if (!flag_type_found) {
+        context.map.detected_flags.push_back(actual_string);
+    }
+};
+void government_type::appoint_ruling_party(association_type, bool value, error_handler& err, int32_t line, government_type_context& context){
+    context.current.appoint_ruling_party = value;
+};
+void government_type::any_value(std::string_view text, association_type, bool value, error_handler& err, int32_t line, government_type_context& context){
+    std::string actual_string {text};
+    context.current.allowed_parties[actual_string] = value;
+};
+
+
 void upper_house_handler::any_value(std::string_view label, association_type, float value, error_handler& err, int32_t line, nation_history_file& context){
     std::string actual_key = {label.begin(), label.end()};
     context.nation.upper_house[actual_key] = value;

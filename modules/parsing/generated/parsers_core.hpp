@@ -2,12 +2,43 @@
 #include <string>
 #include "parsers.hpp"
 #include "../definitions.hpp"
-#include "../map.hpp"
+
 
 namespace parsers {
+	struct game_map;
+
+struct generic_context{
+	game_map& map;
+};
+
+void create_government_type(std::string_view name, token_generator& gen, error_handler& err, generic_context& context);
+
+struct governments_file {
+	void finish(generic_context&) { }
+};
+
+struct government_type_context{
+	game_map& map;
+	game_definition::government& current;
+};
+
+struct government_type {
+	void duration(association_type, int value, error_handler& err, int32_t line, government_type_context& context);
+	void election(association_type, bool value, error_handler& err, int32_t line, government_type_context& context);
+	void flagtype(association_type, std::string_view value, error_handler& err, int32_t line, government_type_context& context);
+	void appoint_ruling_party(association_type, bool value, error_handler& err, int32_t line, government_type_context& context);
+	void any_value(std::string_view text, association_type, bool value, error_handler& err, int32_t line, government_type_context& context);
+	void finish(government_type_context&) { }
+};
+
+//forward declaration for according cpp file
+
+template<typename C>
+government_type parse_government_type(token_generator& gen, error_handler& err, C&& context);
+
 struct nation_history_file{
     game_definition::nation& nation;
-	parsing::game_map& map;
+	game_map& map;
 };
 
 struct national_flag_handler {

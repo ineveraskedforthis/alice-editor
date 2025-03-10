@@ -10,11 +10,11 @@
 
 namespace state {
 
-int coord_to_pixel(parsing::game_map& map, glm::ivec2 coord) {
+int coord_to_pixel(parsers::game_map& map, glm::ivec2 coord) {
     return coord.y * map.size_x + coord.x;
 }
 
-int coord_to_pixel(parsing::game_map& map, glm::vec2 coord) {
+int coord_to_pixel(parsers::game_map& map, glm::vec2 coord) {
     return int(std::floor(coord.y))
         * map.size_x
         + int(std::floor(coord.x));
@@ -56,7 +56,7 @@ std::string fill_mode_string(FILL_MODE MODE) {
     }
 }
 
-void load_map_texture(control& control, parsing::game_map& map_state) {
+void load_map_texture(control& control, parsers::game_map& map_state) {
     glGenTextures(1, &control.main_texture);
     glBindTexture(GL_TEXTURE_2D, control.main_texture);
     glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
@@ -143,7 +143,7 @@ void load_map_texture(control& control, parsing::game_map& map_state) {
     check_gl_error("Province texture update");
 }
 
-void update_map_texture(control& control, parsing::game_map& map_state) {
+void update_map_texture(control& control, parsers::game_map& map_state) {
     if (control.update_texture) {
         glBindTexture(GL_TEXTURE_2D, control.main_texture);
         glTexImage2D(
@@ -225,18 +225,18 @@ void update_map_texture(control& control, parsing::game_map& map_state) {
     );
 }
 
-int pixel(control& control_state, parsing::game_map& map) {
+int pixel(control& control_state, parsers::game_map& map) {
     return int(std::floor(control_state.mouse_map_coord.y)
         * map.size_x
         + std::floor(control_state.mouse_map_coord.x));
 }
 
-void update_hover(control& control_state, parsing::game_map& map){
+void update_hover(control& control_state, parsers::game_map& map){
     auto pixel_index = pixel(control_state, map);
     control_state.hovered_province = glm::vec2((float)map.data[pixel_index * 4] / 256.f, (float)map.data[pixel_index * 4 + 1] / 256.f);
 }
 
-void update_select(control& control_state, parsing::game_map& map){
+void update_select(control& control_state, parsers::game_map& map){
     auto pixel_index = pixel(control_state, map);
     control_state.selected_pixel = pixel_index;
     control_state.selected_province = glm::vec2((float)map.data[pixel_index * 4] / 256.f, (float)map.data[pixel_index * 4 + 1] / 256.f);
@@ -244,12 +244,12 @@ void update_select(control& control_state, parsing::game_map& map){
     control_state.selection_delay = true;
 }
 
-void update_context(control& control_state, parsing::game_map& map) {
+void update_context(control& control_state, parsers::game_map& map) {
     auto pixel_index = pixel(control_state, map);
     control_state.context_province = (int)map.data[pixel_index * 4] + (int)map.data[pixel_index * 4 + 1] * 256;
 }
 
-void pick_color(control& control_state, parsing::game_map& map) {
+void pick_color(control& control_state, parsers::game_map& map) {
     auto pixel_index = pixel(control_state, map);
     control_state.r = map.data_raw[pixel_index * 4];
     control_state.g = map.data_raw[pixel_index * 4 + 1];
@@ -264,21 +264,21 @@ void pick_color(control& control_state, parsing::game_map& map) {
     control_state.fill_with_tag = def.owner_tag;
 }
 
-void paint(control& control_state, parsing::game_map& map) {
+void paint(control& control_state, parsers::game_map& map) {
     auto pixel_index = pixel(control_state, map);
 
     map.data_raw[pixel_index * 4] = control_state.r;
     map.data_raw[pixel_index * 4 + 1] = control_state.g;
     map.data_raw[pixel_index * 4 + 2] = control_state.b;
 
-    auto rgb = parsing::rgb_to_uint(control_state.r, control_state.g, control_state.b);
+    auto rgb = parsers::rgb_to_uint(control_state.r, control_state.g, control_state.b);
 
     auto index = map.rgb_to_index[rgb];
     map.data[4 * pixel_index + 0] = index % 256;
     map.data[4 * pixel_index + 1] = index / 256;
 }
 
-void paint_state(control& control_state, parsing::game_map& map) {
+void paint_state(control& control_state, parsers::game_map& map) {
     auto prov_x = map.data[4 * control_state.selected_pixel];
     auto prov_y = map.data[4 * control_state.selected_pixel + 1];
     auto prov = (int)prov_x + (int)(prov_y) * 256;
@@ -291,12 +291,12 @@ void paint_state(control& control_state, parsing::game_map& map) {
     map.province_state[2 * target_prov+1] = map.province_state[2 * prov+1];
 }
 
-void paint_safe(control& control_state, parsing::game_map& map, int pixel_index, uint32_t province_index) {
+void paint_safe(control& control_state, parsers::game_map& map, int pixel_index, uint32_t province_index) {
     if (control_state.fill_mode == FILL_MODE::PROVINCE) {
         auto target_r = map.data_raw[pixel_index * 4];
         auto target_g = map.data_raw[pixel_index * 4 + 1];
         auto target_b = map.data_raw[pixel_index * 4 + 2];
-        auto rgb_target = parsing::rgb_to_uint(target_r, target_g, target_b);
+        auto rgb_target = parsers::rgb_to_uint(target_r, target_g, target_b);
         auto index_target = map.rgb_to_index[rgb_target];
 
         if (map.province_is_sea[province_index] != map.province_is_sea[index_target]) {
@@ -315,7 +315,7 @@ void paint_safe(control& control_state, parsing::game_map& map, int pixel_index,
         auto target_r = map.data_raw[pixel_index * 4];
         auto target_g = map.data_raw[pixel_index * 4 + 1];
         auto target_b = map.data_raw[pixel_index * 4 + 2];
-        auto rgb_target = parsing::rgb_to_uint(target_r, target_g, target_b);
+        auto rgb_target = parsers::rgb_to_uint(target_r, target_g, target_b);
         auto index_target = map.rgb_to_index[rgb_target];
         if (map.province_is_sea[index_target]) {
             return;
@@ -341,7 +341,7 @@ void paint_safe(control& control_state, parsing::game_map& map, int pixel_index,
 
 
 
-void paint_line(control& control_state, parsing::game_map& map) {
+void paint_line(control& control_state, parsers::game_map& map) {
     auto start = control_state.fill_center;
     auto end = glm::ivec2(control_state.delayed_map_coord);
 
@@ -365,7 +365,7 @@ void paint_line(control& control_state, parsing::game_map& map) {
 
     while (x != end.x || y != end.y) {
         {
-            auto rgb = parsing::rgb_to_uint(control_state.r, control_state.g, control_state.b);
+            auto rgb = parsers::rgb_to_uint(control_state.r, control_state.g, control_state.b);
             auto index = map.rgb_to_index[rgb];
             auto pixel_index = coord_to_pixel(map, glm::ivec2{x, y});
             paint_safe(control_state, map, pixel_index, index);
@@ -385,7 +385,7 @@ void paint_line(control& control_state, parsing::game_map& map) {
     }
 }
 
-void update_mouse_move(control& state, parsing::game_map& map, glm::vec2 new_position) {
+void update_mouse_move(control& state, parsers::game_map& map, glm::vec2 new_position) {
     state.mouse_map_coord = new_position;
     state.mouse_map_coord.y = std::clamp(state.mouse_map_coord.y, 0.f, (float)map.size_y - 1.f);
     state.mouse_map_coord.x = std::clamp(state.mouse_map_coord.x, 0.f, (float)map.size_x - 1.f);

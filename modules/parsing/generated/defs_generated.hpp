@@ -3,6 +3,115 @@
 
 namespace parsers {
 template<typename C>
+governments_file parse_governments_file(token_generator& gen, error_handler& err, C&& context) {
+	governments_file cobj;
+	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {
+		if(cur.type == token_type::open_brace) { 
+			err.unhandled_free_group(cur); gen.discard_group();
+			continue;
+		}
+		auto peek_result = gen.next();
+		if(peek_result.type == token_type::special_identifier) {
+			auto peek2_result = gen.next_next();
+			if(peek2_result.type == token_type::open_brace) {
+				gen.get(); gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					create_government_type(cur.content, gen, err, context);
+					break;
+				}
+			} else {
+				auto const assoc_token = gen.get();
+				auto const assoc_type = parse_association_type(assoc_token.content, assoc_token.line, err);
+				auto const rh_token = gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					err.unhandled_association_key(cur);
+					break;
+				}
+			}
+		} else {
+			err.unhandled_free_value(cur);
+		}
+	}
+	cobj.finish(context);
+	return cobj;
+}
+template<typename C>
+government_type parse_government_type(token_generator& gen, error_handler& err, C&& context) {
+	government_type cobj;
+	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {
+		if(cur.type == token_type::open_brace) { 
+			err.unhandled_free_group(cur); gen.discard_group();
+			continue;
+		}
+		auto peek_result = gen.next();
+		if(peek_result.type == token_type::special_identifier) {
+			auto peek2_result = gen.next_next();
+			if(peek2_result.type == token_type::open_brace) {
+				gen.get(); gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					err.unhandled_group_key(cur); gen.discard_group();
+					break;
+				}
+			} else {
+				auto const assoc_token = gen.get();
+				auto const assoc_type = parse_association_type(assoc_token.content, assoc_token.line, err);
+				auto const rh_token = gen.get();
+				switch(int32_t(cur.content.length())) {
+				case 8:
+					switch(0x20 | int32_t(cur.content[0])) {
+					case 0x64:
+						// duration
+						if((true && (*(uint32_t const*)(&cur.content[1]) | uint32_t(0x20202020) ) == uint32_t(0x74617275) && (*(uint16_t const*)(&cur.content[5]) | 0x2020 ) == 0x6F69 && (cur.content[7] | 0x20 ) == 0x6E)) {
+							cobj.duration(assoc_type, parse_int(rh_token.content, rh_token.line, err), err, cur.line, context);
+						} else {
+							cobj.any_value(cur.content, assoc_type, parse_bool(rh_token.content, rh_token.line, err), err, cur.line, context);
+						}
+						break;
+					case 0x65:
+						// election
+						if((true && (*(uint32_t const*)(&cur.content[1]) | uint32_t(0x20202020) ) == uint32_t(0x7463656C) && (*(uint16_t const*)(&cur.content[5]) | 0x2020 ) == 0x6F69 && (cur.content[7] | 0x20 ) == 0x6E)) {
+							cobj.election(assoc_type, parse_bool(rh_token.content, rh_token.line, err), err, cur.line, context);
+						} else {
+							cobj.any_value(cur.content, assoc_type, parse_bool(rh_token.content, rh_token.line, err), err, cur.line, context);
+						}
+						break;
+					case 0x66:
+						// flagtype
+						if((true && (*(uint32_t const*)(&cur.content[1]) | uint32_t(0x20202020) ) == uint32_t(0x7467616C) && (*(uint16_t const*)(&cur.content[5]) | 0x2020 ) == 0x7079 && (cur.content[7] | 0x20 ) == 0x65)) {
+							cobj.flagtype(assoc_type, parse_text(rh_token.content, rh_token.line, err), err, cur.line, context);
+						} else {
+							cobj.any_value(cur.content, assoc_type, parse_bool(rh_token.content, rh_token.line, err), err, cur.line, context);
+						}
+						break;
+					default:
+						cobj.any_value(cur.content, assoc_type, parse_bool(rh_token.content, rh_token.line, err), err, cur.line, context);
+						break;
+					}
+					break;
+				case 20:
+					// appoint_ruling_party
+					if((true && (*(uint64_t const*)(&cur.content[0]) | uint64_t(0x2020202020202020) ) == uint64_t(0x7F746E696F707061) && (*(uint64_t const*)(&cur.content[8]) | uint64_t(0x2020202020202020) ) == uint64_t(0x707F676E696C7572) && (*(uint32_t const*)(&cur.content[16]) | uint32_t(0x20202020) ) == uint32_t(0x79747261))) {
+						cobj.appoint_ruling_party(assoc_type, parse_bool(rh_token.content, rh_token.line, err), err, cur.line, context);
+					} else {
+						cobj.any_value(cur.content, assoc_type, parse_bool(rh_token.content, rh_token.line, err), err, cur.line, context);
+					}
+					break;
+				default:
+					cobj.any_value(cur.content, assoc_type, parse_bool(rh_token.content, rh_token.line, err), err, cur.line, context);
+					break;
+				}
+			}
+		} else {
+			err.unhandled_free_value(cur);
+		}
+	}
+	cobj.finish(context);
+	return cobj;
+}
+template<typename C>
 national_flag_handler parse_national_flag_handler(token_generator& gen, error_handler& err, C&& context) {
 	national_flag_handler cobj;
 	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {

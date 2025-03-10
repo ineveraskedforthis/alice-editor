@@ -132,7 +132,7 @@ namespace parser {
         }
     }
 
-    void countries_list(parsing::game_map& map, std::ifstream& file) {
+    void countries_list(parsers::game_map& map, std::ifstream& file) {
         parser::word key;
         std::string country_string;
         bool dynamic_tags;

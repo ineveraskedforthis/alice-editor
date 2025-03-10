@@ -1,3 +1,13 @@
+governments_file
+	#any           extern    create_government_type        discard
+
+government_type
+	flagtype                 value     text        member_fn
+	election                 value     bool        member_fn
+	duration                 value     int         member_fn
+	appoint_ruling_party     value     bool        member_fn
+	#any                     value     bool        member_fn
+
 national_flag_handler
 	government                      value      text                              member_fn
 	flag                            value      text                              member_fn

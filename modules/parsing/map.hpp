@@ -6,12 +6,15 @@
 #include <map>
 #include "definitions.hpp"
 
-namespace parsing{
+
+namespace parsers{
     struct game_map {
         std::vector<game_definition::province> provinces;
         std::vector<game_definition::state> states;
         std::vector<game_definition::nation> nations;
         std::vector<game_definition::adjacency> adjacencies;
+        std::vector<game_definition::government> governments;
+        std::vector<std::string> detected_flags;
 
 
         int size_x;
@@ -44,7 +47,7 @@ namespace parsing{
 
     game_map load_map(std::string path);
 
-    void load_provs(game_map& map_state, std::string path);
+    void load(game_map& map_state, std::string path);
     void unload_data(game_map& map_state, std::string path);
 
     uint32_t rgb_to_uint(int r, int g, int b);

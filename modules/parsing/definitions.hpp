@@ -35,6 +35,15 @@ namespace game_definition {
         std::string flag{};
     };
 
+    struct government {
+        std::string name{};
+        std::string flagtype{};
+        bool election = false;
+        int duration = -1;
+        bool appoint_ruling_party = false;
+        std::map<std::string, bool> allowed_parties {};
+    };
+
     struct nation {
         std::array<int8_t, 3> tag {};
         std::string filename {};

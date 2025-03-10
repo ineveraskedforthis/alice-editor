@@ -7,7 +7,7 @@
 #include "map.hpp"
 
 namespace parser {
-    void secondary_rgo_template_file(parsing::game_map& map, std::ifstream& file) {
+    void secondary_rgo_template_file(parsers::game_map& map, std::ifstream& file) {
         char c = ' ';
 
         parser::word template_name;

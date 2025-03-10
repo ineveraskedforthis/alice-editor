@@ -11,8 +11,8 @@
 namespace state {
 void check_gl_error(std::string message);
 
-int coord_to_pixel(parsing::game_map& map, glm::ivec2 coord);
-int coord_to_pixel(parsing::game_map& map, glm::vec2 coord);
+int coord_to_pixel(parsers::game_map& map, glm::ivec2 coord);
+int coord_to_pixel(parsers::game_map& map, glm::vec2 coord);
 
 enum class CONTROL_MODE {
     NONE, SELECT, PICKING_COLOR, PAINTING, FILL, SET_STATE
@@ -76,18 +76,18 @@ struct control {
     std::vector<float> rivers_mesh = {};
 };
 
-void load_map_texture(control& control, parsing::game_map& map_state);
-void update_map_texture(control& control, parsing::game_map& map_state);
+void load_map_texture(control& control, parsers::game_map& map_state);
+void update_map_texture(control& control, parsers::game_map& map_state);
 
-int pixel(control& control_state, parsing::game_map& map);
-void update_hover(control& control_state, parsing::game_map& map);
-void update_select(control& control_state, parsing::game_map& map);
-void update_context(control& control_state, parsing::game_map& map);
-void pick_color(control& control_state, parsing::game_map& map);
-void paint(control& control_state, parsing::game_map& map);
-void paint_state(control& control_state, parsing::game_map& map);
-void paint_safe(control& control_state, parsing::game_map& map, int pixel_index, uint32_t province_index);
-void paint_line(control& control_state, parsing::game_map& map);
+int pixel(control& control_state, parsers::game_map& map);
+void update_hover(control& control_state, parsers::game_map& map);
+void update_select(control& control_state, parsers::game_map& map);
+void update_context(control& control_state, parsers::game_map& map);
+void pick_color(control& control_state, parsers::game_map& map);
+void paint(control& control_state, parsers::game_map& map);
+void paint_state(control& control_state, parsers::game_map& map);
+void paint_safe(control& control_state, parsers::game_map& map, int pixel_index, uint32_t province_index);
+void paint_line(control& control_state, parsers::game_map& map);
 
-void update_mouse_move(control& state, parsing::game_map& map, glm::vec2 new_position);
+void update_mouse_move(control& state, parsers::game_map& map, glm::vec2 new_position);
 };

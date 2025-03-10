@@ -1,17 +1,64 @@
 #include "imgui.h"
 #include "misc/cpp/imgui_stdlib.h"
+#include <iostream>
+#include <string>
+#include <filesystem>
 #include "selection_widget.hpp"
 
+//we need only declarations here
+
+#include "../stbimage/stb_image.h"
+#include "../stbimage/stb_image_write.h"
 
 namespace widgets {
-    void selection_province(parsing::game_map& map, state::control& control) {
-        ImGui::Begin(
-            "Selection",
-            NULL,
-            ImGuiWindowFlags_NoFocusOnAppearing
-        );
 
+    void flag_widget(assets::storage& storage, std::string& flag_path) {
+        if (storage.filename_to_texture_asset.contains(flag_path)) {
+            auto asset = storage.filename_to_texture_asset[flag_path];
+            ImGui::Image((ImTextureID)(intptr_t)asset.texture, ImVec2(asset.w, asset.h));
+        } else {
+            //check if path really exists:
+            if (!std::filesystem::exists(flag_path)) {
+                return;
+            }
 
+            int size_x;
+            int size_y;
+            int channels;
+
+            auto flag_data = stbi_load(
+                (flag_path).c_str(),
+                &size_x,
+                &size_y,
+                &channels,
+                4
+            );
+
+            std::cout << "load flag " << size_x << " " << size_y << "\n";
+
+            // Create a OpenGL texture identifier
+            GLuint image_texture;
+            glGenTextures(1, &image_texture);
+            glBindTexture(GL_TEXTURE_2D, image_texture);
+
+            // Setup filtering parameters for display
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+            // Upload pixels into texture
+            glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size_x, size_y, 0, GL_RGBA, GL_UNSIGNED_BYTE, flag_data);
+
+            assets::asset flag {
+                .texture = image_texture,
+                .w = size_x, .h = size_y
+            };
+
+            storage.filename_to_texture_asset[flag_path] = flag;
+        }
+    }
+
+    void selection_province(parsers::game_map& map, state::control& control) {
         auto & def = map.provinces[map.index_to_vector_position[control.selected_province_id]];
 
         ImGui::Text("%s", (def.name + " (" + def.history_file_name + ") " + std::to_string(def.v2id)).c_str());
@@ -168,20 +215,11 @@ namespace widgets {
         if (ImGui::Button("Add core")) {
             def.cores.push_back("");
         }
-
-        ImGui::End();
     }
 
-    void selection_nation(parsing::game_map& map, state::control& control, int32_t tag) {
-        ImGui::Begin(
-            "Selection",
-            NULL,
-            ImGuiWindowFlags_NoFocusOnAppearing
-        );
-
+    void selection_nation(parsers::game_map& map, state::control& control, assets::storage& storage, int32_t tag) {
         if (tag == 0) {
             ImGui::Text("No nation");
-            ImGui::End();
             return;
         }
 
@@ -196,7 +234,7 @@ namespace widgets {
 
 
         ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
-        if (ImGui::BeginTabBar("MyTabBar", tab_bar_flags))
+        if (ImGui::BeginTabBar("NationTabs", tab_bar_flags))
         {
             if (ImGui::BeginTabItem("Color"))
             {
@@ -316,6 +354,26 @@ namespace widgets {
 
             if (ImGui::BeginTabItem("Flags"))
             {
+
+                ImGui::Text("Flags");
+
+                ImGui::Text("Default flag");
+
+
+                std::string path = "./editor-input/gfx/flags/";
+                std::string tag {(char)def.tag[0], (char)def.tag[1], (char)def.tag[2]};
+                std::string default_flag_path = path + tag + ".tga";
+
+                flag_widget(storage, default_flag_path);
+
+                for(auto& flagtype : map.detected_flags) {
+                    ImGui::Text("%s", flagtype.c_str());
+                    std::string flag_path = path + tag + + "_" + flagtype + ".tga";
+                    flag_widget(storage, flag_path);
+                }
+
+                ImGui::Text("Overrides");
+
                 auto remove_flag = false;
                 auto remove_index = -1;
                 for (int i = 0; i < def.govt_flag.size(); i++) {
@@ -343,6 +401,36 @@ namespace widgets {
             }
             ImGui::EndTabBar();
         }
+    }
+
+    void selection(parsers::game_map& map, state::control& control, assets::storage& storage) {
+        ImGui::Begin(
+            "Selection",
+            NULL,
+            ImGuiWindowFlags_NoFocusOnAppearing
+        );
+
+        ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+        if (ImGui::BeginTabBar("SelectionTabs", tab_bar_flags)) {
+            if (ImGui::BeginTabItem("Province")) {
+                selection_province(map, control);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Nation")) {
+                auto & def = map.provinces[map.index_to_vector_position[control.selected_province_id]];
+                if (def.owner_tag.length() == 0) {
+                    widgets::selection_nation(map, control, storage, 0);
+                } else {
+                    auto id = game_definition::tag_to_int({
+                        def.owner_tag[0], def.owner_tag[1], def.owner_tag[2]
+                    });
+                    widgets::selection_nation(map, control, storage, id);
+                }
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
+
 
         ImGui::End();
     }

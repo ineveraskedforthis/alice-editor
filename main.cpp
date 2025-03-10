@@ -34,6 +34,8 @@
 #include "modules/widgets/selection_widget.hpp"
 #include "modules/editor-state/editor-state.hpp"
 
+#include "modules/assets-manager/assets.hpp"
+
 #undef max
 #undef min
 #undef clamp
@@ -108,7 +110,7 @@ glm::vec2 screen_to_texture(
     return glm::vec2(x, y);
 }
 
-void update_adj_buffers(parsing::game_map& map_state, GLuint buffer, int& counter) {
+void update_adj_buffers(parsers::game_map& map_state, GLuint buffer, int& counter) {
     std::vector<float> vertices_for_adj;
 
     for (auto& adj : map_state.adjacencies ) {
@@ -292,7 +294,7 @@ struct window_wrapper {
         SDL_Quit();
     }
 
-    void update(parsing::game_map& map, state::control& control_state, ImGuiIO& io, glm::vec2& camera_shift, float & zoom) {
+    void update(parsers::game_map& map, state::control& control_state, ImGuiIO& io, glm::vec2& camera_shift, float & zoom) {
         for (SDL_Event event; SDL_PollEvent(&event);) {
             ImGui_ImplSDL2_ProcessEvent(&event);
 
@@ -393,7 +395,7 @@ struct window_wrapper {
                     control_state.mode = state::CONTROL_MODE::FILL;
                     control_state.delayed_map_coord = glm::ivec2{control_state.mouse_map_coord};
                 } else if (event.key.keysym.sym == SDLK_p) {
-                    parsing::unload_data(map, "./editor-output");
+                    parsers::unload_data(map, "./editor-output");
                 } else if (event.key.keysym.sym == SDLK_r) {
                     if (control_state.selected_pixel) {
                         auto prov_x = map.data[4 * control_state.selected_pixel];
@@ -449,7 +451,7 @@ namespace SHADER_UNIFORMS {
 
 std::array<GLuint, 256> TO_LOCATION {};
 
-void update_rivers_mesh(state::control& state, parsing::game_map& map) {
+void update_rivers_mesh(state::control& state, parsers::game_map& map) {
     auto count = 0;
     for (int i = 0; i < map.size_x; i++) {
         for (int j = 0; j < map.size_y; j++) {
@@ -526,14 +528,15 @@ int main(int argc, char* argv[]) {
     {
         window_wrapper window {};
         state::control control_state {};
+        assets::storage storage {};
 
         float data_buffer[2000];
         uint8_t province_data[256 * 256 * 3];
 
         std::cout << "loading map\n";
-        auto map_state = parsing::load_map("./editor-input");
-        std::cout << "loading provs\n";
-        parsing::load_provs(map_state, "./editor-input");
+        auto map_state = parsers::load_map("./editor-input");
+        std::cout << "loading data\n";
+        parsers::load(map_state, "./editor-input");
 
         for (auto i = 0; i <= 256 * 256 - 1; i++) {
             auto id = uint8_t(i % 256);
@@ -777,19 +780,7 @@ int main(int argc, char* argv[]) {
                     | ImGuiWindowFlags_NoFocusOnAppearing
                 );
 
-                if (control_state.mode == state::CONTROL_MODE::SELECT) {
-                    ImGui::Text("Selection mode");
-                    if (ImGui::BeginCombo("dropdown select", selection_mode_string(control_state.selection_mode).c_str())) {
-                        for (int n = 0; n < 2; n++) {
-                            const bool is_selected = (control_state.selection_mode == (state::SELECTION_MODE)n);
-                            if (ImGui::Selectable(selection_mode_string((state::SELECTION_MODE)n).c_str(), is_selected))
-                                control_state.selection_mode = (state::SELECTION_MODE)n;
-                            if (is_selected)
-                                ImGui::SetItemDefaultFocus();
-                        }
-                        ImGui::EndCombo();
-                    }
-                } else if (control_state.mode == state::CONTROL_MODE::FILL) {
+                if (control_state.mode == state::CONTROL_MODE::FILL) {
                     ImGui::Text("Fill mode");
                     if (ImGui::BeginCombo("dropdown fill", fill_mode_string(control_state.fill_mode).c_str())) {
                         for (int n = 0; n < 2; n++) {
@@ -859,22 +850,7 @@ int main(int argc, char* argv[]) {
                 ImGui::End();
             }
 
-
-            if (control_state.selected_province_id && !control_state.selection_delay) {
-                if (control_state.selection_mode == state::SELECTION_MODE::PROVINCE)
-                    widgets::selection_province(map_state, control_state);
-                if (control_state.selection_mode == state::SELECTION_MODE::NATION) {
-                    auto & def = map_state.provinces[map_state.index_to_vector_position[control_state.selected_province_id]];
-                    if (def.owner_tag.length() == 0) {
-                        widgets::selection_nation(map_state, control_state, 0);
-                    } else {
-                        auto id = game_definition::tag_to_int({
-                            def.owner_tag[0], def.owner_tag[1], def.owner_tag[2]
-                        });
-                        widgets::selection_nation(map_state, control_state, id);
-                    }
-                }
-            }
+            widgets::selection(map_state, control_state, storage);
 
             if (control_state.context_province == 0) {
                 ImGui::SetNextWindowSize(ImVec2(200, 100));
