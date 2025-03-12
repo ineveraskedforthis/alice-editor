@@ -154,6 +154,7 @@ int main(int argc, char* argv[]) {
         state::control control_state {};
         assets::storage storage {};
         state::layers_stack layers {};
+        layers.load_owner_texture_to_gpu();
         state::editor editor {};
 
         float data_buffer[2000];
@@ -361,9 +362,35 @@ int main(int argc, char* argv[]) {
                 ImGui::SetNextWindowPos(ImVec2(int(window.width / 2 - 200), int(window.height / 2 - 200)));
                 ImGui::Begin("Main menu");
                 if(ImGui::Button("Load")){
-                    state::layer l {};
-                    parsers::load_layer(l, "./base-game");
                     parsers::load_templates(editor, "./editor-input");
+
+                    {
+                        state::layer l {};
+                        l.path = "./base-game";
+                        parsers::load_layer(l);
+                        l.load_state_texture_to_gpu();
+                        l.load_sea_texture_to_gpu();
+                        layers.data.push_back(l);
+                        layers.current_layer_index = 0;
+                        layers.generate_indices();
+                        layers.update_owner_texture();
+                        layers.commit_owner_texture_to_gpu();
+                        layers.indices.load_province_texture_to_gpu();
+                    }
+
+                    {
+                        state::layer l {};
+                        l.path = "./editor-input";
+                        parsers::load_layer(l);
+                        l.load_state_texture_to_gpu();
+                        l.load_sea_texture_to_gpu();
+                        layers.data.push_back(l);
+                        layers.current_layer_index = 0;
+                        layers.generate_indices();
+                        layers.update_owner_texture();
+                        layers.commit_owner_texture_to_gpu();
+                        layers.indices.load_province_texture_to_gpu();
+                    }
                 }
                 ImGui::End();
             }

@@ -144,7 +144,7 @@ struct province_map {
     explicit province_map(int x, int y) {
         size_x = x;
         size_y = y;
-        provinces_image_data = new uint8_t[size_x * size_y];
+        provinces_image_data = new uint8_t[size_x * size_y * 4];
     }
 
     // constructor from dim and data
@@ -169,8 +169,8 @@ struct province_map {
         size_y = source.size_y;
 
         // create new data and copy values there
-        provinces_image_data = new uint8_t[size_x * size_y];
-        std::copy(source.provinces_image_data, source.provinces_image_data + size_x * size_y, provinces_image_data);
+        provinces_image_data = new uint8_t[size_x * size_y * 4];
+        std::copy(source.provinces_image_data, source.provinces_image_data + size_x * size_y * 4, provinces_image_data);
 
         available_r = source.available_r;
         available_g = source.available_g;
@@ -243,6 +243,9 @@ struct province_map {
 
 // represent specific mod folder which overwrites previous definitions
 struct layer {
+    std::string path = "./base-game";
+
+
     //is this layer visible
     bool visible = true;
 
@@ -384,7 +387,7 @@ struct layers_stack {
             indices.size_y = layer_with_province_map->provinces_image->size_y;
 
             delete[] indices.data;
-            indices.data = new uint8_t[indices.size_x * indices.size_y];
+            indices.data = new uint8_t[indices.size_x * indices.size_y * 4];
 
             for (auto i = 0; i < indices.size_x * indices.size_y; i++) {
                 // std::cout << i << " ";
@@ -403,6 +406,16 @@ struct layers_stack {
 
     GLuint owner_texture;
     uint8_t province_owner[256 * 256 * 3];
+    void update_owner_texture(){
+        for(int i = 0; i < 256 * 256; i++) {
+            auto history = get_province_history(i);
+            if (history != nullptr) {
+                province_owner[i * 3 + 0] = history->owner_tag[0];
+                province_owner[i * 3 + 1] = history->owner_tag[1];
+                province_owner[i * 3 + 2] = history->owner_tag[2];
+            }
+        }
+    }
     void inline load_owner_texture_to_gpu() {
         glGenTextures(1, &owner_texture);
         glBindTexture(GL_TEXTURE_2D, owner_texture);
@@ -458,7 +471,8 @@ struct layers_stack {
     }
     int screen_to_pixel(glm::vec2 screen) {
         auto w = get_provinces_image_x();
-        return int(std::floor(screen.y) * w + std::floor(screen.x));
+        auto h = get_provinces_image_y();
+        return std::clamp(int(std::floor(screen.y) * w + std::floor(screen.x)), 0, w * h - 1);
     }
     glm::vec2 sample_province_index_texture_coord(int pixel) {
         return {(float)(indices.data[pixel * 4])/ 256.f, (float)(indices.data[pixel * 4 + 1])/ 256.f};

@@ -14,223 +14,233 @@
 
 namespace widgets {
 
-    void flag_widget(assets::storage& storage, std::string& flag_path) {
-        if (storage.filename_to_texture_asset.contains(flag_path)) {
-            auto asset = storage.filename_to_texture_asset[flag_path];
-            ImGui::Image((ImTextureID)(intptr_t)asset.texture, ImVec2(asset.w, asset.h));
-        } else {
-            //check if path really exists:
-            if (!std::filesystem::exists(flag_path)) {
+    void flag_widget(state::layers_stack& layers, assets::storage& storage, std::string& flag_path_from_layer) {
+        for (int i = layers.data.size() - 1; i >= 0; i--) {
+            auto flag_path = layers.data[i].path + flag_path_from_layer;
+            if (storage.filename_to_texture_asset.contains(flag_path)) {
+                auto asset = storage.filename_to_texture_asset[flag_path];
+                ImGui::Image((ImTextureID)(intptr_t)asset.texture, ImVec2(asset.w, asset.h));
                 return;
+            } else {
+                //check if path really exists:
+                if (!std::filesystem::exists(flag_path)) {
+                    continue;
+                }
+
+                int size_x;
+                int size_y;
+                int channels;
+
+                auto flag_data = stbi_load(
+                    (flag_path).c_str(),
+                    &size_x,
+                    &size_y,
+                    &channels,
+                    4
+                );
+
+                std::cout << "load flag " << size_x << " " << size_y << "\n";
+
+                // Create a OpenGL texture identifier
+                GLuint image_texture;
+                glGenTextures(1, &image_texture);
+                glBindTexture(GL_TEXTURE_2D, image_texture);
+
+                // Setup filtering parameters for display
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
+                glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
+
+                // Upload pixels into texture
+                glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
+                glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size_x, size_y, 0, GL_RGBA, GL_UNSIGNED_BYTE, flag_data);
+
+                assets::asset flag {
+                    .texture = image_texture,
+                    .w = size_x, .h = size_y
+                };
+
+                storage.filename_to_texture_asset[flag_path] = flag;
             }
-
-            int size_x;
-            int size_y;
-            int channels;
-
-            auto flag_data = stbi_load(
-                (flag_path).c_str(),
-                &size_x,
-                &size_y,
-                &channels,
-                4
-            );
-
-            std::cout << "load flag " << size_x << " " << size_y << "\n";
-
-            // Create a OpenGL texture identifier
-            GLuint image_texture;
-            glGenTextures(1, &image_texture);
-            glBindTexture(GL_TEXTURE_2D, image_texture);
-
-            // Setup filtering parameters for display
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_LINEAR);
-            glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_LINEAR);
-
-            // Upload pixels into texture
-            glPixelStorei(GL_UNPACK_ROW_LENGTH, 0);
-            glTexImage2D(GL_TEXTURE_2D, 0, GL_RGBA, size_x, size_y, 0, GL_RGBA, GL_UNSIGNED_BYTE, flag_data);
-
-            assets::asset flag {
-                .texture = image_texture,
-                .w = size_x, .h = size_y
-            };
-
-            storage.filename_to_texture_asset[flag_path] = flag;
         }
     }
 
     void selection_province(state::layers_stack& map, state::control& control, state::editor& editor) {
         auto can_edit = map.can_edit_province_history(control.selected_province_id);
 
-        if (!can_edit) {
-            ImGui::BeginDisabled();
-        }
 
-        auto history = map.get_province_history(control.selected_province_id);
-        auto def = map.get_province_definition(control.selected_province_id);
-        auto v2id = control.selected_province_id;
 
-        assert(def != nullptr);
-        assert(history != nullptr);
+        if (control.selected_province_id > 0) {
+            auto history = map.get_province_history(control.selected_province_id);
+            auto def = map.get_province_definition(control.selected_province_id);
+            auto v2id = control.selected_province_id;
 
-        ImGui::Text("%s", (def->name + " (" + history->history_file_name + ") " + std::to_string(def->v2id)).c_str());
-
-        if (ImGui::InputText("Owner", &history->owner_tag)) {
-            map.province_owner[3 * v2id + 0] = history->owner_tag[0];
-            map.province_owner[3 * v2id + 1] = history->owner_tag[1];
-            map.province_owner[3 * v2id + 2] = history->owner_tag[2];
-            map.commit_owner_texture_to_gpu();
-        }
-
-        ImGui::SameLine();
-        if (ImGui::Button("Clear owner")) {
-            history->owner_tag = "";
-            map.province_owner[3 * v2id + 0] = 0;
-            map.province_owner[3 * v2id + 1] = 0;
-            map.province_owner[3 * v2id + 2] = 0;
-            map.commit_owner_texture_to_gpu();
-        }
-
-        ImGui::InputText("Controller", &history->controller_tag);
-        ImGui::SameLine();
-        if (ImGui::Button("Clear control")) {
-            history->controller_tag = "";
-        }
-
-        ImGui::InputText("Main RGO: ", &history->main_trade_good);
-
-        if (ImGui::TreeNode("Secondary RGO")) {
-
-            std::vector<std::string> template_names = {};
-            for (auto const& [key, val] : editor.secondary_rgo_templates) {
-                template_names.push_back(key);
+            if (history == nullptr || def == nullptr) {
+                ImGui::Text("Sea province or area without definition");
+                return;
             }
 
-            ImGui::Text("Apply template");
+            if (!can_edit) {
+                ImGui::BeginDisabled();
+            }
+
+            ImGui::Text("%s", (def->name + " (" + history->history_file_name + ") " + std::to_string(def->v2id)).c_str());
+
+            if (ImGui::InputText("Owner", &history->owner_tag)) {
+                map.province_owner[3 * v2id + 0] = history->owner_tag[0];
+                map.province_owner[3 * v2id + 1] = history->owner_tag[1];
+                map.province_owner[3 * v2id + 2] = history->owner_tag[2];
+                map.commit_owner_texture_to_gpu();
+            }
 
             ImGui::SameLine();
+            if (ImGui::Button("Clear owner")) {
+                history->owner_tag = "";
+                map.province_owner[3 * v2id + 0] = 0;
+                map.province_owner[3 * v2id + 1] = 0;
+                map.province_owner[3 * v2id + 2] = 0;
+                map.commit_owner_texture_to_gpu();
+            }
 
-            if (ImGui::BeginCombo("Select", "")) {
-                for (int n = 0; n < template_names.size(); n++) {
-                    if (ImGui::Selectable(template_names[n].c_str(), false)) {
-                        history->secondary_rgo_size.clear();
-                        for (auto const& [key, val] : editor.secondary_rgo_templates[template_names[n]]) {
-                            history->secondary_rgo_size[key] = val;
+            ImGui::InputText("Controller", &history->controller_tag);
+            ImGui::SameLine();
+            if (ImGui::Button("Clear control")) {
+                history->controller_tag = "";
+            }
+
+            ImGui::InputText("Main RGO: ", &history->main_trade_good);
+
+            if (ImGui::TreeNode("Secondary RGO")) {
+
+                std::vector<std::string> template_names = {};
+                for (auto const& [key, val] : editor.secondary_rgo_templates) {
+                    template_names.push_back(key);
+                }
+
+                ImGui::Text("Apply template");
+
+                ImGui::SameLine();
+
+                if (ImGui::BeginCombo("Select", "")) {
+                    for (int n = 0; n < template_names.size(); n++) {
+                        if (ImGui::Selectable(template_names[n].c_str(), false)) {
+                            history->secondary_rgo_size.clear();
+                            for (auto const& [key, val] : editor.secondary_rgo_templates[template_names[n]]) {
+                                history->secondary_rgo_size[key] = val;
+                            }
                         }
                     }
-                }
-                ImGui::EndCombo();
-            }
-
-            if (ImGui::BeginTable("adj", 3)) {
-
-                ImGui::TableSetupColumn("Commodity");
-                ImGui::TableSetupColumn("Max employment");
-                ImGui::TableSetupColumn("Delete rgo");
-
-                ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
-                for (int column = 0; column < 3; column++)
-                {
-                    ImGui::TableSetColumnIndex(column);
-                    const char* column_name = ImGui::TableGetColumnName(column);
-                    ImGui::PushID(column);
-                    ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
-                    ImGui::PopStyleVar();
-                    ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
-                    ImGui::TableHeader(column_name);
-                    ImGui::PopID();
+                    ImGui::EndCombo();
                 }
 
-                std::vector<std::string> local_rgo;
+                if (ImGui::BeginTable("adj", 3)) {
 
-                for (auto const& [key, val] : history->secondary_rgo_size) {
-                    local_rgo.push_back(key);
-                }
+                    ImGui::TableSetupColumn("Commodity");
+                    ImGui::TableSetupColumn("Max employment");
+                    ImGui::TableSetupColumn("Delete rgo");
 
-                for (int row = 0; row < local_rgo.size(); row++)
-                {
-                    auto size = history->secondary_rgo_size[local_rgo[row]];
-                    auto new_size = size;
+                    ImGui::TableNextRow(ImGuiTableRowFlags_Headers);
+                    for (int column = 0; column < 3; column++)
+                    {
+                        ImGui::TableSetColumnIndex(column);
+                        const char* column_name = ImGui::TableGetColumnName(column);
+                        ImGui::PushID(column);
+                        ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0, 0));
+                        ImGui::PopStyleVar();
+                        ImGui::SameLine(0.0f, ImGui::GetStyle().ItemInnerSpacing.x);
+                        ImGui::TableHeader(column_name);
+                        ImGui::PopID();
+                    }
+
+                    std::vector<std::string> local_rgo;
+
+                    for (auto const& [key, val] : history->secondary_rgo_size) {
+                        local_rgo.push_back(key);
+                    }
+
+                    for (int row = 0; row < local_rgo.size(); row++)
+                    {
+                        auto size = history->secondary_rgo_size[local_rgo[row]];
+                        auto new_size = size;
+                        ImGui::TableNextRow();
+                        ImGui::TableNextColumn();
+                        ImGui::PushID(row);
+                        ImGui::Text("%s", local_rgo[row].c_str());
+                        ImGui::TableNextColumn();
+                        ImGui::InputInt("", &new_size);
+                        if (new_size != size) {
+                            history->secondary_rgo_size[local_rgo[row]] = new_size;
+                        }
+                        ImGui::TableNextColumn();
+                        if (ImGui::Button("Delete")) {
+                            history->secondary_rgo_size.erase(local_rgo[row]);
+                        }
+                        ImGui::PopID();
+                    }
+
                     ImGui::TableNextRow();
+                    static std::string new_secondary_rgo_entry;
                     ImGui::TableNextColumn();
-                    ImGui::PushID(row);
-                    ImGui::Text("%s", local_rgo[row].c_str());
+                    ImGui::InputText("Commodity", &new_secondary_rgo_entry);
                     ImGui::TableNextColumn();
-                    ImGui::InputInt("", &new_size);
-                    if (new_size != size) {
-                        history->secondary_rgo_size[local_rgo[row]] = new_size;
+                    if (!history->secondary_rgo_size.contains(new_secondary_rgo_entry) && new_secondary_rgo_entry.length() > 0) {
+                        if (ImGui::Button("Insert")) {
+                            history->secondary_rgo_size[new_secondary_rgo_entry] = 0;
+                        }
                     }
                     ImGui::TableNextColumn();
-                    if (ImGui::Button("Delete")) {
-                        history->secondary_rgo_size.erase(local_rgo[row]);
-                    }
-                    ImGui::PopID();
-                }
 
-                ImGui::TableNextRow();
-                static std::string new_secondary_rgo_entry;
-                ImGui::TableNextColumn();
-                ImGui::InputText("Commodity", &new_secondary_rgo_entry);
-                ImGui::TableNextColumn();
-                if (!history->secondary_rgo_size.contains(new_secondary_rgo_entry) && new_secondary_rgo_entry.length() > 0) {
-                    if (ImGui::Button("Insert")) {
-                        history->secondary_rgo_size[new_secondary_rgo_entry] = 0;
-                    }
-                }
-                ImGui::TableNextColumn();
-
-                ImGui::EndTable();
-            }
-            ImGui::TreePop();
-        }
-
-        ImGui::InputInt("Railroad: ", &history->railroad);
-        ImGui::InputInt("Naval base: ", &history->naval_base);
-        ImGui::InputInt("Fort: ", &history->fort);
-
-        bool remove_flag = false;
-        int remove_index = 0;
-        for (int i = 0; i < history->buildings.size(); i++) {
-            ImGui::PushID(i);
-            if (ImGui::TreeNode("Building")) {
-                ImGui::InputInt("Level", &history->buildings[i].level);
-                ImGui::InputText("Type", &history->buildings[i].building_type);
-                ImGui::InputText("Upgrade", &history->buildings[i].upgrade);
-                if (ImGui::Button("Remove")) {
-                    remove_flag = true;
-                    remove_index = i;
+                    ImGui::EndTable();
                 }
                 ImGui::TreePop();
             }
-            ImGui::PopID();
-        }
-        if (remove_flag) {
-            history->buildings.erase(history->buildings.begin() + remove_index);
-        }
-        if (ImGui::Button("Add building")) {
-            game_definition::state_building bdef {
-                .level = 1, .building_type = "?", .upgrade = "yes"
-            };
-            history->buildings.push_back(bdef);
-        }
 
-        for (int i = 0; i < history->cores.size(); i++) {
-            ImGui::PushID(i);
-            ImGui::InputText("Core", &(history->cores[i]));
-            ImGui::SameLine();
-            if (ImGui::Button("Clear core")) {
-                history->cores[i] = "";
+            ImGui::InputInt("Railroad: ", &history->railroad);
+            ImGui::InputInt("Naval base: ", &history->naval_base);
+            ImGui::InputInt("Fort: ", &history->fort);
+
+            bool remove_flag = false;
+            int remove_index = 0;
+            for (int i = 0; i < history->buildings.size(); i++) {
+                ImGui::PushID(i);
+                if (ImGui::TreeNode("Building")) {
+                    ImGui::InputInt("Level", &history->buildings[i].level);
+                    ImGui::InputText("Type", &history->buildings[i].building_type);
+                    ImGui::InputText("Upgrade", &history->buildings[i].upgrade);
+                    if (ImGui::Button("Remove")) {
+                        remove_flag = true;
+                        remove_index = i;
+                    }
+                    ImGui::TreePop();
+                }
+                ImGui::PopID();
             }
-            ImGui::PopID();
-        }
+            if (remove_flag) {
+                history->buildings.erase(history->buildings.begin() + remove_index);
+            }
+            if (ImGui::Button("Add building")) {
+                game_definition::state_building bdef {
+                    .level = 1, .building_type = "?", .upgrade = "yes"
+                };
+                history->buildings.push_back(bdef);
+            }
 
-        if (ImGui::Button("Add core")) {
-            history->cores.push_back("");
-        }
+            for (int i = 0; i < history->cores.size(); i++) {
+                ImGui::PushID(i);
+                ImGui::InputText("Core", &(history->cores[i]));
+                ImGui::SameLine();
+                if (ImGui::Button("Clear core")) {
+                    history->cores[i] = "";
+                }
+                ImGui::PopID();
+            }
 
-        if (!can_edit) {
-            ImGui::EndDisabled();
+            if (ImGui::Button("Add core")) {
+                history->cores.push_back("");
+            }
+
+            if (!can_edit) {
+                ImGui::EndDisabled();
+            }
         }
     }
 
@@ -318,7 +328,7 @@ namespace widgets {
                     auto common = map.get_nation_common(tag);
                     ImGui::InputText("Name", &common->graphical_culture);
                     ImGui::Text("Edit unit names manually, sorry.");
-                    ImGui::TextUnformatted("%s", common->unit_names.c_str());
+                    //ImGui::TextUnformatted("%s", common->unit_names.c_str());
                 }
 
                 ImGui::EndTabItem();
@@ -388,18 +398,17 @@ namespace widgets {
                 ImGui::Text("Default flag");
 
 
-                std::string path = "./editor-input/gfx/flags/";
                 std::string string_tag {(char)def->tag[0], (char)def->tag[1], (char)def->tag[2]};
-                std::string default_flag_path = path + string_tag + ".tga";
+                std::string default_flag_path = "/gfx/flags/" + string_tag + ".tga";
 
-                flag_widget(storage, default_flag_path);
+                flag_widget(map, storage, default_flag_path);
 
                 auto flags = map.get_flags();
                 if (flags != nullptr)
                     for(auto& flagtype : *flags) {
                         ImGui::Text("%s", flagtype.c_str());
-                        std::string flag_path = path + string_tag + + "_" + flagtype + ".tga";
-                        flag_widget(storage, flag_path);
+                        std::string flag_path = "/gfx/flags/" + string_tag + + "_" + flagtype + ".tga";
+                        flag_widget(map, storage, flag_path);
                     }
 
                 ImGui::Text("Overrides");

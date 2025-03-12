@@ -183,7 +183,7 @@ void paint_line(control& control_state, layers_stack& map) {
 
 void update_mouse_move(control& state, layers_stack& map, glm::vec2 new_position) {
     state.mouse_map_coord = new_position;
-    state.mouse_map_coord.y = std::clamp(state.mouse_map_coord.y, 0.f, (float)map.get_provinces_image_x() - 1.f);
+    state.mouse_map_coord.y = std::clamp(state.mouse_map_coord.y, 0.f, (float)map.get_provinces_image_y() - 1.f);
     state.mouse_map_coord.x = std::clamp(state.mouse_map_coord.x, 0.f, (float)map.get_provinces_image_x() - 1.f);
     update_hover(state, map);
 }

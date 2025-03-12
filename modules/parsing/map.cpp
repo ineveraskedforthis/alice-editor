@@ -61,7 +61,7 @@ namespace parsers{
 
 
     struct parser_history_province2 {
-        void parse(game_definition::province_history p, std::ifstream& file) {
+        void parse(game_definition::province_history& p, std::ifstream& file) {
             char c = ' ';
 
             parser::word word;
@@ -370,6 +370,8 @@ namespace parsers{
         std::ifstream file(path + "/map/definition.csv");
         std::string str;
 
+        layer.has_province_definitions = true;
+
         std::getline(file, str);
 
         while (std::getline(file, str)) {
@@ -470,10 +472,6 @@ namespace parsers{
                 }
             }
         }
-    }
-
-    void finalize(state::layers_stack& map) {
-        map.generate_indices();
     }
 
     void load_states(state::layer& layer, std::string path) {
@@ -611,6 +609,8 @@ namespace parsers{
                 auto str = buffer.str();
                 parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
                 parsers::parse_nation_handler(tk, errors, context);
+
+                layer.tag_to_nation_history[tag_int] = n;
             }
         }
     }
@@ -662,19 +662,19 @@ namespace parsers{
         }
     }
 
-    void load_layer(state::layer &layer, std::string path) {
+    void load_layer(state::layer &layer) {
         parsers::error_handler errors("parsing_errors.txt");
 
-        load_province_defs(layer, path);
-        load_default_dot_map(layer, path);
-        load_provinces_map(layer, path);
-        load_states(layer, path);
-        load_adjacencies(layer, path);
-        load_governments_list(layer, path, errors);
-        load_nations_list(layer, path, errors);
-        load_nations_common(layer, path, errors);
-        load_nation_history(layer, path, errors);
-        load_province_history(layer, path, errors);
+        load_province_defs(layer, layer.path);
+        load_default_dot_map(layer, layer.path);
+        load_provinces_map(layer, layer.path);
+        load_states(layer, layer.path);
+        load_adjacencies(layer, layer.path);
+        load_governments_list(layer, layer.path, errors);
+        load_nations_list(layer, layer.path, errors);
+        load_nations_common(layer, layer.path, errors);
+        load_nation_history(layer, layer.path, errors);
+        load_province_history(layer, layer.path, errors);
 
         std::cout << errors.accumulated_errors;
     }

@@ -30,6 +30,7 @@ build/shaders/*
 
 build/editor-output/*
 build/editor-input/*
+build/base-game*
 build/editor-input*
 build/*.pdb
 build/*.ilk

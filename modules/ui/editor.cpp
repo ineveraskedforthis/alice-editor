@@ -390,9 +390,10 @@ namespace widgets {
 
         glm::mat4 model = glm::identity<glm::mat4>();
         model = glm::translate(model, shift);
-        auto size_x = layers.get_provinces_image_y();
-        auto size_y = layers.get_provinces_image_x();
-        glm::vec3 scale {1.f, (float)size_x / (float)size_x, 1.f};
+        auto size_x = layers.get_provinces_image_x();
+        auto size_y = layers.get_provinces_image_y();
+
+        glm::vec3 scale {1.f, (float)layers.get_provinces_image_y()/ (float)layers.get_provinces_image_x(), 1.f};
         model = glm::scale(model, scale / (float)window.width * (float)layers.get_provinces_image_x());
 
         glUseProgram(map_program);
