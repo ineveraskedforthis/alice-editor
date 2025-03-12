@@ -1,6 +1,6 @@
 #include <string>
 #include "parsers_core.hpp"
-#include "../map.hpp"
+#include "../editor-state/content-state.hpp"
 
 namespace parsers {
 void government_type::duration(association_type, int value, error_handler& err, int32_t line, government_type_context& context){

@@ -12,8 +12,8 @@ uniform vec2 hovered_province;
 uniform vec2 selected_province;
 uniform vec2 size;
 
-uniform sampler2D province_rgb;
-uniform sampler2D data;
+uniform sampler2D province_indices;
+uniform sampler2D is_sea_texture;
 uniform sampler2D state_data;
 uniform sampler2D owner_data;
 
@@ -66,14 +66,14 @@ void main()
     bool is_state_border = false;
     bool is_nation_border = false;
 
-    vec2 prov_local = texture(province_rgb, vec2(coord)).xy / 256.f * 255.f;
+    vec2 prov_local = texture(province_indices, vec2(coord)).xy / 256.f * 255.f;
     vec2 state_local = texture(state_data, prov_local + half_of_province_pixel).xy;
     vec2 owner_local = texture(owner_data, prov_local + half_of_province_pixel).xy;
 
-    vec2 prov_top = texture(province_rgb, vec2(coord + base_shift_y*border_inner)).xy / 256.f * 255.f;
-    vec2 prov_bottom = texture(province_rgb, vec2(coord - base_shift_y*border_inner)).xy / 256.f * 255.f;
-    vec2 prov_left = texture(province_rgb, vec2(coord - base_shift_x*border_inner)).xy / 256.f * 255.f;
-    vec2 prov_right = texture(province_rgb, vec2(coord + base_shift_x*border_inner)).xy / 256.f * 255.f;
+    vec2 prov_top = texture(province_indices, vec2(coord + base_shift_y*border_inner)).xy / 256.f * 255.f;
+    vec2 prov_bottom = texture(province_indices, vec2(coord - base_shift_y*border_inner)).xy / 256.f * 255.f;
+    vec2 prov_left = texture(province_indices, vec2(coord - base_shift_x*border_inner)).xy / 256.f * 255.f;
+    vec2 prov_right = texture(province_indices, vec2(coord + base_shift_x*border_inner)).xy / 256.f * 255.f;
 
     vec2 state_top = texture(state_data, prov_top + half_of_province_pixel).xy;
     vec2 state_bottom = texture(state_data, prov_bottom + half_of_province_pixel).xy;
@@ -168,7 +168,7 @@ void main()
         hover_province = vec4(0.05, 0.05, 0.2, 0);
     }
 
-    float is_sea = texture(data, prov_local + half_of_province_pixel).r;
+    float is_sea = texture(is_sea_texture, prov_local + half_of_province_pixel).r;
 
     vec3 owner = (texture(owner_data, prov_local + half_of_province_pixel).rgb + 1.f) * 0.5f;
 

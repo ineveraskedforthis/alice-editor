@@ -1,10 +1,10 @@
 #pragma once
 #include <fstream>
 
-namespace parsers{
-    struct game_map;
+namespace state{
+    struct editor;
 }
 
 namespace parser {
-    void secondary_rgo_template_file(parsers::game_map& map, std::ifstream& file);
+    void secondary_rgo_template_file(state::editor& map, std::ifstream& file);
 }

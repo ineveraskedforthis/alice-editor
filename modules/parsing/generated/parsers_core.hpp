@@ -3,12 +3,13 @@
 #include "parsers.hpp"
 #include "../definitions.hpp"
 
+namespace state {
+	struct layer;
+};
 
 namespace parsers {
-	struct game_map;
-
 struct generic_context{
-	game_map& map;
+	state::layer& map;
 };
 
 void create_government_type(std::string_view name, token_generator& gen, error_handler& err, generic_context& context);
@@ -18,7 +19,7 @@ struct governments_file {
 };
 
 struct government_type_context{
-	game_map& map;
+	state::layer& map;
 	game_definition::government& current;
 };
 
@@ -37,8 +38,8 @@ template<typename C>
 government_type parse_government_type(token_generator& gen, error_handler& err, C&& context);
 
 struct nation_history_file{
-    game_definition::nation& nation;
-	game_map& map;
+    game_definition::nation_history& nation;
+	state::layer& map;
 };
 
 struct national_flag_handler {

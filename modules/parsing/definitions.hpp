@@ -44,25 +44,25 @@ namespace game_definition {
         std::map<std::string, bool> allowed_parties {};
     };
 
-    struct nation {
+    struct nation_definition {
         std::array<int8_t, 3> tag {};
         std::string filename {};
-        std::string history_file_name{};
         bool dynamic=false;
+    };
 
-        bool defined_in_common=false;
-        bool defined_in_history=false;
-
+    struct nation_common {
         uint8_t R = 0;
         uint8_t G = 0;
         uint8_t B = 0;
-
         std::string graphical_culture{};
         std::vector<party> parties{};
+        std::string unit_names{};
+    };
 
+    struct nation_history {
+        std::string history_file_name{};
         std::string primary_culture{};
         std::vector<std::string> culture{};
-
         // remove_culture
         std::string religion{};
         std::string government{};
@@ -87,17 +87,13 @@ namespace game_definition {
         std::vector<std::string> set_country_flag{};
         std::vector<std::string> set_global_flag{};
         std::vector<std::string> decision{};
-        std::string unit_names{};
     };
 
-    inline void define_nation_common(nation& n) {
-        n.defined_in_common = true;
+    inline void define_nation_common(nation_common& n) {
         n.R = 0;
         n.G = 0;
         n.B = 0;
-
         n.graphical_culture = "BritishGC";
-
         party conservative = {
             .name = "default_conservative",
             .start = "1800.1.1",
@@ -196,39 +192,31 @@ namespace game_definition {
         };
     }
 
-    struct province {
-        uint32_t v2id;
-        std::string name;
-
-        uint8_t r;
-        uint8_t g;
-        uint8_t b;
-
-        float pos_x;
-        float pos_y;
-        float pixels;
-
-        std::string history_file_name;
-        std::string owner_tag;
-        std::string controller_tag;
-        std::vector<std::string> cores;
-        std::string main_trade_good;
-
-        std::map<std::string, int> secondary_rgo_size;
-
+    struct province_history {
+        std::string history_file_name{};
+        std::string owner_tag{};
+        std::string controller_tag{};
+        std::vector<std::string> cores{};
+        std::string main_trade_good{};
+        std::map<std::string, int> secondary_rgo_size{};
         int life_rating;
         int railroad;
         int naval_base;
         int fort;
         int colonial;
         int colony;
-
-        std::vector<state_building> buildings;
-
+        std::vector<state_building> buildings{};
         std::string historical_region = "unknown";
+        std::string terrain{};
+        std::string is_slave{};
+    };
 
-        std::string terrain;
-        std::string is_slave;
+    struct province {
+        uint32_t v2id;
+        std::string name;
+        uint8_t r;
+        uint8_t g;
+        uint8_t b;
     };
 
     struct state {

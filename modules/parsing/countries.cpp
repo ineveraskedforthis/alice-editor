@@ -6,11 +6,12 @@
 #include "countries.hpp"
 #include "definitions.hpp"
 #include "parser.hpp"
+#include "../editor-state/content-state.hpp"
 
 namespace parser {
 
-    void country_file_common(game_definition::nation& n, std::ifstream& file) {
-        std::cout << "Parse common for " << n.filename << "\n";
+    void country_file_common(game_definition::nation_common& n, std::ifstream& file, std::string filename) {
+        std::cout << "Parse common for " << filename << "\n";
 
         parser::word key;
         parser::word value;
@@ -132,7 +133,7 @@ namespace parser {
         }
     }
 
-    void countries_list(parsers::game_map& map, std::ifstream& file) {
+    void countries_list(state::layer& map, std::ifstream& file) {
         parser::word key;
         std::string country_string;
         bool dynamic_tags;
@@ -164,10 +165,10 @@ namespace parser {
                             (key.data[1]),
                             (key.data[2])
                         };
-                        std::string filename = country_string.substr(10, country_string.length() - 10 - 4);
+                        std::string filename = country_string.substr(10, country_string.length() - 10);
                         auto tag_id = game_definition::tag_to_int(tag);
-                        game_definition::nation n {
-                            tag, filename, "", dynamic_tags
+                        game_definition::nation_definition n {
+                            tag, filename, dynamic_tags
                         };
                         map.nations.emplace_back(n);
                         map.tag_to_vector_position[tag_id] = map.nations.size() - 1;

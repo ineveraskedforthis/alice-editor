@@ -34,8 +34,11 @@ build ParserGenerator/ParserGenerator.exe: cc_simple ParserGenerator/parser_gene
 build modules/parsing/generated/defs_generated.hpp: generate_parser modules/parsing/generated/defs.txt | ParserGenerator/ParserGenerator.exe
 
 build cache/state.o: cc modules/editor-state/editor-state.cpp
+build cache/content_state.o: cc modules/editor-state/content-state.cpp
 build cache/main.o: cc main.cpp
-build cache/selection_widget.o: cc modules/widgets/selection_widget.cpp
+build cache/ui_editor.o: cc modules/ui/editor.cpp
+build cache/window-wrapper.o: cc modules/ui/window-wrapper.cpp
+build cache/selection_widget.o: cc modules/ui/selection_widget.cpp
 build cache/parsing_map.o: cc modules/parsing/map.cpp
 build cache/parser.o: cc modules/parsing/parser.cpp
 build cache/parsing_countries.o: cc modules/parsing/countries.cpp
@@ -56,4 +59,4 @@ build cache/imgui_backend_sdl.o: cc modules/imgui/backends/imgui_impl_sdl2.cpp
 build cache/imgui_backend_opengl.o: cc modules/imgui/backends/imgui_impl_opengl3.cpp
 build cache/imgui_stdlib.o: cc modules/imgui/misc/cpp/imgui_stdlib.cpp
 
-build build/editor.exe: link cache/main.o cache/state.o cache/selection_widget.o cache/parsing_map.o cache/parsing_core.o cache/parsing_parsers.o cache/parsing_floats.o cache/parser.o cache/parsing_state_building.o cache/parsing_secondary_rgo.o cache/parsing_templates.o cache/parsing_adjacency.o cache/parsing_countries.o cache/imgui.o cache/imgui_draw.o cache/imgui_demo.o cache/imgui_tables.o cache/imgui_widgets.o cache/imgui_backend_sdl.o cache/imgui_backend_opengl.o cache/imgui_stdlib.o
+build build/editor.exe: link cache/selection_widget.o cache/window-wrapper.o cache/main.o cache/state.o cache/content_state.o cache/ui_editor.o cache/parsing_map.o cache/parsing_core.o cache/parsing_parsers.o cache/parsing_floats.o cache/parser.o cache/parsing_state_building.o cache/parsing_secondary_rgo.o cache/parsing_templates.o cache/parsing_adjacency.o cache/parsing_countries.o cache/imgui.o cache/imgui_draw.o cache/imgui_demo.o cache/imgui_tables.o cache/imgui_widgets.o cache/imgui_backend_sdl.o cache/imgui_backend_opengl.o cache/imgui_stdlib.o
