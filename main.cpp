@@ -385,7 +385,7 @@ int main(int argc, char* argv[]) {
                         l.load_state_texture_to_gpu();
                         l.load_sea_texture_to_gpu();
                         layers.data.push_back(l);
-                        layers.current_layer_index = 0;
+                        layers.current_layer_index = 1;
                         layers.generate_indices();
                         layers.update_owner_texture();
                         layers.commit_owner_texture_to_gpu();
