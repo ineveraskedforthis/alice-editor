@@ -3,6 +3,76 @@
 
 namespace parsers {
 template<typename C>
+technology_sub_file parse_technology_sub_file(token_generator& gen, error_handler& err, C&& context) {
+	technology_sub_file cobj;
+	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {
+		if(cur.type == token_type::open_brace) { 
+			err.unhandled_free_group(cur); gen.discard_group();
+			continue;
+		}
+		auto peek_result = gen.next();
+		if(peek_result.type == token_type::special_identifier) {
+			auto peek2_result = gen.next_next();
+			if(peek2_result.type == token_type::open_brace) {
+				gen.get(); gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					register_technology(cur.content, gen, err, context);
+					break;
+				}
+			} else {
+				auto const assoc_token = gen.get();
+				auto const assoc_type = parse_association_type(assoc_token.content, assoc_token.line, err);
+				auto const rh_token = gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					err.unhandled_association_key(cur);
+					break;
+				}
+			}
+		} else {
+			err.unhandled_free_value(cur);
+		}
+	}
+	cobj.finish(context);
+	return cobj;
+}
+template<typename C>
+inventions_file parse_inventions_file(token_generator& gen, error_handler& err, C&& context) {
+	inventions_file cobj;
+	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {
+		if(cur.type == token_type::open_brace) { 
+			err.unhandled_free_group(cur); gen.discard_group();
+			continue;
+		}
+		auto peek_result = gen.next();
+		if(peek_result.type == token_type::special_identifier) {
+			auto peek2_result = gen.next_next();
+			if(peek2_result.type == token_type::open_brace) {
+				gen.get(); gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					register_invention(cur.content, gen, err, context);
+					break;
+				}
+			} else {
+				auto const assoc_token = gen.get();
+				auto const assoc_type = parse_association_type(assoc_token.content, assoc_token.line, err);
+				auto const rh_token = gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					err.unhandled_association_key(cur);
+					break;
+				}
+			}
+		} else {
+			err.unhandled_free_value(cur);
+		}
+	}
+	cobj.finish(context);
+	return cobj;
+}
+template<typename C>
 governments_file parse_governments_file(token_generator& gen, error_handler& err, C&& context) {
 	governments_file cobj;
 	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {

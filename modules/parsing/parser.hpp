@@ -136,6 +136,18 @@ namespace parser {
         return true;
     }
 
+    inline bool until_brackets_balance(char c, int& balance) {
+        if (c == '}')
+            balance--;
+        if (c == '{')
+            balance--;
+
+        if (balance == 0) {
+            return false;
+        }
+        return true;
+    }
+
     inline bool until_close_bracket_balance(char c, int& counter) {
         if (c == '}') {
             counter--;

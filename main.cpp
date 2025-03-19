@@ -25,6 +25,8 @@
 #include "modules/editor-state/editor-state.hpp"
 #include "modules/assets-manager/assets.hpp"
 
+#include "objbase.h"
+
 #undef max
 #undef min
 #undef clamp
@@ -147,6 +149,8 @@ void update_rivers_mesh(state::control& state, state::layers_stack layers, state
 
 
 int main(int argc, char* argv[]) {
+    CoInitializeEx(NULL, COINIT_APARTMENTTHREADED | COINIT_DISABLE_OLE1DDE);
+
     std::cout << "Welcome\n";
 
     {
@@ -364,6 +368,10 @@ int main(int argc, char* argv[]) {
                 if(ImGui::Button("Load")){
                     parsers::load_templates(editor, "./editor-input");
 
+                    std::cout << "Loading started\n";
+
+                    auto t_start = std::chrono::high_resolution_clock::now();
+
                     {
                         state::layer l {};
                         l.path = "./base-game";
@@ -391,6 +399,16 @@ int main(int argc, char* argv[]) {
                         layers.commit_owner_texture_to_gpu();
                         layers.indices.load_province_texture_to_gpu();
                     }
+
+                    auto t_end = std::chrono::high_resolution_clock::now();
+
+                    // https://stackoverflow.com/a/22387757/10281950
+                    /* Getting number of milliseconds as an integer. */
+                    auto ms_int = duration_cast<std::chrono::milliseconds>(t_end - t_start);
+                    /* Getting number of milliseconds as a double. */
+                    std::chrono::duration<double, std::milli> ms_double = t_end - t_start;
+                    std::cout << ms_int.count() << "ms\n";
+                    std::cout << ms_double.count() << "ms\n";
                 }
                 ImGui::End();
             }
@@ -403,5 +421,6 @@ int main(int argc, char* argv[]) {
             SDL_GL_SwapWindow(window.window);
         }
     }
+    CoUninitialize();
     return EXIT_SUCCESS;
 }

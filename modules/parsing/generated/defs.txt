@@ -1,3 +1,9 @@
+technology_sub_file
+	#any           extern     register_technology       discard
+
+inventions_file
+	#any           extern     register_invention        discard
+
 governments_file
 	#any           extern    create_government_type        discard
 

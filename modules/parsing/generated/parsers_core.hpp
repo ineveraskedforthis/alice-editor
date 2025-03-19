@@ -12,6 +12,22 @@ struct generic_context{
 	state::layer& map;
 };
 
+struct context_with_file_label{
+	state::layer& map;
+	std::string file;
+};
+
+struct inventions_file {
+	void finish(generic_context&) { }
+};
+
+struct technology_sub_file {
+	void finish(generic_context&) { }
+};
+
+void register_invention(std::string_view name, token_generator& gen, error_handler& err, context_with_file_label&& context);
+void register_technology(std::string_view name, token_generator& gen, error_handler& err, context_with_file_label&& context);
+
 void create_government_type(std::string_view name, token_generator& gen, error_handler& err, generic_context& context);
 
 struct governments_file {

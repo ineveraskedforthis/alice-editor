@@ -15,6 +15,8 @@
 
 #include "../parsing/definitions.hpp"
 
+#include "../map/unordered_dense.h"
+
 namespace state {
 
 glm::vec2 screen_to_texture(
@@ -64,6 +66,15 @@ struct province_texture {
     int update_texture_x_bottom = std::numeric_limits<int>::max();
     int update_texture_y_bottom = std::numeric_limits<int>::max();
 
+    std::vector<int> v2id_to_size{};
+    std::vector<uint8_t> v2id_exists{};
+    std::vector<glm::vec2> v2id_to_mean{};
+
+    province_texture(){
+        v2id_to_size.resize(256 * 256);
+        v2id_exists.resize(256 * 256);
+        v2id_to_mean.resize(256 * 256);
+    };
     province_texture& operator=(province_texture& source);
     int coord_to_pixel(glm::ivec2 coord);
     int coord_to_pixel(glm::vec2 coord);
@@ -80,8 +91,7 @@ struct province_map {
     uint8_t available_g = 0;
     uint8_t available_b = 0;
 
-    std::map<uint32_t, int> rgb_to_size{};
-    std::map<uint32_t, glm::vec2> rgb_to_mean{};
+    std::vector<uint8_t> color_present;
 
     void clear() {
         size_x = 0;
@@ -90,8 +100,6 @@ struct province_map {
         available_r = 0;
         available_g = 0;
         available_b = 0;
-        rgb_to_size.clear();
-        rgb_to_mean.clear();
     }
 
     void update_available_colors() {
@@ -101,7 +109,7 @@ struct province_map {
             for (int _g = 0; _g < 256; _g++)
                 for (int _b = 0; _b < 256; _b++) {
                     auto rgb = rgb_to_uint(_r, _g, _b);
-                    if (!rgb_to_size.contains(rgb)) {
+                    if (!color_present[rgb]) {
                         available_r = _r;
                         available_g = _g;
                         available_b = _b;
@@ -110,24 +118,17 @@ struct province_map {
                 }
     }
 
-    void recalculate_province_size() {
+    void recalculate_present_colors() {
+        color_present.clear();
+        color_present.resize(256 * 256 * 256);
+
         for (auto i = 0; i < size_x * size_y; i++) {
             // std::cout << i << " ";
             auto r = provinces_image_data[4 * i + 0];
             auto g = provinces_image_data[4 * i + 1];
             auto b = provinces_image_data[4 * i + 2];
             auto rgb = rgb_to_uint(r, g, b);
-
-            if (rgb_to_size.contains(rgb)){
-                rgb_to_size[rgb]++;
-                rgb_to_mean[rgb] += glm::vec2((float)((i) % size_x), std::floor((i) / size_x));
-            } else {
-                rgb_to_size[rgb] = 1;
-                rgb_to_mean[rgb] = glm::vec2((float)((i) % size_x), std::floor((i) / size_x));
-            }
-        }
-        for (auto const& [key, val] : rgb_to_mean) {
-            rgb_to_mean[key] /= rgb_to_size[key];
+            color_present[rgb] = true;
         }
     }
 
@@ -175,9 +176,6 @@ struct province_map {
         available_r = source.available_r;
         available_g = source.available_g;
         available_b = source.available_b;
-
-        rgb_to_size = source.rgb_to_size;
-        rgb_to_mean = source.rgb_to_mean;
     }
 
     // copy assignment
@@ -196,8 +194,6 @@ struct province_map {
         available_r = source.available_r;
         available_g = source.available_g;
         available_b = source.available_b;
-        rgb_to_size = source.rgb_to_size;
-        rgb_to_mean = source.rgb_to_mean;
 
         return *this;
     }
@@ -209,8 +205,6 @@ struct province_map {
     available_r(std::move(source.available_r)),
     available_g(std::move(source.available_g)),
     available_b(std::move(source.available_b)),
-    rgb_to_mean(std::move(source.rgb_to_mean)),
-    rgb_to_size(std::move(source.rgb_to_size)),
     provinces_image_data(source.provinces_image_data) {
         source.clear();
     }
@@ -229,8 +223,6 @@ struct province_map {
         available_r = std::move(source.available_r),
         available_g = std::move(source.available_g);
         available_b = std::move(source.available_b);
-        rgb_to_mean = std::move(source.rgb_to_mean);
-        rgb_to_size = std::move(source.rgb_to_size);
         source.clear();
         return *this;
     }
@@ -245,7 +237,6 @@ struct province_map {
 struct layer {
     std::string path = "./base-game";
 
-
     //is this layer visible
     bool visible = true;
 
@@ -253,7 +244,6 @@ struct layer {
     std::optional<province_map> provinces_image {};
 
     // rivers part of the layer
-
     bool has_rivers_map;
 
     // adjacencies part of the layer
@@ -265,48 +255,18 @@ struct layer {
     uint8_t province_is_sea[256 * 256];
     GLuint sea_texture;
     bool has_default_map;
-    void inline load_sea_texture_to_gpu() {
-        glGenTextures(1, &sea_texture);
-        glBindTexture(GL_TEXTURE_2D, sea_texture);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(
-            GL_TEXTURE_2D,
-            0,
-            GL_RED,
-            256,
-            256,
-            0,
-            GL_RED,
-            GL_UNSIGNED_BYTE,
-            province_is_sea
-        );
-        check_gl_error("Sea texture loading to gpu");
-    }
-    void inline commit_sea_texture_to_gpu() {
-        glBindTexture(GL_TEXTURE_2D, sea_texture);
-        glTexImage2D(
-            GL_TEXTURE_2D,
-            0,
-            GL_RED,
-            256,
-            256,
-            0,
-            GL_RED,
-            GL_UNSIGNED_BYTE,
-            province_is_sea
-        );
-    }
+    void load_sea_texture_to_gpu();
+    void commit_sea_texture_to_gpu();
 
     std::vector<game_definition::province> province_definitions {};
-    std::map<uint32_t, uint32_t> v2id_to_vector_position {};
+    ankerl::unordered_dense::map<uint32_t, uint32_t> v2id_to_vector_position {};
     std::array<bool, 256 * 256> is_used {};
-    std::map<uint32_t, uint32_t> rgb_to_v2id {};
+    ankerl::unordered_dense::map<uint32_t, uint32_t> rgb_to_v2id {};
     uint32_t available_id = 1;
     bool has_province_definitions;
 
     // history/provinces/*.txt
-    std::map<uint32_t, game_definition::province_history> province_history {};
+    ankerl::unordered_dense::map<uint32_t, game_definition::province_history> province_history {};
 
     // region.txt
 
@@ -314,50 +274,24 @@ struct layer {
     uint8_t province_state[256 * 256 * 2];
     GLuint state_texture;
     bool has_region_txt;
-    void inline load_state_texture_to_gpu() {
-        glGenTextures(1, &state_texture);
-        glBindTexture(GL_TEXTURE_2D, state_texture);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
-        glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
-        glTexImage2D(
-            GL_TEXTURE_2D,
-            0,
-            GL_RG,
-            256,
-            256,
-            0,
-            GL_RG,
-            GL_UNSIGNED_BYTE,
-            province_state
-        );
-        check_gl_error("State texture update");
-    }
-    void inline commit_state_texture_to_gpu() {
-        glBindTexture(GL_TEXTURE_2D, state_texture);
-        glTexImage2D(
-            GL_TEXTURE_2D,
-            0,
-            GL_RG,
-            256,
-            256,
-            0,
-            GL_RG,
-            GL_UNSIGNED_BYTE,
-            province_state
-        );
-    }
+    void load_state_texture_to_gpu();
+    void commit_state_texture_to_gpu();
 
 
     std::vector<game_definition::nation_definition> nations{};
-    std::map<int32_t, uint32_t> tag_to_vector_position{};
+    ankerl::unordered_dense::map<int32_t, uint32_t> tag_to_vector_position{};
     bool has_nations_list = false;
 
-    std::map<std::string, game_definition::nation_common> filename_to_nation_common{};
-    std::map<int32_t, game_definition::nation_history> tag_to_nation_history{};
+    ankerl::unordered_dense::map<std::string, game_definition::nation_common> filename_to_nation_common{};
+    ankerl::unordered_dense::map<int32_t, game_definition::nation_history> tag_to_nation_history{};
 
     std::vector<game_definition::government> governments{};
     std::vector<std::string> detected_flags{};
+    ankerl::unordered_dense::map<std::string, std::wstring> paths_to_new_flags{};
     bool has_governments_list = false;
+
+    ankerl::unordered_dense::map<std::string, game_definition::technology> tech;
+    ankerl::unordered_dense::map<std::string, game_definition::invention> inventions;
 };
 
 struct layers_stack {
@@ -373,11 +307,23 @@ struct layers_stack {
         layer* layer_with_province_map = nullptr;
         layer* layer_with_definitions = nullptr;
 
+        indices.update_texture = true;
+
+        for (int i = 0; i < 256 * 256; i++) {
+            indices.v2id_exists[i] = false;
+        }
+        for (int i = 0; i < 256 * 256; i++) {
+            indices.v2id_to_mean[i] = {0.f, 0.f};
+        }
+        for (int i = 0; i < 256 * 256; i++) {
+            indices.v2id_to_size[i] = 0;
+        }
+
         for (auto& l : data) {
-            if (l.has_province_definitions) {
+            if (l.visible && l.has_province_definitions) {
                 layer_with_definitions = &l;
             }
-            if (l.provinces_image != std::nullopt) {
+            if (l.visible && l.provinces_image != std::nullopt) {
                 layer_with_province_map = &l;
             }
         }
@@ -395,11 +341,18 @@ struct layers_stack {
                 auto g = layer_with_province_map->provinces_image->provinces_image_data[4 * i + 1];
                 auto b = layer_with_province_map->provinces_image->provinces_image_data[4 * i + 2];
                 auto rgb = rgb_to_uint(r, g, b);
-                if (layer_with_definitions->rgb_to_v2id.contains(rgb)) {
-                    auto index = layer_with_definitions->rgb_to_v2id[rgb];
+                auto find_result = layer_with_definitions->rgb_to_v2id.find(rgb);
+                if (find_result != layer_with_definitions->rgb_to_v2id.end()) {
+                    auto index = find_result->second;
                     indices.data[4 * i + 0] = index % 256;
                     indices.data[4 * i + 1] = index >> 8;
+                    indices.v2id_exists[index] = true;
+                    indices.v2id_to_size[index] ++;
+                    indices.v2id_to_mean[index] += glm::vec2((float)((i) % indices.size_x), std::floor((i) / indices.size_x));
                 }
+            }
+            for (int i = 0; i < 256 * 256; i++) {
+                indices.v2id_to_mean[i] = indices.v2id_to_mean[i] / (float)indices.v2id_to_size[i];
             }
         }
     }
@@ -914,17 +867,9 @@ struct layers_stack {
                 continue;
             }
 
-            auto& prov_start = definitions[v2id_to_vector_pos[adj.from]];
-            auto& prov_through = definitions[v2id_to_vector_pos[adj.through]];
-            auto& prov_to = definitions[v2id_to_vector_pos[adj.to]];
-
-            auto rgb_start = rgb_to_uint(prov_start.r, prov_start.g, prov_start.b);
-            auto rgb_through = rgb_to_uint(prov_through.r, prov_through.g, prov_through.b);
-            auto rgb_to = rgb_to_uint(prov_to.r, prov_to.g, prov_to.b);
-
-            auto pos_start = provinces_source->provinces_image->rgb_to_mean[rgb_start];
-            auto pos_through = provinces_source->provinces_image->rgb_to_mean[rgb_through];
-            auto pos_to = provinces_source->provinces_image->rgb_to_mean[rgb_to];
+            auto pos_start = indices.v2id_to_mean[adj.from];
+            auto pos_through = indices.v2id_to_mean[adj.through];
+            auto pos_to = indices.v2id_to_mean[adj.to];
 
             if (adj.through != 0) {
                 // triangle 1

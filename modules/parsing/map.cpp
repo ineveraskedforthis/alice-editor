@@ -295,6 +295,7 @@ namespace parsers{
     }
 
     void load_provinces_map(state::layer &layer, std::string path) {
+        std::cout << "loading provinces rgb map";
         int size_x;
         int size_y;
         int channels;
@@ -314,7 +315,7 @@ namespace parsers{
             state::province_map result {
                 size_x, size_y, map
             };
-            result.recalculate_province_size();
+            result.recalculate_present_colors();
             result.update_available_colors();
             layer.provinces_image = std::move(result);
         } else if (has_v2_provinces) {
@@ -329,7 +330,7 @@ namespace parsers{
             state::province_map result {
                 size_x, size_y, map
             };
-            result.recalculate_province_size();
+            result.recalculate_present_colors();
             result.update_available_colors();
             layer.provinces_image = std::move(result);
         }
@@ -474,7 +475,7 @@ namespace parsers{
         }
     }
 
-    void load_states(state::layer& layer, std::string path) {
+    void load_regions(state::layer& layer, std::string path) {
         std::cout << "Parse state membership \n";
 
         bool areas_file_exist = std::filesystem::exists(path + "/map/area.txt");
@@ -537,6 +538,39 @@ namespace parsers{
             std::cout << "no rgo distribution templates found" << std::endl;
     }
 
+    void unload_governments_list(state::layer &layer, std::string path) {
+        if (!layer.has_governments_list) {
+            return;
+        }
+        std::filesystem::create_directory(path + "/common");
+        std::ofstream file(path + "/common/governments.txt");
+
+        for(auto& g : layer.governments){
+            file << g.name << " = {\n";
+
+            for (auto& [key, value] : g.allowed_parties ) {
+                if (value) {
+                    file << "\t" << value << " = yes\n";
+                }
+            }
+
+            if (g.appoint_ruling_party) {
+                file << "\tappoint_ruling_party = yes\n";
+            } else {
+                file << "\tappoint_ruling_party = no\n";
+            }
+            if (g.election) {
+                file << "\telection = yes\n";
+                file << "\tduration = " << g.duration << "\n";
+            } else {
+                file << "\telection = no\n";
+            }
+            if (g.flagtype.length() > 0)
+                file << "\tflagType = " << g.flagtype << "\n";
+            file << "}\n";
+        }
+    }
+
     void load_governments_list(state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "Parse government types\n";
         if (!std::filesystem::exists(path + "/common/governments.txt")) {
@@ -558,6 +592,24 @@ namespace parsers{
         parsers::parse_governments_file(tk, errors, ctx_generic);
     };
 
+    void unload_nations_list(state::layer &layer, std::string path) {
+        if (!layer.has_nations_list) {
+            return;
+        }
+        std::filesystem::create_directory(path + "/common");
+        std::ofstream file(path + "/common/countries.txt");
+
+        for(auto& g : layer.nations){
+            if (g.dynamic) continue;
+            file << g.tag[0] << g.tag[1] << g.tag[2] << "\t= " << "\"countries/\"" << g.filename << "\n";
+        }
+        file << "dynamic = yes";
+        for(auto& g : layer.nations){
+            if (!g.dynamic) continue;
+            file << g.tag[0] << g.tag[1] << g.tag[2] << "\t= " << "\"countries/\"" << g.filename << "\n";
+        }
+    }
+
     void load_nations_list(state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "Parse nations list\n";
         if (!std::filesystem::exists(path + "/common/countries.txt")) {
@@ -571,6 +623,35 @@ namespace parsers{
         parser::countries_list(layer, file);
     }
 
+    void unload_nations_common(state::layer &layer, std::string path) {
+        std::filesystem::create_directory(path + "/common/");
+        std::filesystem::create_directory(path + "/common/countries");
+
+        for (auto& [key, value] : layer.filename_to_nation_common) {
+            std::ofstream file(path + "/common/countries/" + key);
+
+            file << "color = {" << value.R << " " << value.G << " " << value.B << "}\n";
+            file << "graphical_culture = " << value.graphical_culture << "\n";
+            for (auto& party : value.parties) {
+                file << "party = {\n";
+                file << "\tname = \"" << party.name << "\"\n";
+                file << "\tstart_date = " << party.start << "\n";
+                file << "\tend_date = " << party.end << "\n";
+                file << "\tideology = " << party.ideology << "\n";
+                file << "\teconomic_policy = " << party.economic_policy  << "\n";
+                file << "\ttrade_policy = " << party.trade_policy  << "\n";
+                file << "\treligious_policy = " << party.religious_policy  << "\n";
+                file << "\tcitizenship_policy = " << party.citizenship_policy  << "\n";
+                file << "\twar_policy = " << party.war_policy  << "\n";
+                file << "}\n";
+            }
+
+            file << "unit_names = {";
+            file << value.unit_names;
+            file << "}";
+        }
+    }
+
     void load_nations_common(state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "Parse nations common definitions\n";
         for (auto& entry : std::filesystem::directory_iterator  {path + "/common/countries"}) {
@@ -581,6 +662,17 @@ namespace parsers{
                 parser::country_file_common(n, file, name);
                 layer.filename_to_nation_common[name] = n;
             }
+        }
+    }
+
+    void unload_nation_history(state::layer &layer, std::string path) {
+        std::filesystem::create_directory(path + "/history/");
+        std::filesystem::create_directory(path + "/history/countries");
+
+        for (auto & [key, value] : layer.province_history) {
+            auto tag = game_definition::int_to_tag(key);
+            std::ofstream file(path + "/history/countries/" + value.history_file_name);
+
         }
     }
 
@@ -662,23 +754,6 @@ namespace parsers{
         }
     }
 
-    void load_layer(state::layer &layer) {
-        parsers::error_handler errors("parsing_errors.txt");
-
-        load_province_defs(layer, layer.path);
-        load_default_dot_map(layer, layer.path);
-        load_provinces_map(layer, layer.path);
-        load_states(layer, layer.path);
-        load_adjacencies(layer, layer.path);
-        load_governments_list(layer, layer.path, errors);
-        load_nations_list(layer, layer.path, errors);
-        load_nations_common(layer, layer.path, errors);
-        load_nation_history(layer, layer.path, errors);
-        load_province_history(layer, layer.path, errors);
-
-        std::cout << errors.accumulated_errors;
-    }
-
     void unload_province_defs(state::layer &layer, std::string path) {
         if (!layer.has_province_definitions) return;
         std::filesystem::create_directory(path + "/map");
@@ -701,7 +776,7 @@ namespace parsers{
         }
     };
 
-    void unload_province_image(state::layer &layer, std::string path) {
+    void unload_province_map(state::layer &layer, std::string path) {
         if(layer.provinces_image == std::nullopt) return;
         std::filesystem::create_directory(path + "/map");
 
@@ -891,12 +966,33 @@ border_cutoff = 1100.0
         }
     };
 
+    void load_layer(state::layer &layer) {
+        parsers::error_handler errors("parsing_errors.txt");
+
+        load_province_defs(layer, layer.path);
+        load_default_dot_map(layer, layer.path);
+        load_provinces_map(layer, layer.path);
+        load_regions(layer, layer.path);
+        load_adjacencies(layer, layer.path);
+        load_governments_list(layer, layer.path, errors);
+        load_nations_list(layer, layer.path, errors);
+        load_nations_common(layer, layer.path, errors);
+        load_nation_history(layer, layer.path, errors);
+        load_province_history(layer, layer.path, errors);
+
+        std::cout << errors.accumulated_errors;
+    }
+
     void unload_data(state::layer& layer, std::string path) {
         unload_province_defs(layer, path);
-        unload_province_image(layer, path);
         unload_default_dot_map(layer, path);
+        unload_province_map(layer, path);
         unload_regions(layer, path);
         unload_adjacencies(layer, path);
+        unload_governments_list(layer, path);
+        unload_nations_list(layer, path);
+        unload_nations_common(layer, path);
+        unload_nation_history(layer, path);
         unload_province_history(layer, path);
     }
 }

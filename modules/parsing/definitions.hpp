@@ -5,7 +5,19 @@
 #include <string>
 #include <vector>
 
+#include "../map/unordered_dense.h"
+
 namespace game_definition {
+
+    struct invention {
+        std::string name;
+        std::string filename;
+    };
+
+    struct technology {
+        std::string name;
+        std::string filename;
+    };
 
     struct secondary_rgo {
         int size;
@@ -41,7 +53,7 @@ namespace game_definition {
         bool election = false;
         int duration = -1;
         bool appoint_ruling_party = false;
-        std::map<std::string, bool> allowed_parties {};
+        ankerl::unordered_dense::map<std::string, bool> allowed_parties {};
     };
 
     struct nation_definition {
@@ -74,8 +86,8 @@ namespace game_definition {
         bool civilized = true;
         bool is_releasable_vassal = true;
         std::vector<scripted_flag> govt_flag{};
-        std::map<std::string, float> foreign_investment{};
-        std::map<std::string, float> upper_house{};
+        ankerl::unordered_dense::map<std::string, float> foreign_investment{};
+        ankerl::unordered_dense::map<std::string, float> upper_house{};
         std::string ruling_party{};
         std::string schools{};
         float consciousness = 0.f;
@@ -198,7 +210,7 @@ namespace game_definition {
         std::string controller_tag{};
         std::vector<std::string> cores{};
         std::string main_trade_good{};
-        std::map<std::string, int> secondary_rgo_size{};
+        ankerl::unordered_dense::map<std::string, int> secondary_rgo_size{};
         int life_rating;
         int railroad;
         int naval_base;

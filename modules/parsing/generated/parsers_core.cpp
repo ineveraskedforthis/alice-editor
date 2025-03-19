@@ -3,6 +3,17 @@
 #include "../editor-state/content-state.hpp"
 
 namespace parsers {
+
+void register_invention(std::string_view name, token_generator& gen, error_handler& err, context_with_file_label&& context) {
+    std::string actual_string {name};
+    context.map.inventions[actual_string] = {actual_string, context.file};
+};
+void register_technology(std::string_view name, token_generator& gen, error_handler& err, context_with_file_label&& context) {
+    std::string actual_string {name};
+    context.map.tech[actual_string] = {actual_string, context.file};
+};
+
+
 void government_type::duration(association_type, int value, error_handler& err, int32_t line, government_type_context& context){
     context.current.duration = value;
 };

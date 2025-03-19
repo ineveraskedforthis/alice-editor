@@ -1,10 +1,15 @@
 #include "imgui.h"
 #include "misc/cpp/imgui_stdlib.h"
+#include <array>
 #include <cassert>
 #include <iostream>
 #include <string>
 #include <filesystem>
 #include "selection_widget.hpp"
+
+#include <shobjidl_core.h>
+#include <shobjidl.h>
+
 
 //we need only declarations here
 #include "../stbimage/stb_image.h"
@@ -12,14 +17,112 @@
 
 #include "../editor-state/editor-state.hpp"
 
+// copied from Project Alice
+// Related GPL file can be found in ParserGenerator folder
+std::wstring utf8_to_wstring(std::string_view str) {
+	if(str.size() > 0) {
+		auto buffer = std::unique_ptr<WCHAR[]>(new WCHAR[str.length() * 2]);
+		auto chars_written = MultiByteToWideChar(CP_UTF8, 0, str.data(), int32_t(str.length()), buffer.get(), int32_t(str.length() * 2));
+		return std::wstring(buffer.get(), size_t(chars_written));
+	}
+	return std::wstring(L"");
+}
+
+std::string wstring_to_utf8(std::wstring str) {
+	if(str.size() > 0) {
+		auto buffer = std::unique_ptr<char[]>(new char[str.length() * 4]);
+		auto chars_written = WideCharToMultiByte(CP_UTF8, 0, str.data(), int32_t(str.length()), buffer.get(), int32_t(str.length() * 4), NULL, NULL);
+		return std::string(buffer.get(), size_t(chars_written));
+	}
+	return std::string("");
+}
+
 namespace widgets {
 
+    std::wstring open_image_selection_dialog() {
+        IFileOpenDialog* DIALOG;
+        auto DIALOG_RESULT = CoCreateInstance(
+            CLSID_FileOpenDialog,
+            NULL,
+            CLSCTX_ALL,
+            IID_IFileOpenDialog,
+            reinterpret_cast<void**>(&DIALOG)
+        );
+        if(FAILED(DIALOG_RESULT)) {
+            return L"";
+        }
+
+
+        DIALOG->SetDefaultExtension(L"tga");
+
+        _COMDLG_FILTERSPEC FILTER_JPEG;
+        FILTER_JPEG.pszName = L"JPG (*.jpg,*.jpeg)";
+        FILTER_JPEG.pszSpec = L"*.jpg;*.jpeg";
+
+        _COMDLG_FILTERSPEC FILTER_PNG;
+        FILTER_PNG.pszName = L"PNG (*.png)";
+        FILTER_PNG.pszSpec = L"*.png";
+
+        _COMDLG_FILTERSPEC FILTER_TGA;
+        FILTER_TGA.pszName = L"TGA (*.tga)";
+        FILTER_TGA.pszSpec = L"*.tga";
+
+        std::array<_COMDLG_FILTERSPEC, 3> FILE_TYPES {FILTER_JPEG, FILTER_PNG, FILTER_TGA};
+
+        DIALOG->SetFileTypes(3, FILE_TYPES.data());
+        DIALOG->SetOptions(FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_NOCHANGEDIR | FOS_FORCEFILESYSTEM);
+
+        DIALOG_RESULT = DIALOG->Show(NULL);
+        if(FAILED(DIALOG_RESULT)) {
+            DIALOG->Release();
+            return L"";
+        }
+
+        IShellItem* ITEM;
+        DIALOG_RESULT = DIALOG->GetResult(&ITEM);
+        if(FAILED(DIALOG_RESULT)) {
+            DIALOG->Release();
+            return L"";
+        }
+
+        //  STORE AND CONVERT THE FILE NAME
+        PWSTR RETRIEVED_PATH;
+        DIALOG_RESULT = ITEM->GetDisplayName(SIGDN_FILESYSPATH, &RETRIEVED_PATH);
+        if(FAILED(DIALOG_RESULT)) {
+            ITEM->Release();
+            DIALOG->Release();
+            return L"";
+        }
+
+        std::wstring path(RETRIEVED_PATH);
+        CoTaskMemFree(RETRIEVED_PATH);
+        ITEM->Release();
+        DIALOG->Release();
+        return path;
+    }
+
     void flag_widget(state::layers_stack& layers, assets::storage& storage, std::string& flag_path_from_layer) {
-        for (int i = layers.data.size() - 1; i >= 0; i--) {
-            auto flag_path = layers.data[i].path + flag_path_from_layer;
+        for (int i = layers.current_layer_index; i >= 0; i--) {
+            auto& layer = layers.data[i];
+            auto flag_path = layer.path + flag_path_from_layer;
+            if (layer.paths_to_new_flags.contains(flag_path_from_layer)) {
+                flag_path = wstring_to_utf8(layer.paths_to_new_flags[flag_path_from_layer]);
+            }
             if (storage.filename_to_texture_asset.contains(flag_path)) {
+                if (ImGui::Button("Choose a new flag")) {
+                    auto result = open_image_selection_dialog();
+                    layer.paths_to_new_flags[flag_path_from_layer] = result;
+                }
+                if (layer.paths_to_new_flags.contains(flag_path_from_layer)) {
+                    auto path = layer.paths_to_new_flags[flag_path_from_layer];
+                    ImGui::Text("%s", wstring_to_utf8(path).c_str());
+                } else {
+                    ImGui::Text("%s", (layer.path + flag_path_from_layer).c_str());
+                }
+
                 auto asset = storage.filename_to_texture_asset[flag_path];
                 ImGui::Image((ImTextureID)(intptr_t)asset.texture, ImVec2(asset.w, asset.h));
+
                 return;
             } else {
                 //check if path really exists:
@@ -394,22 +497,25 @@ namespace widgets {
             {
 
                 ImGui::Text("Flags");
-
                 ImGui::Text("Default flag");
-
-
                 std::string string_tag {(char)def->tag[0], (char)def->tag[1], (char)def->tag[2]};
                 std::string default_flag_path = "/gfx/flags/" + string_tag + ".tga";
 
+                ImGui::PushID(0);
                 flag_widget(map, storage, default_flag_path);
-
+                ImGui::PopID();
                 auto flags = map.get_flags();
-                if (flags != nullptr)
+                if (flags != nullptr){
+                    int counter = 1;
                     for(auto& flagtype : *flags) {
+                        ImGui::PushID(counter);
                         ImGui::Text("%s", flagtype.c_str());
                         std::string flag_path = "/gfx/flags/" + string_tag + + "_" + flagtype + ".tga";
                         flag_widget(map, storage, flag_path);
+                        counter++;
+                        ImGui::PopID();
                     }
+                }
 
                 ImGui::Text("Overrides");
 

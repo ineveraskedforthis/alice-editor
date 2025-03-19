@@ -113,9 +113,10 @@ namespace parser {
                     }
                     n.parties.push_back(party);
                 } else if (key.data == "unit_names") {
+                    int balance = 0;
                     while (parser::until_open_bracket(c) && file.get(c));
-                    while (parser::nothing(c) && file.get(c));
-                    while (parser::until_close_bracket(c) && file.get(c))
+                    // while (parser::nothing(c) && file.get(c));
+                    while (parser::until_brackets_balance(c, balance) && file.get(c))
                         n.unit_names += c;
                 }
             }

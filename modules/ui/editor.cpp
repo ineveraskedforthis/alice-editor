@@ -39,7 +39,7 @@ namespace widgets {
         ImGui::End();
     }
 
-    void settings(state::control& control) {
+    void settings(state::layers_stack& layers, state::control& control) {
         ImGui::Begin(
             "Brush settings",
             NULL,
@@ -48,6 +48,41 @@ namespace widgets {
             | ImGuiWindowFlags_NoScrollbar
             | ImGuiWindowFlags_NoFocusOnAppearing
         );
+
+        ImGui::Text("Layers:");
+
+        for (int i = 0; i < layers.data.size(); i++) {
+            bool old = layers.data[i].visible;
+            bool activate = layers.data[i].visible;
+            ImGui::PushID(i);
+            if (i == 0) ImGui::BeginDisabled();
+            ImGui::Checkbox("##", &activate);
+            if (i == 0) ImGui::EndDisabled();
+            ImGui::SameLine();
+            ImGui::Text("%s", layers.data[i].path.c_str());
+            if (activate != old) {
+                if (!activate) {
+                    for (int j = i; j < layers.data.size(); j++) {
+                        layers.data[i].visible = false;
+                    }
+                    layers.current_layer_index = i - 1;
+                    layers.update_owner_texture();
+                    layers.commit_owner_texture_to_gpu();
+                    layers.generate_indices();
+                    layers.indices.commit_province_texture_changes_to_gpu();
+                } else {
+                    for (int j = 0; j <= i; j++) {
+                        layers.data[i].visible = true;
+                    }
+                    layers.current_layer_index = i;
+                    layers.update_owner_texture();
+                    layers.commit_owner_texture_to_gpu();
+                    layers.generate_indices();
+                    layers.indices.commit_province_texture_changes_to_gpu();
+                }
+            }
+            ImGui::PopID();
+        }
 
         if (control.mode == state::CONTROL_MODE::FILL) {
             ImGui::Text("Fill mode");
@@ -312,7 +347,7 @@ namespace widgets {
         {
             ImGui::SetNextWindowSize(ImVec2(300, window.height - status_bar_height));
             ImGui::SetNextWindowPos(ImVec2(window.width - 300, 0));
-            widgets::settings(control);
+            widgets::settings(layers, control);
         }
         {
             ImGui::SetNextWindowSize(ImVec2(window.width, status_bar_height));
