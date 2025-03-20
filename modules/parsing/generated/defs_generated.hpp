@@ -3,6 +3,134 @@
 
 namespace parsers {
 template<typename C>
+issue parse_issue(token_generator& gen, error_handler& err, C&& context) {
+	issue cobj;
+	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {
+		if(cur.type == token_type::open_brace) { 
+			err.unhandled_free_group(cur); gen.discard_group();
+			continue;
+		}
+		auto peek_result = gen.next();
+		if(peek_result.type == token_type::special_identifier) {
+			auto peek2_result = gen.next_next();
+			if(peek2_result.type == token_type::open_brace) {
+				gen.get(); gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					register_issue_option(cur.content, gen, err, context);
+					break;
+				}
+			} else {
+				auto const assoc_token = gen.get();
+				auto const assoc_type = parse_association_type(assoc_token.content, assoc_token.line, err);
+				auto const rh_token = gen.get();
+				switch(int32_t(cur.content.length())) {
+				case 14:
+					switch(0x20 | int32_t(cur.content[0])) {
+					case 0x61:
+						// administrative
+						if((true && (*(uint64_t const*)(&cur.content[1]) | uint64_t(0x2020202020202020) ) == uint64_t(0x727473696E696D64) && (*(uint32_t const*)(&cur.content[9]) | uint32_t(0x20202020) ) == uint32_t(0x76697461) && (cur.content[13] | 0x20 ) == 0x65)) {
+							cobj.administrative(assoc_type, parse_bool(rh_token.content, rh_token.line, err), err, cur.line, context);
+						} else {
+							err.unhandled_association_key(cur);
+						}
+						break;
+					case 0x6E:
+						// next_step_only
+						if((true && (*(uint64_t const*)(&cur.content[1]) | uint64_t(0x2020202020202020) ) == uint64_t(0x706574737F747865) && (*(uint32_t const*)(&cur.content[9]) | uint32_t(0x20202020) ) == uint32_t(0x6C6E6F7F) && (cur.content[13] | 0x20 ) == 0x79)) {
+							cobj.next_step_only(assoc_type, parse_bool(rh_token.content, rh_token.line, err), err, cur.line, context);
+						} else {
+							err.unhandled_association_key(cur);
+						}
+						break;
+					default:
+						err.unhandled_association_key(cur);
+						break;
+					}
+					break;
+				default:
+					err.unhandled_association_key(cur);
+					break;
+				}
+			}
+		} else {
+			err.unhandled_free_value(cur);
+		}
+	}
+	cobj.finish(context);
+	return cobj;
+}
+template<typename C>
+issues_group parse_issues_group(token_generator& gen, error_handler& err, C&& context) {
+	issues_group cobj;
+	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {
+		if(cur.type == token_type::open_brace) { 
+			err.unhandled_free_group(cur); gen.discard_group();
+			continue;
+		}
+		auto peek_result = gen.next();
+		if(peek_result.type == token_type::special_identifier) {
+			auto peek2_result = gen.next_next();
+			if(peek2_result.type == token_type::open_brace) {
+				gen.get(); gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					make_issue(cur.content, gen, err, context);
+					break;
+				}
+			} else {
+				auto const assoc_token = gen.get();
+				auto const assoc_type = parse_association_type(assoc_token.content, assoc_token.line, err);
+				auto const rh_token = gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					err.unhandled_association_key(cur);
+					break;
+				}
+			}
+		} else {
+			err.unhandled_free_value(cur);
+		}
+	}
+	cobj.finish(context);
+	return cobj;
+}
+template<typename C>
+issues_file parse_issues_file(token_generator& gen, error_handler& err, C&& context) {
+	issues_file cobj;
+	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {
+		if(cur.type == token_type::open_brace) { 
+			err.unhandled_free_group(cur); gen.discard_group();
+			continue;
+		}
+		auto peek_result = gen.next();
+		if(peek_result.type == token_type::special_identifier) {
+			auto peek2_result = gen.next_next();
+			if(peek2_result.type == token_type::open_brace) {
+				gen.get(); gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					make_issues_group(cur.content, gen, err, context);
+					break;
+				}
+			} else {
+				auto const assoc_token = gen.get();
+				auto const assoc_type = parse_association_type(assoc_token.content, assoc_token.line, err);
+				auto const rh_token = gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					err.unhandled_association_key(cur);
+					break;
+				}
+			}
+		} else {
+			err.unhandled_free_value(cur);
+		}
+	}
+	cobj.finish(context);
+	return cobj;
+}
+template<typename C>
 technology_sub_file parse_technology_sub_file(token_generator& gen, error_handler& err, C&& context) {
 	technology_sub_file cobj;
 	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {

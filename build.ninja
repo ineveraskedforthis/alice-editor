@@ -2,7 +2,7 @@
 
 
 #cflags = -std=c++20 -O3 -DWIN32 -DSDL_MAIN_HANDLED -Wall -I./modules/sdl -I./modules/imgui -I./modules/glew
-cflags = -std=c++20 -O3 -DWIN32 -DSDL_MAIN_HANDLED -I./modules/sdl -I./modules/imgui -I./modules/glew
+cflags = -std=c++20 -O0 -DWIN32 -DSDL_MAIN_HANDLED -I./modules/sdl -I./modules/imgui -I./modules/glew
 
 rule cc
   command = clang++ -MD -MF $out.d $cflags -g -gdwarf-3 -gcodeview -c $in -o $out
@@ -25,10 +25,10 @@ rule copy
   command = xcopy $in $out /y
   description = copying file $in to $out
 
-build build\shaders\.fs: copy shaders\.fs
-build build\shaders\.vs: copy shaders\.vs | build/shaders\.fs
-build build\shaders\line.fs: copy shaders\line.fs | build\shaders\.vs
-build build\shaders\line.vs: copy shaders\line.vs | build\shaders\line.fs
+#build build\shaders\.fs: copy shaders\.fs
+#build build\shaders\.vs: copy shaders\.vs | build/shaders\.fs
+#build build\shaders\line.fs: copy shaders\line.fs | build\shaders\.vs
+#build build\shaders\line.vs: copy shaders\line.vs | build\shaders\line.fs
 
 build ParserGenerator/ParserGenerator.exe: cc_simple ParserGenerator/parser_generator.cpp
 build modules/parsing/generated/defs_generated.hpp: generate_parser modules/parsing/generated/defs.txt | ParserGenerator/ParserGenerator.exe

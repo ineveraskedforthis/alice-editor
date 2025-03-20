@@ -30,7 +30,7 @@ int main(int argc, char* argv[]) {
         {
             state::layer l {};
             l.path = "./base-game";
-            parsers::load_layer(l);
+            parsers::load_layer(layers, l);
             l.load_state_texture_to_gpu();
             l.load_sea_texture_to_gpu();
             layers.data.push_back(l);
@@ -43,7 +43,7 @@ int main(int argc, char* argv[]) {
         {
             state::layer l {};
             l.path = "./editor-input";
-            parsers::load_layer(l);
+            parsers::load_layer(layers, l);
             l.load_state_texture_to_gpu();
             l.load_sea_texture_to_gpu();
             layers.data.push_back(l);

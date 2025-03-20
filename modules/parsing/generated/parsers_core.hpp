@@ -5,6 +5,7 @@
 
 namespace state {
 	struct layer;
+	struct layers_stack;
 };
 
 namespace parsers {
@@ -12,21 +13,59 @@ struct generic_context{
 	state::layer& map;
 };
 
+struct generic_global_context {
+	state::layers_stack& state;
+	state::layer& map;
+};
+
+struct issue_context{
+	state::layer& map;
+	std::string issue_name;
+};
+
+struct issue_group_context{
+	state::layer& map;
+	std::string group;
+};
+
+struct technology_context{
+	state::layer& map;
+	game_definition::tech_folder folder;
+};
+
 struct context_with_file_label{
 	state::layer& map;
 	std::string file;
 };
 
-struct inventions_file {
+struct issues_group {
+	void finish(issue_group_context&) { }
+};
+
+struct issue {
+	void finish(issue_context&) { }
+	void next_step_only(association_type, bool value, error_handler& err, int32_t line, issue_context& context);
+	void administrative(association_type, bool value, error_handler& err, int32_t line, issue_context& context);
+};
+
+struct issues_file {
 	void finish(generic_context&) { }
+};
+
+struct inventions_file {
+	void finish(technology_context&) { }
 };
 
 struct technology_sub_file {
-	void finish(generic_context&) { }
+	void finish(technology_context&) { }
 };
 
-void register_invention(std::string_view name, token_generator& gen, error_handler& err, context_with_file_label&& context);
-void register_technology(std::string_view name, token_generator& gen, error_handler& err, context_with_file_label&& context);
+void make_issue(std::string_view name, token_generator& gen, error_handler& err, issue_group_context& context);
+void make_issues_group(std::string_view name, token_generator& gen, error_handler& err, generic_context& context);
+
+void register_issue_option(std::string_view name, token_generator& gen, error_handler& err, issue_context& context);
+void register_invention(std::string_view name, token_generator& gen, error_handler& err, technology_context& context);
+void register_technology(std::string_view name, token_generator& gen, error_handler& err, technology_context& context);
 
 void create_government_type(std::string_view name, token_generator& gen, error_handler& err, generic_context& context);
 
@@ -55,6 +94,7 @@ government_type parse_government_type(token_generator& gen, error_handler& err, 
 
 struct nation_history_file{
     game_definition::nation_history& nation;
+	state::layers_stack& state;
 	state::layer& map;
 };
 

@@ -39,6 +39,97 @@ std::string wstring_to_utf8(std::wstring str) {
 
 namespace widgets {
 
+    void technology_folder(state::layers_stack& map, game_definition::nation_history* history, bool can_edit, game_definition::tech_folder folder) {
+        if (history == nullptr) {
+            return;
+        }
+        if (!can_edit)
+            ImGui::BeginDisabled();
+        std::vector<std::string> technologies{};
+        map.retrieve_techs(technologies, folder);
+        for (int row = 0; row < technologies.size(); row++) {
+            auto name = technologies[row];
+            bool present = false;
+            if (history->tech.contains(name)) {
+                present = history->tech[name];
+            }
+
+            ImGui::PushID(row);
+            ImGui::Checkbox("##", &present);
+            ImGui::SameLine();
+            ImGui::Text("%s", name.c_str());
+
+            bool old = present;
+            if (old != present)
+                history->tech[name] = present;
+
+            ImGui::PopID();
+        }
+        if (!can_edit)
+            ImGui::EndDisabled();
+    }
+
+    void inventions_folder(state::layers_stack& map, game_definition::nation_history* history, bool can_edit, game_definition::tech_folder folder) {
+        if (history == nullptr) {
+            return;
+        }
+        if (!can_edit)
+            ImGui::BeginDisabled();
+        std::vector<std::string> inventions{};
+        map.retrieve_inventions(inventions, folder);
+        for (int row = 0; row < inventions.size(); row++) {
+            auto name = inventions[row];
+            bool present = false;
+            if (history->inventions.contains(name)) {
+                present = history->inventions[name];
+            }
+
+            ImGui::PushID(row);
+            ImGui::Checkbox("##", &present);
+            ImGui::SameLine();
+            ImGui::Text("%s", name.c_str());
+
+            bool old = present;
+            if (old != present)
+                history->inventions[name] = present;
+
+            ImGui::PopID();
+        }
+        if (!can_edit)
+            ImGui::EndDisabled();
+    }
+
+    void issues_selection(state::layers_stack& map, game_definition::nation_history* history, bool can_edit) {
+        if (history == nullptr) {
+            return;
+        }
+        if (!can_edit)
+            ImGui::BeginDisabled();
+        std::vector<std::string> issues{};
+        map.retrieve_issues(issues);
+        for (int row = 0; row < issues.size(); row++) {
+            auto name = issues[row];
+            auto issue = map.get_issue(name);
+            ImGui::PushID(row);
+            ImGui::Text("%s", name.c_str());
+            if (issue == nullptr) {
+                ImGui::Text("Invalid issue");
+            } else {
+                if (ImGui::BeginCombo("Select", history->issues[name].c_str())) {
+                    for (int n = 0; n < issue->options.size(); n++) {
+                        if (ImGui::Selectable(issue->options[n].c_str(), history->issues[name] == issue->options[n])) {
+                            history->issues[name] = issue->options[n];
+                        }
+                    }
+                    ImGui::EndCombo();
+                }
+            }
+            ImGui::PopID();
+        }
+        if (!can_edit)
+            ImGui::EndDisabled();
+    }
+
     std::wstring open_image_selection_dialog() {
         IFileOpenDialog* DIALOG;
         auto DIALOG_RESULT = CoCreateInstance(
@@ -441,55 +532,177 @@ namespace widgets {
                 bool can_edit_history = map.can_edit_nation_history(tag);
                 auto history = map.get_nation_history(tag);
 
-                if (!can_edit_history)
-                    ImGui::BeginDisabled();
+                ImGuiTabBarFlags history_tab_bar_flags = ImGuiTabBarFlags_None;
+                if (ImGui::BeginTabBar("NationHistoryTabs", tab_bar_flags))
+                {
+                    if (ImGui::BeginTabItem("Main"))
+                    {
+                        if (!can_edit_history)
+                            ImGui::BeginDisabled();
+                        ImGui::InputInt("Capital", &history->capital);
+                        if (history->capital == -1) {
+                            ImGui::Text("Undefined");
+                        } else {
+                            auto prov = map.get_province_definition(history->capital);
+                            if (prov != nullptr) {
+                                ImGui::Text("%s", (prov->name).c_str());
+                            } else {
+                                ImGui::Text("Invalid id");
+                            }
+                        }
+                        ImGui::InputText("Primary culture", &history->primary_culture);
+                        for (int i = 0; i < history->culture.size(); i++) {
+                            ImGui::PushID(i);
+                            ImGui::InputText("Culture", &(history->culture[i]));
+                            ImGui::SameLine();
+                            if (ImGui::Button("Clear culture")) {
+                                history->culture[i] = "";
+                            }
+                            ImGui::PopID();
+                        }
+                        if (ImGui::Button("Add culture")) {
+                            history->culture.push_back("");
+                        }
+                        ImGui::InputText("Religion", &history->religion);
+                        ImGui::Checkbox("Civilized", &history->civilized);
+                        ImGui::Checkbox("Releasable", &history->is_releasable_vassal);
+                        ImGui::InputText("Government", &history->government);
+                        ImGui::InputText("National value", &history->nationalvalue);
+                        ImGui::InputFloat("Plurality", &history->plurality);
+                        ImGui::InputFloat("Prestige", &history->prestige);
+                        ImGui::InputFloat("Literacy", &history->literacy);
+                        ImGui::InputFloat("Literacy(non-state)", &history->non_state_culture_literacy);
+                        ImGui::InputFloat("Consciousness", &history->consciousness);
+                        ImGui::InputFloat("Consciousness(non-state)", &history->nonstate_consciousness);
 
-                ImGui::InputInt("Capital", &history->capital);
-                if (history->capital == -1) {
-                    ImGui::Text("Undefined");
-                } else {
-                    auto prov = map.get_province_definition(history->capital);
-                    if (prov != nullptr) {
-                        ImGui::Text("%s", (prov->name).c_str());
-                    } else {
-                        ImGui::Text("Invalid id");
+                        if (!can_edit_history)
+                            ImGui::EndDisabled();
+                        ImGui::EndTabItem();
                     }
-                }
 
-                ImGui::InputText("Primary culture", &history->primary_culture);
-
-                for (int i = 0; i < history->culture.size(); i++) {
-                    ImGui::PushID(i);
-                    ImGui::InputText("Culture", &(history->culture[i]));
-                    ImGui::SameLine();
-                    if (ImGui::Button("Clear culture")) {
-                        history->culture[i] = "";
+                    if (ImGui::BeginTabItem("Technologies"))
+                    {
+                        ImGuiTabBarFlags technology_history_tab_bar_flags = ImGuiTabBarFlags_None;
+                        if (ImGui::BeginTabBar("TechnologyNationHistoryTabs", tab_bar_flags))
+                        {
+                            if (ImGui::BeginTabItem("Army")) {
+                                technology_folder(
+                                    map,
+                                    history,
+                                    can_edit_history,
+                                    game_definition::tech_folder::army
+                                );
+                                ImGui::EndTabItem();
+                            }
+                            if (ImGui::BeginTabItem("Navy")) {
+                                technology_folder(
+                                    map,
+                                    history,
+                                    can_edit_history,
+                                    game_definition::tech_folder::navy
+                                );
+                                ImGui::EndTabItem();
+                            }
+                            if (ImGui::BeginTabItem("Culture")) {
+                                technology_folder(
+                                    map,
+                                    history,
+                                    can_edit_history,
+                                    game_definition::tech_folder::culture
+                                );
+                                ImGui::EndTabItem();
+                            }
+                            if (ImGui::BeginTabItem("Commerce")) {
+                                technology_folder(
+                                    map,
+                                    history,
+                                    can_edit_history,
+                                    game_definition::tech_folder::commerce
+                                );
+                                ImGui::EndTabItem();
+                            }
+                            if (ImGui::BeginTabItem("Industry")) {
+                                technology_folder(
+                                    map,
+                                    history,
+                                    can_edit_history,
+                                    game_definition::tech_folder::industry
+                                );
+                                ImGui::EndTabItem();
+                            }
+                            ImGui::EndTabBar();
+                        }
+                        ImGui::EndTabItem();
                     }
-                    ImGui::PopID();
+
+                    if (ImGui::BeginTabItem("Inventions"))
+                    {
+                        ImGuiTabBarFlags inventions_history_tab_bar_flags = ImGuiTabBarFlags_None;
+                        if (ImGui::BeginTabBar("InventionsNationHistoryTabs", tab_bar_flags))
+                        {
+                            if (ImGui::BeginTabItem("Army")) {
+                                inventions_folder(
+                                    map,
+                                    history,
+                                    can_edit_history,
+                                    game_definition::tech_folder::army
+                                );
+                                ImGui::EndTabItem();
+                            }
+                            if (ImGui::BeginTabItem("Navy")) {
+                                inventions_folder(
+                                    map,
+                                    history,
+                                    can_edit_history,
+                                    game_definition::tech_folder::navy
+                                );
+                                ImGui::EndTabItem();
+                            }
+                            if (ImGui::BeginTabItem("Culture")) {
+                                inventions_folder(
+                                    map,
+                                    history,
+                                    can_edit_history,
+                                    game_definition::tech_folder::culture
+                                );
+                                ImGui::EndTabItem();
+                            }
+                            if (ImGui::BeginTabItem("Commerce")) {
+                                inventions_folder(
+                                    map,
+                                    history,
+                                    can_edit_history,
+                                    game_definition::tech_folder::commerce
+                                );
+                                ImGui::EndTabItem();
+                            }
+                            if (ImGui::BeginTabItem("Industry")) {
+                                inventions_folder(
+                                    map,
+                                    history,
+                                    can_edit_history,
+                                    game_definition::tech_folder::industry
+                                );
+                                ImGui::EndTabItem();
+                            }
+                            ImGui::EndTabBar();
+                        }
+                        ImGui::EndTabItem();
+                    }
+
+                    if (ImGui::BeginTabItem("Issues"))
+                    {
+                        if (!can_edit_history)
+                            ImGui::BeginDisabled();
+
+                        issues_selection(map, history, can_edit_history);
+
+                        if (!can_edit_history)
+                            ImGui::EndDisabled();
+                        ImGui::EndTabItem();
+                    }
+                    ImGui::EndTabBar();
                 }
-
-                if (ImGui::Button("Add culture")) {
-                    history->culture.push_back("");
-                }
-
-                ImGui::InputText("Religion", &history->religion);
-                ImGui::Checkbox("Civilized", &history->civilized);
-                ImGui::Checkbox("Releasable", &history->is_releasable_vassal);
-
-                ImGui::InputText("Government", &history->government);
-                ImGui::InputText("National value", &history->nationalvalue);
-
-                ImGui::InputFloat("Plurality", &history->plurality);
-                ImGui::InputFloat("Prestige", &history->prestige);
-                ImGui::InputFloat("Literacy", &history->literacy);
-                ImGui::InputFloat("Literacy(non-state)", &history->non_state_culture_literacy);
-
-                ImGui::InputFloat("Consciousness", &history->consciousness);
-                ImGui::InputFloat("Consciousness(non-state)", &history->nonstate_consciousness);
-
-                if (!can_edit_history)
-                    ImGui::EndDisabled();
-
                 ImGui::EndTabItem();
             }
 

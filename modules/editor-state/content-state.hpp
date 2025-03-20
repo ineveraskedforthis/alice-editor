@@ -39,7 +39,7 @@ glm::vec2 screen_to_texture(
 
 struct editor {
     uint8_t* rivers_raw;
-    std::map<std::string, std::map<std::string, int>> secondary_rgo_templates;
+    ankerl::unordered_dense::map<std::string, ankerl::unordered_dense::map<std::string, int>> secondary_rgo_templates;
 };
 
 uint32_t inline rgb_to_uint(int r, int g, int b) {
@@ -244,13 +244,13 @@ struct layer {
     std::optional<province_map> provinces_image {};
 
     // rivers part of the layer
-    bool has_rivers_map;
+    bool has_rivers_map = false;
 
     // adjacencies part of the layer
     std::vector<game_definition::adjacency> adjacencies{};
-    bool has_adjacencies;
+    bool has_adjacencies = false;
 
-    bool has_continent_txt;
+    bool has_continent_txt = false;
 
     uint8_t province_is_sea[256 * 256];
     GLuint sea_texture;
@@ -263,17 +263,17 @@ struct layer {
     std::array<bool, 256 * 256> is_used {};
     ankerl::unordered_dense::map<uint32_t, uint32_t> rgb_to_v2id {};
     uint32_t available_id = 1;
-    bool has_province_definitions;
+    bool has_province_definitions = false;
 
     // history/provinces/*.txt
     ankerl::unordered_dense::map<uint32_t, game_definition::province_history> province_history {};
 
     // region.txt
 
-    std::vector<game_definition::state> states;
+    std::vector<game_definition::state> states {};
     uint8_t province_state[256 * 256 * 2];
     GLuint state_texture;
-    bool has_region_txt;
+    bool has_region_txt = false;
     void load_state_texture_to_gpu();
     void commit_state_texture_to_gpu();
 
@@ -290,8 +290,12 @@ struct layer {
     ankerl::unordered_dense::map<std::string, std::wstring> paths_to_new_flags{};
     bool has_governments_list = false;
 
-    ankerl::unordered_dense::map<std::string, game_definition::technology> tech;
-    ankerl::unordered_dense::map<std::string, game_definition::invention> inventions;
+    ankerl::unordered_dense::map<std::string, game_definition::technology> tech{};
+    std::array<bool, 5> has_tech{};
+    ankerl::unordered_dense::map<std::string, game_definition::invention> inventions{};
+    std::array<bool, 5> has_invention{};
+    ankerl::unordered_dense::map<std::string, game_definition::issue> issues{};
+    bool has_issues = false;
 };
 
 struct layers_stack {
@@ -577,6 +581,120 @@ struct layers_stack {
         }
 
         return result;
+    }
+
+    bool has_tech_key(game_definition::tech_folder folder, std::string key) {
+        // CAUTION: this could fail
+        layer* last = nullptr;
+        for (auto& l: data) {
+            if(l.visible && l.has_tech[(int)folder]) {
+                last = &l;
+            }
+        }
+        if (last==nullptr)
+            return false;
+        auto it = last->tech.find(key);
+        if (it == last->tech.end()) return false;
+        return true;
+    }
+
+    bool has_tech_key(std::string key) {
+        bool result = false;
+        for (int i = 0; i < 5; i++) {
+            result = result || has_tech_key((game_definition::tech_folder)(i), key);
+        }
+        return result;
+    }
+
+    bool has_invention_key(game_definition::tech_folder folder, std::string key) {
+        // CAUTION: this could fail
+        layer* last = nullptr;
+        for (auto& l: data) {
+            if(l.visible && l.has_invention[(int)folder]) {
+                last = &l;
+            }
+        }
+        if (last==nullptr)
+            return false;
+        auto it = last->tech.find(key);
+        if (it == last->tech.end()) return false;
+        return true;
+    }
+    bool has_invention_key(std::string key) {
+        bool result = false;
+        for (int i = 0; i < 5; i++) {
+            result = result || has_invention_key((game_definition::tech_folder)(i), key);
+        }
+        return result;
+    }
+
+    bool has_issues_key(std::string key) {
+        // CAUTION: this could fail
+        layer* last = nullptr;
+        for (auto& l: data) {
+            if(l.visible && l.has_issues) {
+                last = &l;
+            }
+        }
+        if (last==nullptr)
+            return false;
+        return last->issues.find(key) != last->issues.end();
+    }
+
+    void retrieve_techs(std::vector<std::string>& techs, game_definition::tech_folder folder) {
+        layer* last = nullptr;
+        for (auto& l: data) {
+            if(l.visible && l.has_tech[(int)folder]) {
+                last = &l;
+            }
+        }
+        if (last==nullptr)
+            return;
+        for (auto const & [key, value] : last->tech) {
+            if (value.folder == folder) {
+                techs.push_back(key);
+            }
+        }
+    }
+
+    void retrieve_inventions(std::vector<std::string>& inventions, game_definition::tech_folder folder) {
+        layer* last = nullptr;
+        for (auto& l: data) {
+            if(l.visible && l.has_invention[(int)folder]) {
+                last = &l;
+            }
+        }
+        if (last==nullptr)
+            return;
+        for (auto const & [key, value] : last->inventions) {
+            if (value.folder == folder) {
+                inventions.push_back(key);
+            }
+        }
+    }
+
+    game_definition::issue* get_issue(std::string issue_name) {
+        game_definition::issue* result = nullptr;
+        for (auto& l: data) {
+            if(l.visible && l.issues.contains(issue_name)) {
+                result = &l.issues[issue_name];
+            }
+        }
+        return result;
+    }
+
+    void retrieve_issues(std::vector<std::string>& issues) {
+        layer* last = nullptr;
+        for (auto& l: data) {
+            if(l.visible && l.has_issues) {
+                last = &l;
+            }
+        }
+        if (last==nullptr)
+            return;
+        for (auto const & [key, value] : last->issues) {
+            issues.push_back(key);
+        }
     }
 
     game_definition::nation_history* get_nation_history(int tag) {

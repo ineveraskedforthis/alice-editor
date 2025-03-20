@@ -20,7 +20,7 @@ ParserGenerator/ParserGenerator.exe.d
 
 modules/imgui/*
 
-
+build/loading-test.exe
 build/editor.exe
 build/imgui.ini
 build/glew32.dll

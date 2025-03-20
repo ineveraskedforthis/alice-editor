@@ -1,7 +1,6 @@
 #pragma once
 #include <array>
 #include <cstdint>
-#include <map>
 #include <string>
 #include <vector>
 
@@ -9,14 +8,23 @@
 
 namespace game_definition {
 
+    struct issue {
+        std::string name;
+        std::vector<std::string> options{};
+    };
+
+    enum class tech_folder {
+        army, navy, commerce, culture, industry
+    };
+
     struct invention {
         std::string name;
-        std::string filename;
+        tech_folder folder;
     };
 
     struct technology {
         std::string name;
-        std::string filename;
+        tech_folder folder;
     };
 
     struct secondary_rgo {
@@ -99,6 +107,10 @@ namespace game_definition {
         std::vector<std::string> set_country_flag{};
         std::vector<std::string> set_global_flag{};
         std::vector<std::string> decision{};
+
+        ankerl::unordered_dense::map<std::string, bool> tech{};
+        ankerl::unordered_dense::map<std::string, bool> inventions{};
+        ankerl::unordered_dense::map<std::string, std::string> issues{};
     };
 
     inline void define_nation_common(nation_common& n) {

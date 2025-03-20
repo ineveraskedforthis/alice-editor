@@ -1,16 +1,31 @@
 #include <string>
 #include "parsers_core.hpp"
 #include "../editor-state/content-state.hpp"
+#include "parsers.hpp"
 
 namespace parsers {
 
-void register_invention(std::string_view name, token_generator& gen, error_handler& err, context_with_file_label&& context) {
+void register_issue_option(std::string_view name, token_generator& gen, error_handler& err, issue_context& context) {
     std::string actual_string {name};
-    context.map.inventions[actual_string] = {actual_string, context.file};
+    context.map.issues[context.issue_name].options.push_back(actual_string);
+    gen.discard_group();
 };
-void register_technology(std::string_view name, token_generator& gen, error_handler& err, context_with_file_label&& context) {
+void register_invention(std::string_view name, token_generator& gen, error_handler& err, technology_context& context) {
     std::string actual_string {name};
-    context.map.tech[actual_string] = {actual_string, context.file};
+    context.map.inventions[actual_string] = {actual_string, context.folder};
+    gen.discard_group();
+};
+void register_technology(std::string_view name, token_generator& gen, error_handler& err, technology_context& context) {
+    std::string actual_string {name};
+    context.map.tech[actual_string] = {actual_string, context.folder};
+    gen.discard_group();
+};
+
+void issue::next_step_only(association_type, bool value, error_handler& err, int32_t line, issue_context& context){
+
+};
+void issue::administrative(association_type, bool value, error_handler& err, int32_t line, issue_context& context){
+
 };
 
 
@@ -85,7 +100,32 @@ void nation_handler::capital(association_type, int32_t value, error_handler& err
     context.nation.capital = value;
 };
 void nation_handler::any_value(std::string_view label, association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+	std::string key(label);
 
+    bool has_tech_key =
+        context.state.has_tech_key(key)
+        || (context.map.tech.find(key) != context.map.tech.end());
+
+    bool has_invention_key =
+        context.state.has_invention_key(key)
+        || context.map.inventions.find(key) != context.map.inventions.end();
+
+    bool has_issue_key =
+        context.state.has_issues_key(key)
+        || context.map.issues.find(key) != context.map.issues.end();
+
+	if(has_tech_key) {
+		auto v = parse_bool(value, line, err);
+        context.nation.tech[key] = v;
+	} else if(has_invention_key) {
+		auto v = parse_bool(value, line, err);
+		context.nation.inventions[key] = v;
+    } else if(has_issue_key) {
+		context.nation.issues[key] = value;
+    } else {
+		err.accumulated_errors +=
+				"invalid key " + key + " encountered  (" + err.file_name + " line " + std::to_string(line) + ")\n";
+	}
 };
 void nation_handler::primary_culture(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
     context.nation.primary_culture = value;

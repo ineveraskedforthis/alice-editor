@@ -27,6 +27,22 @@
 
 namespace parsers{
 
+    void make_issue(std::string_view name, token_generator& gen, error_handler& err, issue_group_context& context) {
+        std::string actual_string {name};
+        issue_context new_context(context.map, actual_string);
+        game_definition::issue issue{actual_string};
+        context.map.issues[actual_string] = issue;
+        std::cout << "detect issue: " << actual_string << "\n";
+        parse_issue(gen, err, new_context);
+    };
+
+    void make_issues_group(std::string_view name, token_generator& gen, error_handler& err, generic_context& context) {
+        std::string actual_string {name};
+        issue_group_context new_context(context.map, actual_string);
+        parse_issues_group(gen, err, new_context);
+    };
+
+
     void create_government_type(std::string_view name, parsers::token_generator &gen, parsers::error_handler &err, parsers::generic_context &context) {
         context.map.governments.emplace_back();
         context.map.governments.back().name = name;
@@ -592,6 +608,101 @@ namespace parsers{
         parsers::parse_governments_file(tk, errors, ctx_generic);
     };
 
+    void load_issues_list(state::layer &layer, std::string path, parsers::error_handler& errors) {
+        std::cout << "Parse issues\n";
+        if (!std::filesystem::exists(path + "/common/issues.txt")) {
+            std::cout << "Not found\n";
+            return;
+        }
+
+        layer.has_issues = true;
+
+        std::ifstream file(path + "/common/issues.txt");
+        parsers::generic_context ctx_generic {
+            layer
+        };
+
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        auto str = buffer.str();
+        parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+        parsers::parse_issues_file(tk, errors, ctx_generic);
+    };
+
+    void load_technology_list(state::layer &layer, std::string path, parsers::error_handler& errors) {
+        std::cout << "Parse technologies\n";
+
+        std::vector<std::string> list_of_tech_files {
+            "army_tech.txt",
+            "commerce_tech.txt",
+            "culture_tech.txt",
+            "industry_tech.txt",
+            "navy_tech.txt"
+        };
+
+        std::vector<game_definition::tech_folder> list_of_tech_folders {
+            game_definition::tech_folder::army,
+            game_definition::tech_folder::commerce,
+            game_definition::tech_folder::culture,
+            game_definition::tech_folder::industry,
+            game_definition::tech_folder::navy
+        };
+
+        for (int i = 0; i < 5; i++) {
+            auto filename = list_of_tech_files[i];
+            if (std::filesystem::exists(path + "/technologies/" + filename)) {
+                std::cout << filename << " was found\n";
+                std::ifstream file(path + "/technologies/" + filename);
+                parsers::technology_context ctx {
+                    layer, list_of_tech_folders[i]
+                };
+                layer.has_tech[i] = true;
+                std::stringstream buffer;
+                buffer << file.rdbuf();
+                auto str = buffer.str();
+                parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+                parsers::parse_technology_sub_file(tk, errors, ctx);
+            }
+        }
+    };
+
+    void load_inventions_list(state::layer &layer, std::string path, parsers::error_handler& errors) {
+        std::cout << "Parse technologies\n";
+
+        std::vector<std::string> list_of_tech_files {
+            "army_inventions.txt",
+            "commerce_inventions.txt",
+            "culture_inventions.txt",
+            "industry_inventions.txt",
+            "navy_inventions.txt"
+        };
+
+        std::vector<game_definition::tech_folder> list_of_tech_folders {
+            game_definition::tech_folder::army,
+            game_definition::tech_folder::commerce,
+            game_definition::tech_folder::culture,
+            game_definition::tech_folder::industry,
+            game_definition::tech_folder::navy
+        };
+
+        for (int i = 0; i < 5; i++) {
+            auto filename = list_of_tech_files[i];
+            if (std::filesystem::exists(path + "/inventions/" + filename)) {
+                std::cout << filename << " was found\n";
+                std::ifstream file(path + "/inventions/" + filename);
+                layer.has_invention[i] = true;
+                parsers::technology_context ctx {
+                    layer, list_of_tech_folders[i]
+                };
+                std::stringstream buffer;
+                buffer << file.rdbuf();
+                auto str = buffer.str();
+                parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+                parsers::parse_inventions_file(tk, errors, ctx);
+            }
+        }
+    };
+
     void unload_nations_list(state::layer &layer, std::string path) {
         if (!layer.has_nations_list) {
             return;
@@ -676,7 +787,7 @@ namespace parsers{
         }
     }
 
-    void load_nation_history(state::layer &layer, std::string path, parsers::error_handler& errors) {
+    void load_nation_history(state::layers_stack& state, state::layer &layer, std::string path, parsers::error_handler& errors) {
         for (auto& entry : std::filesystem::directory_iterator  {path + "/history" + "/countries"}) {
             if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
                 auto name = entry.path().filename().string();
@@ -693,6 +804,7 @@ namespace parsers{
 
                 parsers::nation_history_file context {
                     n,
+                    state,
                     layer
                 };
 
@@ -966,7 +1078,7 @@ border_cutoff = 1100.0
         }
     };
 
-    void load_layer(state::layer &layer) {
+    void load_layer(state::layers_stack& state, state::layer &layer) {
         parsers::error_handler errors("parsing_errors.txt");
 
         load_province_defs(layer, layer.path);
@@ -975,9 +1087,12 @@ border_cutoff = 1100.0
         load_regions(layer, layer.path);
         load_adjacencies(layer, layer.path);
         load_governments_list(layer, layer.path, errors);
+        load_technology_list(layer, layer.path, errors);
+        load_inventions_list(layer, layer.path, errors);
+        load_issues_list(layer, layer.path, errors);
         load_nations_list(layer, layer.path, errors);
         load_nations_common(layer, layer.path, errors);
-        load_nation_history(layer, layer.path, errors);
+        load_nation_history(state, layer, layer.path, errors);
         load_province_history(layer, layer.path, errors);
 
         std::cout << errors.accumulated_errors;
