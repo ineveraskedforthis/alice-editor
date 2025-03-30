@@ -19,6 +19,8 @@
 #include "templates.hpp"
 #include "countries.hpp"
 
+#include "../misc.hpp"
+
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stbimage/stb_image.h"
 #define STB_IMAGE_WRITE_IMPLEMENTATION
@@ -566,7 +568,7 @@ namespace parsers{
 
             for (auto& [key, value] : g.allowed_parties ) {
                 if (value) {
-                    file << "\t" << value << " = yes\n";
+                    file << "\t" << key << " = yes\n";
                 }
             }
 
@@ -712,12 +714,12 @@ namespace parsers{
 
         for(auto& g : layer.nations){
             if (g.dynamic) continue;
-            file << g.tag[0] << g.tag[1] << g.tag[2] << "\t= " << "\"countries/\"" << g.filename << "\n";
+            file << g.tag[0] << g.tag[1] << g.tag[2] << "\t= " << "\"countries/" << g.filename << "\"\n";
         }
-        file << "dynamic = yes";
+        file << "dynamic_tags = yes\n";
         for(auto& g : layer.nations){
             if (!g.dynamic) continue;
-            file << g.tag[0] << g.tag[1] << g.tag[2] << "\t= " << "\"countries/\"" << g.filename << "\n";
+            file << g.tag[0] << g.tag[1] << g.tag[2] << "\t= " << "\"countries/" << g.filename << "\"\n";
         }
     }
 
@@ -741,7 +743,7 @@ namespace parsers{
         for (auto& [key, value] : layer.filename_to_nation_common) {
             std::ofstream file(path + "/common/countries/" + key);
 
-            file << "color = {" << value.R << " " << value.G << " " << value.B << "}\n";
+            file << "color = { " << (int)value.R << " " << (int)value.G << " " << (int)value.B << " }\n";
             file << "graphical_culture = " << value.graphical_culture << "\n";
             for (auto& party : value.parties) {
                 file << "party = {\n";
@@ -780,10 +782,66 @@ namespace parsers{
         std::filesystem::create_directory(path + "/history/");
         std::filesystem::create_directory(path + "/history/countries");
 
-        for (auto & [key, value] : layer.province_history) {
+        for (auto & [key, value] : layer.tag_to_nation_history) {
             auto tag = game_definition::int_to_tag(key);
             std::ofstream file(path + "/history/countries/" + value.history_file_name);
 
+            file << "primary_culture = " << value.primary_culture << "\n";
+            for (auto & culture : value.culture)
+                file << "culture = " << culture << "\n";
+            file << "religion = " << value.religion << "\n";
+            file << "government = " << value.government << "\n";
+            file << "plurality = " << value.plurality << "\n";
+            file << "prestige = " << value.prestige << "\n";
+            file << "nationalvalue = " << value.nationalvalue << "\n";
+            file << "literacy = " << value.literacy << "\n";
+            file << "non_state_culture_literacy = " << value.non_state_culture_literacy << "\n";
+            if (value.civilized) {
+                file << "civilized = yes\n";
+            } else {
+                file << "civilized = no\n";
+            }
+            if (value.is_releasable_vassal) {
+                file << "is_releasable_vassal = yes\n";
+            } else {
+                file << "is_releasable_vassal = no\n";
+            }
+            for (auto & flag :value.govt_flag) {
+                file << "govt_flag = {\n";
+                file << "\tgovernment = " << flag.government << "\n";
+                file << "\tflag = " << flag.flag << "\n";
+                file << "}\n";
+            }
+            if (!value.foreign_investment.empty()) {
+                file << "foreign_investment = {\n";
+                for (auto & [key, value] : value.foreign_investment)
+                    file << "\t" << key << " = " << value << "\n";
+                file << "}\n";
+            }
+            if (!value.upper_house.empty()) {
+                file << "upper_house = {\n";
+                for (auto & [key, value] : value.upper_house)
+                    file << "\t" << key << " = " << value << "\n";
+                file << "}\n";
+            }
+            file << "ruling_party = " << value.ruling_party << "\n";
+            if (!value.schools.empty())
+                file << "schools = " << value.schools << "\n";
+            file << "consciousness = " << value.consciousness << "\n";
+            file << "nonstate_consciousness = " << value.nonstate_consciousness << "\n";
+            if (!value.last_election.empty())
+                file << "last_election = " << value.last_election << "\n";
+            if (!value.oob.empty())
+                file << "oob = " << value.oob << "\n";
+            if (value.capital)
+                file << "capital = " << value.capital << "\n";
+            file << "colonial_points = " << value.colonial_points << "\n";
+            for (auto & flag : value.set_country_flag)
+                file << "set_country_flag = " << flag << "\n";
+            for (auto & flag : value.set_global_flag)
+                file << "set_global_flag = " << flag << "\n";
+            for (auto & dec : value.decision)
+                file << "decision = " << dec << "\n";
         }
     }
 
@@ -916,7 +974,7 @@ namespace parsers{
         file << "sea_starts = {";
         int counter = 0;
         int v2id = 1;
-        while (layer.is_used[available_id]) {
+        while (layer.is_used[v2id]) {
             if (layer.province_is_sea[v2id] > 0){
                 if (counter % 10 == 0) {
                     file << "\n";
@@ -1078,6 +1136,31 @@ border_cutoff = 1100.0
         }
     };
 
+
+    void unload_flags(state::layer& layer, std::string path) {
+        // keys: "/gfx/flags/" + string_tag + ".tga"
+        std::filesystem::create_directory(path + "gfx");
+        std::filesystem::create_directory(path + "gfx/flags");
+        for (auto& [key, flag_path] : layer.paths_to_new_flags) {
+            // load flag:
+            if (!std::filesystem::exists(flag_path)) {
+                continue;
+            }
+            int size_x;
+            int size_y;
+            int channels;
+            auto flag_data = stbi_load(
+                conversions::wstring_to_utf8(flag_path).c_str(),
+                &size_x,
+                &size_y,
+                &channels,
+                3
+            );
+            stbi_write_tga((path + key).c_str(), size_x, size_y, 3, flag_data);
+            delete []flag_data;
+        }
+    }
+
     void load_layer(state::layers_stack& state, state::layer &layer) {
         parsers::error_handler errors("parsing_errors.txt");
 
@@ -1099,6 +1182,9 @@ border_cutoff = 1100.0
     }
 
     void unload_data(state::layer& layer, std::string path) {
+        std::cout << "Create directory: " << path << "\n";
+        std::filesystem::create_directory(path);
+
         unload_province_defs(layer, path);
         unload_default_dot_map(layer, path);
         unload_province_map(layer, path);
@@ -1109,5 +1195,6 @@ border_cutoff = 1100.0
         unload_nations_common(layer, path);
         unload_nation_history(layer, path);
         unload_province_history(layer, path);
+        unload_flags(layer, path);
     }
 }

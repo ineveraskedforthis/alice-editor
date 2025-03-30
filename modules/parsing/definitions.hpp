@@ -102,7 +102,7 @@ namespace game_definition {
         float nonstate_consciousness = 0.f;
         std::string last_election{};
         std::string oob{};
-        int capital = -1;
+        int capital = 0;
         int colonial_points = 0;
         std::vector<std::string> set_country_flag{};
         std::vector<std::string> set_global_flag{};

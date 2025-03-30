@@ -137,9 +137,7 @@ namespace parser {
     void countries_list(state::layer& map, std::ifstream& file) {
         parser::word key;
         std::string country_string;
-        bool dynamic_tags;
-        int max_employment;
-
+        bool dynamic_tags = false;
         char c = ' ';
 
         // parse file

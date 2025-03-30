@@ -193,6 +193,11 @@ namespace widgets {
     }
 
     void flag_widget(state::layers_stack& layers, assets::storage& storage, std::string& flag_path_from_layer) {
+        state::layer& active_layer = layers.data[layers.current_layer_index];
+        if (ImGui::Button("Choose a new flag")) {
+            auto result = open_image_selection_dialog();
+            active_layer.paths_to_new_flags[flag_path_from_layer] = result;
+        }
         for (int i = layers.current_layer_index; i >= 0; i--) {
             auto& layer = layers.data[i];
             auto flag_path = layer.path + flag_path_from_layer;
@@ -200,10 +205,6 @@ namespace widgets {
                 flag_path = wstring_to_utf8(layer.paths_to_new_flags[flag_path_from_layer]);
             }
             if (storage.filename_to_texture_asset.contains(flag_path)) {
-                if (ImGui::Button("Choose a new flag")) {
-                    auto result = open_image_selection_dialog();
-                    layer.paths_to_new_flags[flag_path_from_layer] = result;
-                }
                 if (layer.paths_to_new_flags.contains(flag_path_from_layer)) {
                     auto path = layer.paths_to_new_flags[flag_path_from_layer];
                     ImGui::Text("%s", wstring_to_utf8(path).c_str());
@@ -213,7 +214,6 @@ namespace widgets {
 
                 auto asset = storage.filename_to_texture_asset[flag_path];
                 ImGui::Image((ImTextureID)(intptr_t)asset.texture, ImVec2(asset.w, asset.h));
-
                 return;
             } else {
                 //check if path really exists:
@@ -713,6 +713,20 @@ namespace widgets {
                 ImGui::Text("Default flag");
                 std::string string_tag {(char)def->tag[0], (char)def->tag[1], (char)def->tag[2]};
                 std::string default_flag_path = "/gfx/flags/" + string_tag + ".tga";
+
+                auto& active_layer = map.data[map.current_layer_index];
+
+                if (active_layer.paths_to_new_flags.contains(default_flag_path)) {
+                    if (ImGui::Button("Copy default flag to other positions")) {
+                        auto flags = map.get_flags();
+                        if (flags != nullptr){
+                            for(auto& flagtype : *flags) {
+                                std::string flag_path = "/gfx/flags/" + string_tag + + "_" + flagtype + ".tga";
+                                active_layer.paths_to_new_flags[flag_path] = active_layer.paths_to_new_flags[default_flag_path];
+                            }
+                        }
+                    }
+                }
 
                 ImGui::PushID(0);
                 flag_widget(map, storage, default_flag_path);

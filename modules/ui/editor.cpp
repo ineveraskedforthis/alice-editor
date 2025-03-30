@@ -4,7 +4,9 @@
 #include "selection_widget.hpp"
 
 #include "misc.hpp"
+#include <string>
 #include "editor.hpp"
+#include "../parsing/map.hpp"
 
 #define GLM_ENABLE_EXPERIMENTAL
 #include "../glm/ext/matrix_transform.hpp"
@@ -40,6 +42,12 @@ namespace widgets {
     }
 
     void settings(state::layers_stack& layers, state::control& control) {
+        if (ImGui::Button("SAVE")) {
+            parsers::unload_data(
+                layers.data[layers.current_layer_index],
+                "./editor-output/" + std::to_string(layers.current_layer_index) + "/"
+            );
+        }
         ImGui::Begin(
             "Brush settings",
             NULL,
