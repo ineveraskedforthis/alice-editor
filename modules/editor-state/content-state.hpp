@@ -732,13 +732,13 @@ struct layers_stack {
         return result;
     }
 
-    game_definition::province* get_province_definition(int province_index) {
+    game_definition::province* get_province_definition(int v2id) {
         // get latest history
         game_definition::province* result = nullptr;
 
         for (auto& l: data) {
-            if(l.visible && l.has_province_definitions && l.v2id_to_vector_position.contains(province_index)) {
-                auto position = l.v2id_to_vector_position[province_index];
+            if(l.visible && l.has_province_definitions && l.v2id_to_vector_position.contains(v2id)) {
+                auto position = l.v2id_to_vector_position[v2id];
                 result = &l.province_definitions[position];
             }
         }

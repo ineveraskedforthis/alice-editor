@@ -1,7 +1,14 @@
 #pragma once
 
-#include "../editor-state/editor-state.hpp"
-#include "../assets-manager/assets.hpp"
+#include "GL/glew.h"
+namespace state {
+    struct layers_stack;
+    struct control;
+    struct editor;
+}
+namespace assets {
+    struct storage;
+}
 
 namespace widgets {
     void selection(state::layers_stack& map, state::control& control, state::editor& editor, assets::storage& storage);

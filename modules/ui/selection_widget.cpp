@@ -16,6 +16,7 @@
 #include "../stbimage/stb_image_write.h"
 
 #include "../editor-state/editor-state.hpp"
+#include "../assets-manager/assets.hpp"
 
 // copied from Project Alice
 // Related GPL file can be found in ParserGenerator folder

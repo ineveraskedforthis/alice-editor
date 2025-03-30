@@ -1,3 +1,4 @@
+#include "explorer.hpp"
 #include "imgui.h"
 #include "../editor-state/editor-state.hpp"
 #include "window-wrapper.hpp"
@@ -42,12 +43,6 @@ namespace widgets {
     }
 
     void settings(state::layers_stack& layers, state::control& control) {
-        if (ImGui::Button("SAVE")) {
-            parsers::unload_data(
-                layers.data[layers.current_layer_index],
-                "./editor-output/" + std::to_string(layers.current_layer_index) + "/"
-            );
-        }
         ImGui::Begin(
             "Brush settings",
             NULL,
@@ -56,6 +51,13 @@ namespace widgets {
             | ImGuiWindowFlags_NoScrollbar
             | ImGuiWindowFlags_NoFocusOnAppearing
         );
+
+        if (ImGui::Button("SAVE")) {
+            parsers::unload_data(
+                layers.data[layers.current_layer_index],
+                "./editor-output/" + std::to_string(layers.current_layer_index) + "/"
+            );
+        }
 
         ImGui::Text("Layers:");
 
@@ -363,6 +365,7 @@ namespace widgets {
             widgets::status(control, io);
         }
 
+        widgets::explorer(layers, control, editor, storage);
         widgets::selection(layers, control, editor, storage);
 
         if (control.context_province == 0) {
