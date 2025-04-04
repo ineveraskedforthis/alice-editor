@@ -131,6 +131,13 @@ void wrapper::update(state::layers_stack& layers, state::control& control_state,
                     ));
                 }
             }
+            break;
+        case SDL_MOUSEBUTTONUP:
+            if (event.button.button == SDL_BUTTON_LEFT) {
+                control_state.lmb_pressed = false;
+                if (io.WantCaptureMouse) break;
+            }
+            break;
         case SDL_MOUSEBUTTONDOWN:
             if (event.button.button == SDL_BUTTON_LEFT)
             {
@@ -149,6 +156,7 @@ void wrapper::update(state::layers_stack& layers, state::control& control_state,
                     control_state.active = !control_state.active;
                     control_state.fill_center = glm::vec2{control_state.mouse_map_coord.x,control_state.mouse_map_coord.y};
                     control_state.delayed_map_coord = glm::ivec2{ control_state.mouse_map_coord };
+                    control_state.lmb_pressed = true;
                 }
             }
             else if (event.button.button == SDL_BUTTON_RIGHT)

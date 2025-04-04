@@ -380,44 +380,59 @@ namespace widgets {
 
         auto target = glm::ivec2(control.mouse_map_coord);
 
+        if (control.lmb_pressed) {
+            switch (control.mode) {
+                case state::CONTROL_MODE::NONE:
+                break;
+                case state::CONTROL_MODE::SELECT:
+                update_select(control, layers);
+                break;
+                case state::CONTROL_MODE::PICKING_COLOR:
+                pick_color(control, layers);
+                break;
+                case state::CONTROL_MODE::PAINTING:
+                paint(control, layers);
+                layers.indices.commit_province_texture_changes_to_gpu();
+                break;
+                case state::CONTROL_MODE::FILL:
+                while(target.x != control.delayed_map_coord.x || target.y != control.delayed_map_coord.y) {
+                    if (target.x > control.delayed_map_coord.x) {
+                        control.delayed_map_coord.x++;
+                    }
+                    if (target.x < control.delayed_map_coord.x) {
+                        control.delayed_map_coord.x--;
+                    }
+                    if (target.y > control.delayed_map_coord.y) {
+                        control.delayed_map_coord.y++;
+                    }
+                    if (target.y < control.delayed_map_coord.y) {
+                        control.delayed_map_coord.y--;
+                    }
+                    paint_line(control, layers);
+                }
+                break;
+                case state::CONTROL_MODE::SET_STATE:
+                paint_state(control, layers);
+                layers.commit_state_texture();
+                break;
+            }
+        }
+
         if (control.active) {
             switch (control.mode) {
                 case state::CONTROL_MODE::PICKING_COLOR:
-                    pick_color(control, layers);
-                    control.mode = state::CONTROL_MODE::NONE;
                     break;
                 case state::CONTROL_MODE::PAINTING:
-                    paint(control, layers);
-                    layers.indices.commit_province_texture_changes_to_gpu();
                     break;
                 case state::CONTROL_MODE::FILL:
-                    while(target.x != control.delayed_map_coord.x || target.y != control.delayed_map_coord.y) {
-                        if (target.x > control.delayed_map_coord.x) {
-                            control.delayed_map_coord.x++;
-                        }
-                        if (target.x < control.delayed_map_coord.x) {
-                            control.delayed_map_coord.x--;
-                        }
-                        if (target.y > control.delayed_map_coord.y) {
-                            control.delayed_map_coord.y++;
-                        }
-                        if (target.y < control.delayed_map_coord.y) {
-                            control.delayed_map_coord.y--;
-                        }
-                        paint_line(control, layers);
-                    }
                     break;
                 case state::CONTROL_MODE::SET_STATE:
-                    paint_state(control, layers);
-                    layers.commit_state_texture();
                     break;
                 case state::CONTROL_MODE::SELECT:
-                    update_select(control, layers);
                     break;
                 default: break;
             }
         }
-
 
         if ((layers.indices.update_texture || layers.indices.update_texture_part) && (update_texture_timer >= frame_time * 5.f)) {
             layers.indices.commit_province_texture_changes_to_gpu();
@@ -493,7 +508,7 @@ namespace widgets {
 
         state::check_gl_error("After draw:");
 
-        {
+        if (control.mode == state::CONTROL_MODE::FILL && control.lmb_pressed) {
             // Draw triangle to show the fill tool current effect
             glUseProgram(editor.triangle_program);
             glUniformMatrix4fv(uniform_locations[SHADER_UNIFORMS::TRIANGLE_MODEL], 1, false, reinterpret_cast<float*>(&model));

@@ -37,6 +37,7 @@ struct control {
     glm::ivec2 delayed_map_coord {};
     bool reset_focus = true;
     int selected_adjacency = 0;
+    bool lmb_pressed = false;
     glm::ivec2 fill_center {};
     uint32_t context_province = 0;
     glm::ivec2 pixel_context {};
