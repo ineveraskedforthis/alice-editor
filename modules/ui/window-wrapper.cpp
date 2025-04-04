@@ -1,8 +1,9 @@
+#include <windef.h>
+#include <winuser.h>
 #include <SDL.h>
 #include "SDL_events.h"
 #include "SDL_keycode.h"
 #include "../editor-state/editor-state.hpp"
-
 #include "imgui.h"
 #include "misc/cpp/imgui_stdlib.h"
 #include "backends/imgui_impl_sdl2.h"
@@ -53,6 +54,19 @@ wrapper::wrapper() {
         sdl2_fail("SDL_CreateWindow: ");
 
     SDL_GetWindowSize(window, &width, &height);
+
+    {
+        LPCTSTR image = IDC_CROSS;
+        cursor_default = LoadCursor(NULL, image);
+        SetCursor(cursor_default);
+    }
+    {
+        LPCTSTR image = IDC_PIN;
+        cursor_pick_color = LoadCursor(NULL, image);
+    }
+    {
+        cursor_line_fill = LoadCursorFromFile("./assets/fill_cursor.ico");
+    }
 
     gl_context = SDL_GL_CreateContext(window);
 

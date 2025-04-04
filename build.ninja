@@ -2,7 +2,7 @@
 
 
 #cflags = -std=c++20 -O3 -DWIN32 -DSDL_MAIN_HANDLED -Wall -I./modules/sdl -I./modules/imgui -I./modules/glew
-cflags = -std=c++20 -O3 -DWIN32 -DSDL_MAIN_HANDLED -I./modules/sdl -I./modules/imgui -I./modules/glew
+cflags = -std=c++20 -O3 -DWIN32 -D_AMD64_ -DSDL_MAIN_HANDLED -I./modules/sdl -I./modules/imgui -I./modules/glew
 
 rule cc
   command = clang++ -MD -MF $out.d $cflags -g -gdwarf-3 -gcodeview -c $in -o $out
@@ -25,6 +25,12 @@ rule copy
   command = xcopy $in $out /y
   description = copying file $in to $out
 
+rule copy_directory
+  command = xcopy $in $out /s /e /h /y
+  description = copying directory $in to $out
+
+# | build\shaders\.fs build\shaders\.vs build\shaders\line.fs build\shaders\line.vs build\shaders\triangle.fs build\shaders\triangle.vs
+build build\shaders: copy_directory shaders | shaders\.fs shaders\.vs shaders\line.fs shaders\line.vs shaders\triangle.fs shaders\triangle.vs
 #build build\shaders\.fs: copy shaders\.fs
 #build build\shaders\.vs: copy shaders\.vs | build/shaders\.fs
 #build build\shaders\line.fs: copy shaders\line.fs | build\shaders\.vs

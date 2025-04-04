@@ -1,3 +1,8 @@
+#undef max
+#undef min
+#undef clamp
+#include <windef.h>
+
 #include <array>
 #include <iostream>
 #include <chrono>
@@ -155,6 +160,7 @@ int main(int argc, char* argv[]) {
 
     {
         window::wrapper window {};
+
         state::control control_state {};
         assets::storage storage {};
         state::layers_stack layers {};
@@ -184,11 +190,11 @@ int main(int argc, char* argv[]) {
             GL_FRAGMENT_SHADER,
             read_shader("./shaders/line.fs").c_str()
         );
-        auto line_program = create_program(line_vertex_shader, line_fragment_shader);
-        auto rivers_program = create_program(line_vertex_shader, line_fragment_shader);
+        editor.line_program = create_program(line_vertex_shader, line_fragment_shader);
+        editor.rivers_program = create_program(line_vertex_shader, line_fragment_shader);
 
-        TO_LOCATION[SHADER_UNIFORMS::MODEL_RIVER] = glGetUniformLocation(rivers_program, "model");
-        TO_LOCATION[SHADER_UNIFORMS::VIEW_RIVER] = glGetUniformLocation(rivers_program, "view");
+        TO_LOCATION[SHADER_UNIFORMS::MODEL_RIVER] = glGetUniformLocation(editor.rivers_program, "model");
+        TO_LOCATION[SHADER_UNIFORMS::VIEW_RIVER] = glGetUniformLocation(editor.rivers_program, "view");
 
         GLuint rivers_array;
         glGenVertexArrays(1, &rivers_array);
@@ -205,7 +211,7 @@ int main(int argc, char* argv[]) {
             (void*)0
         );
         glEnableVertexAttribArray(0);
-        glBindAttribLocation(rivers_program, 0, "vertex");
+        glBindAttribLocation(editor.rivers_program, 0, "vertex");
 
         glBindBuffer(GL_ARRAY_BUFFER, rivers_buffer);
 
@@ -235,34 +241,51 @@ int main(int argc, char* argv[]) {
             GL_FRAGMENT_SHADER,
             read_shader("./shaders/.fs").c_str()
         );
-        auto program = create_program(vertex_shader, fragment_shader);
+        editor.map_program = create_program(vertex_shader, fragment_shader);
+
+        {
+            auto vertex_shader = create_shader(
+                GL_VERTEX_SHADER,
+                read_shader("./shaders/triangle.vs").c_str()
+            );
+            auto fragment_shader = create_shader(
+                GL_FRAGMENT_SHADER,
+                read_shader("./shaders/triangle.fs").c_str()
+            );
+            editor.triangle_program = create_program(vertex_shader, fragment_shader);
+
+            TO_LOCATION[SHADER_UNIFORMS::TRIANGLE_POINT_0] = glGetUniformLocation(editor.triangle_program, "point0");
+            TO_LOCATION[SHADER_UNIFORMS::TRIANGLE_POINT_1] = glGetUniformLocation(editor.triangle_program, "point1");
+            TO_LOCATION[SHADER_UNIFORMS::TRIANGLE_POINT_2] = glGetUniformLocation(editor.triangle_program, "point2");
+            TO_LOCATION[SHADER_UNIFORMS::TRIANGLE_MODEL] = glGetUniformLocation(editor.triangle_program, "model");
+            TO_LOCATION[SHADER_UNIFORMS::TRIANGLE_VIEW] = glGetUniformLocation(editor.triangle_program, "view");
+        }
 
         state::check_gl_error("Shaders");
 
-        TO_LOCATION[SHADER_UNIFORMS::PROVINCE_INDICES] = glGetUniformLocation(program, "province_indices");
-        TO_LOCATION[SHADER_UNIFORMS::PROVINCE_IS_SEA] = glGetUniformLocation(program, "is_sea_texture");
-        TO_LOCATION[SHADER_UNIFORMS::STATES_DATA] = glGetUniformLocation(program, "state_data");
-        TO_LOCATION[SHADER_UNIFORMS::OWNER_DATA] = glGetUniformLocation(program, "owner_data");
-        TO_LOCATION[SHADER_UNIFORMS::RIVERS] = glGetUniformLocation(program, "rivers");
+        TO_LOCATION[SHADER_UNIFORMS::PROVINCE_INDICES] = glGetUniformLocation(editor.map_program, "province_indices");
+        TO_LOCATION[SHADER_UNIFORMS::PROVINCE_IS_SEA] = glGetUniformLocation(editor.map_program, "is_sea_texture");
+        TO_LOCATION[SHADER_UNIFORMS::STATES_DATA] = glGetUniformLocation(editor.map_program, "state_data");
+        TO_LOCATION[SHADER_UNIFORMS::OWNER_DATA] = glGetUniformLocation(editor.map_program, "owner_data");
+        TO_LOCATION[SHADER_UNIFORMS::RIVERS] = glGetUniformLocation(editor.map_program, "rivers");
 
-        TO_LOCATION[SHADER_UNIFORMS::MODEL] = glGetUniformLocation(program, "model");
-        TO_LOCATION[SHADER_UNIFORMS::VIEW] = glGetUniformLocation(program, "view");
-        TO_LOCATION[SHADER_UNIFORMS::PROJECTION] = glGetUniformLocation(program, "projection");
-        TO_LOCATION[SHADER_UNIFORMS::ZOOM] = glGetUniformLocation(program, "zoom");
-        TO_LOCATION[SHADER_UNIFORMS::SIZE] = glGetUniformLocation(program, "size");
+        TO_LOCATION[SHADER_UNIFORMS::MODEL] = glGetUniformLocation(editor.map_program, "model");
+        TO_LOCATION[SHADER_UNIFORMS::VIEW] = glGetUniformLocation(editor.map_program, "view");
+        TO_LOCATION[SHADER_UNIFORMS::PROJECTION] = glGetUniformLocation(editor.map_program, "projection");
+        TO_LOCATION[SHADER_UNIFORMS::ZOOM] = glGetUniformLocation(editor.map_program, "zoom");
+        TO_LOCATION[SHADER_UNIFORMS::SIZE] = glGetUniformLocation(editor.map_program, "size");
 
-        TO_LOCATION[SHADER_UNIFORMS::PIXEL_X] = glGetUniformLocation(program, "pixel_x");
-        TO_LOCATION[SHADER_UNIFORMS::PIXEL_Y] = glGetUniformLocation(program, "pixel_y");
+        TO_LOCATION[SHADER_UNIFORMS::PIXEL_X] = glGetUniformLocation(editor.map_program, "pixel_x");
+        TO_LOCATION[SHADER_UNIFORMS::PIXEL_Y] = glGetUniformLocation(editor.map_program, "pixel_y");
 
-        TO_LOCATION[SHADER_UNIFORMS::SELECTED_PROVINCE] = glGetUniformLocation(program, "selected_province");
-        TO_LOCATION[SHADER_UNIFORMS::HOVERED_PROVINCE] = glGetUniformLocation(program, "hovered_province");
+        TO_LOCATION[SHADER_UNIFORMS::SELECTED_PROVINCE] = glGetUniformLocation(editor.map_program, "selected_province");
+        TO_LOCATION[SHADER_UNIFORMS::HOVERED_PROVINCE] = glGetUniformLocation(editor.map_program, "hovered_province");
 
         std::cout << "prepare to run\n";
         float time = 0.f;
         auto last_frame_start = std::chrono::high_resolution_clock::now();
 
-        GLuint fake_VAO;
-        glGenVertexArrays(1, &fake_VAO);
+        glGenVertexArrays(1, &editor.map_fake_VAO);
         state::check_gl_error("Vertex array");
 
         glm::vec3 shift {0, 0, 0.5};
@@ -285,11 +308,13 @@ int main(int argc, char* argv[]) {
 
 
 
-        TO_LOCATION[SHADER_UNIFORMS::MODEL_LINE] = glGetUniformLocation(line_program, "model");
-        TO_LOCATION[SHADER_UNIFORMS::VIEW_LINE] = glGetUniformLocation(line_program, "view");
+        TO_LOCATION[SHADER_UNIFORMS::MODEL_LINE] = glGetUniformLocation(editor.line_program, "model");
+        TO_LOCATION[SHADER_UNIFORMS::VIEW_LINE] = glGetUniformLocation(editor.line_program, "view");
 
         state::check_gl_error("line shaders");
 
+        // prepare opengl stuff for fill tool display
+        glGenVertexArrays(1, &editor.fill_tool_VertexArray);
 
         // prepare centers buffers:
         GLuint center_vertex_array;
@@ -307,7 +332,7 @@ int main(int argc, char* argv[]) {
             (void*)0
         );
         glEnableVertexAttribArray(0);
-        glBindAttribLocation(line_program, 0, "vertex");
+        glBindAttribLocation(editor.line_program, 0, "vertex");
 
         int adj_vertices_count = 0;
         glBindBuffer(GL_ARRAY_BUFFER, 0);
@@ -355,9 +380,7 @@ int main(int argc, char* argv[]) {
             if (layers.data.size()>0){
                 widgets::main_scene(
                     window, io, layers, control_state, storage, editor,
-                    program, line_program, rivers_program,
-                    centers_buffer,
-                    fake_VAO, rivers_buffer, centers_buffer,
+                    centers_buffer, rivers_buffer, center_vertex_array,
                     TO_LOCATION, adj_vertices_count,
                     update_texture_timer, frame_time, camera, zoom, shift
                 );

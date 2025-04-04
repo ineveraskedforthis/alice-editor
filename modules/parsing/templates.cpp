@@ -4,7 +4,7 @@
 #include "parser.hpp"
 #include "templates.hpp"
 #include "secondary_rgo.hpp"
-#include "../editor-state/content-state.hpp"
+#include "../editor-state/editor-state.hpp"
 
 namespace parser {
     void secondary_rgo_template_file(state::editor& map, std::ifstream& file) {

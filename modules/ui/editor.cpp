@@ -6,6 +6,7 @@
 
 #include "misc.hpp"
 #include <string>
+#include <winuser.h>
 #include "editor.hpp"
 #include "../parsing/map.hpp"
 
@@ -13,7 +14,7 @@
 #include "../glm/ext/matrix_transform.hpp"
 
 namespace widgets {
-    void brushes(state::control& control) {
+    void brushes(window::wrapper &window, state::control& control) {
         ImGui::Begin(
             "Brushes",
             NULL,
@@ -26,16 +27,19 @@ namespace widgets {
 
         if (ImGui::Button("S", ImVec2(35, 35))) {
             control.mode = state::CONTROL_MODE::SELECT;
+            SetCursor(window.cursor_default);
             control.active = false;
         };
 
         if (ImGui::Button("F", ImVec2(35, 35))) {
             control.mode = state::CONTROL_MODE::FILL;
+            SetCursor(window.cursor_line_fill);
             control.active = false;
         };
 
         if (ImGui::Button("P", ImVec2(35, 35))) {
             control.mode = state::CONTROL_MODE::PICKING_COLOR;
+            SetCursor(window.cursor_pick_color);
             control.active = false;
         };
 
@@ -332,11 +336,7 @@ namespace widgets {
         state::control& control,
         assets::storage& storage,
         state::editor& editor,
-        GLuint map_program,
-        GLuint line_program,
-        GLuint rivers_program,
         GLuint centers_buffer,
-        GLuint fake_VAO,
         GLuint rivers_VAO,
         GLuint adj_VAO,
         std::array<GLuint, 256>& uniform_locations,
@@ -352,7 +352,7 @@ namespace widgets {
         {
             ImGui::SetNextWindowSize(ImVec2(50, window.height - status_bar_height));
             ImGui::SetNextWindowPos(ImVec2(0, 0));
-            widgets::brushes(control);
+            widgets::brushes(window, control);
         }
         {
             ImGui::SetNextWindowSize(ImVec2(300, window.height - status_bar_height));
@@ -442,16 +442,21 @@ namespace widgets {
         glm::vec3 scale {1.f, (float)layers.get_provinces_image_y()/ (float)layers.get_provinces_image_x(), 1.f};
         model = glm::scale(model, scale / (float)window.width * (float)layers.get_provinces_image_x());
 
-        glUseProgram(map_program);
+        glUseProgram(editor.map_program);
 
         glUniform1f(uniform_locations[SHADER_UNIFORMS::ZOOM], zoom);
         glUniform2f(uniform_locations[SHADER_UNIFORMS::SIZE], size_x, size_y);
         glUniform1f(uniform_locations[SHADER_UNIFORMS::PIXEL_X], control.mouse_map_coord.x);
         glUniform1f(uniform_locations[SHADER_UNIFORMS::PIXEL_Y], control.mouse_map_coord.y);
-        glUniform2fv(
-            uniform_locations[SHADER_UNIFORMS::SELECTED_PROVINCE],
-            1, reinterpret_cast<float*>(&control.selected_province)
-        );
+        {
+            int y = control.selected_province_id / 256;
+            int x = control.selected_province_id - y * 256;
+            float texcoord[2] = { (float)x / 256.f, (float)y / 256.f };
+            glUniform2fv(
+                uniform_locations[SHADER_UNIFORMS::SELECTED_PROVINCE],
+                1, texcoord
+            );
+        }
         glUniform2fv(
             uniform_locations[SHADER_UNIFORMS::HOVERED_PROVINCE],
             1, reinterpret_cast<float*>(&control.hovered_province)
@@ -483,14 +488,31 @@ namespace widgets {
         glUniform1i(uniform_locations[SHADER_UNIFORMS::OWNER_DATA], 3);
 
 
-        glBindVertexArray(fake_VAO);
+        glBindVertexArray(editor.map_fake_VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6 * 2 * 2);
 
         state::check_gl_error("After draw:");
 
+        {
+            // Draw triangle to show the fill tool current effect
+            glUseProgram(editor.triangle_program);
+            glUniformMatrix4fv(uniform_locations[SHADER_UNIFORMS::TRIANGLE_MODEL], 1, false, reinterpret_cast<float*>(&model));
+            glUniformMatrix4fv(uniform_locations[SHADER_UNIFORMS::TRIANGLE_VIEW], 1, false, reinterpret_cast<float*>(&view));
 
-        glUseProgram(line_program);
+            glm::vec2 size = glm::vec2{size_x, size_y};
+            glm::vec2 fill_center = glm::vec2(control.fill_center) / size;
+            glm::vec2 currently_painted = glm::vec2(control.delayed_map_coord) / size;
+            glm::vec2 mouse_position = glm::vec2(control.mouse_map_coord) / size;
 
+            glUniform2f(uniform_locations[SHADER_UNIFORMS::TRIANGLE_POINT_0], fill_center.x, fill_center.y);
+            glUniform2f(uniform_locations[SHADER_UNIFORMS::TRIANGLE_POINT_1], currently_painted.x, currently_painted.y);
+            glUniform2f(uniform_locations[SHADER_UNIFORMS::TRIANGLE_POINT_2], mouse_position.x, mouse_position.y);
+            glBindVertexArray(editor.fill_tool_VertexArray);
+            glDrawArrays(GL_LINE_LOOP, 0, 3);
+        }
+
+
+        glUseProgram(editor.line_program);
         glUniformMatrix4fv(uniform_locations[SHADER_UNIFORMS::MODEL_LINE], 1, false, reinterpret_cast<float*>(&model));
         glUniformMatrix4fv(uniform_locations[SHADER_UNIFORMS::VIEW_LINE], 1, false, reinterpret_cast<float*>(&view));
 
@@ -499,7 +521,7 @@ namespace widgets {
 
         state::check_gl_error("After draw line:");
 
-        glUseProgram(rivers_program);
+        glUseProgram(editor.rivers_program);
 
         glUniformMatrix4fv(uniform_locations[SHADER_UNIFORMS::MODEL_RIVER], 1, false, reinterpret_cast<float*>(&model));
         glUniformMatrix4fv(uniform_locations[SHADER_UNIFORMS::VIEW_RIVER], 1, false, reinterpret_cast<float*>(&view));

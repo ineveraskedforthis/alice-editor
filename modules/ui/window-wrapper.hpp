@@ -1,5 +1,7 @@
 #pragma once
 #include <SDL.h>
+#include <windef.h>
+#include <winuser.h>
 #include "imgui.h"
 #include "../glm/fwd.hpp"
 
@@ -20,6 +22,11 @@ struct wrapper {
 
     int mouse_x;
     int mouse_y;
+
+    HCURSOR cursor_default = 0;
+    HCURSOR cursor_pick_color = 0;
+    HCURSOR cursor_line_fill = 0;
+
 
     wrapper();
     ~wrapper();

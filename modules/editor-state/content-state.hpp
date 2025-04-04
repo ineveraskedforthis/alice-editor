@@ -37,11 +37,6 @@ glm::vec2 screen_to_texture(
     // OTHERWISE DATA EDITING SHOULD BE BLOCKED
     // USER CAN REQUEST TO COPY DATA TO THE ACTIVE LAYER FROM THE HIGHEST VISIBLE LAYER WHICH HAS THE REQUIRED DATA
 
-struct editor {
-    uint8_t* rivers_raw;
-    ankerl::unordered_dense::map<std::string, ankerl::unordered_dense::map<std::string, int>> secondary_rgo_templates;
-};
-
 uint32_t inline rgb_to_uint(int r, int g, int b) {
     return (r << 16) + (g << 8) + b;
 }
@@ -443,15 +438,16 @@ struct layers_stack {
     }
     color sample_province_color(int pixel) {
         color result {0, 0, 0};
+        layer* last_layer = nullptr;
         for (auto& l: data) {
             if (l.visible && l.provinces_image != std::nullopt) {
-                if (l.visible && l.provinces_image != std::nullopt) {
-                    result.r = l.provinces_image->provinces_image_data[pixel * 4];
-                    result.g = l.provinces_image->provinces_image_data[pixel * 4 + 1];
-                    result.b = l.provinces_image->provinces_image_data[pixel * 4 + 2];
-                }
+                last_layer = &l;
             }
         }
+
+        result.r = last_layer->provinces_image->provinces_image_data[pixel * 4];
+        result.g = last_layer->provinces_image->provinces_image_data[pixel * 4 + 1];
+        result.b = last_layer->provinces_image->provinces_image_data[pixel * 4 + 2];
         return  result;
     }
     bool sample_province_is_sea(int province) {
@@ -517,8 +513,8 @@ struct layers_stack {
             indices.data[4 * pixel + 0] = index.value() % 256;
             indices.data[4 * pixel + 1] = index.value() / 256;
             indices.update_texture_part = true;
-            auto coord_y = (pixel >> 8);
-            auto coord_x = pixel - (y << 8);
+            int coord_y = pixel / x;
+            int coord_x = pixel - (coord_y * x);
             indices.update_texture_x_bottom = std::min(coord_x, indices.update_texture_x_bottom);
             indices.update_texture_y_bottom = std::min(coord_y, indices.update_texture_y_bottom);
             indices.update_texture_x_top = std::max(coord_x, indices.update_texture_x_top);

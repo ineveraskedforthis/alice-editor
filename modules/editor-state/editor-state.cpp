@@ -26,17 +26,6 @@ void check_gl_error(std::string message) {
     }
 }
 
-std::string selection_mode_string(SELECTION_MODE MODE) {
-    switch (MODE) {
-    case SELECTION_MODE::PROVINCE:
-        return "Province";
-        break;
-    case SELECTION_MODE::NATION:
-        return "Nation";
-        break;
-    }
-}
-
 std::string fill_mode_string(FILL_MODE MODE) {
     switch (MODE) {
     case FILL_MODE::PROVINCE:
@@ -60,7 +49,7 @@ void update_hover(control& control_state, layers_stack& map){
 void update_select(control& control_state, layers_stack& map){
     auto pixel_index = pixel(control_state, map);
     control_state.selected_pixel = pixel_index;
-    control_state.selected_province = map.sample_province_index_texture_coord(pixel_index);
+    // control_state.selected_province = map.sample_province_index_texture_coord(pixel_index);
     control_state.selected_province_id = map.sample_province_index(pixel_index);
     control_state.selection_delay = true;
 }
