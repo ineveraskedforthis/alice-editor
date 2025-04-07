@@ -262,8 +262,6 @@ namespace widgets {
     void selection_province(state::layers_stack& map, state::control& control, state::editor& editor) {
         auto can_edit = map.can_edit_province_history(control.selected_province_id);
 
-
-
         if (control.selected_province_id > 0) {
             auto history = map.get_province_history(control.selected_province_id);
             auto def = map.get_province_definition(control.selected_province_id);
@@ -801,13 +799,13 @@ namespace widgets {
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Nation")) {
-                auto def = map.get_province_history(control.selected_province_id);
-
-                if (def == nullptr || def->owner_tag.length() == 0) {
+                if (control.selected_tag.length() == 0) {
                     widgets::selection_nation(map, control, storage, 0);
                 } else {
                     auto id = game_definition::tag_to_int({
-                        def->owner_tag[0], def->owner_tag[1], def->owner_tag[2]
+                        control.selected_tag[0],
+                        control.selected_tag[1],
+                        control.selected_tag[2]
                     });
                     widgets::selection_nation(map, control, storage, id);
                 }

@@ -86,7 +86,7 @@ struct province_map {
     uint8_t available_g = 0;
     uint8_t available_b = 0;
 
-    std::vector<uint8_t> color_present;
+    std::vector<uint8_t> color_present {};
 
     void clear() {
         size_x = 0;
@@ -95,6 +95,7 @@ struct province_map {
         available_r = 0;
         available_g = 0;
         available_b = 0;
+        color_present.clear();
     }
 
     void update_available_colors() {
@@ -167,7 +168,7 @@ struct province_map {
         // create new data and copy values there
         provinces_image_data = new uint8_t[size_x * size_y * 4];
         std::copy(source.provinces_image_data, source.provinces_image_data + size_x * size_y * 4, provinces_image_data);
-
+        color_present = source.color_present;
         available_r = source.available_r;
         available_g = source.available_g;
         available_b = source.available_b;
@@ -185,7 +186,7 @@ struct province_map {
 
         provinces_image_data = new uint8_t[size_x * size_y * 4];
         std::copy(source.provinces_image_data, source.provinces_image_data + size_x * size_y * 4, provinces_image_data);
-
+        color_present = source.color_present;
         available_r = source.available_r;
         available_g = source.available_g;
         available_b = source.available_b;
@@ -200,6 +201,7 @@ struct province_map {
     available_r(std::move(source.available_r)),
     available_g(std::move(source.available_g)),
     available_b(std::move(source.available_b)),
+    color_present(std::move(source.color_present)),
     provinces_image_data(source.provinces_image_data) {
         source.clear();
     }
@@ -218,6 +220,7 @@ struct province_map {
         available_r = std::move(source.available_r),
         available_g = std::move(source.available_g);
         available_b = std::move(source.available_b);
+        color_present = std::move(source.color_present);
         source.clear();
         return *this;
     }
@@ -839,7 +842,7 @@ struct layers_stack {
                     latest_layer_with_default->province_is_sea + sizeof(latest_layer_with_default->province_is_sea),
                     active_layer.province_is_sea
                 );
-                active_layer.has_province_definitions = true;
+                active_layer.has_default_map = true;
             }
         }
 
@@ -857,7 +860,7 @@ struct layers_stack {
                     latest_layer_with_data->province_state + sizeof(latest_layer_with_data->province_state),
                     active_layer.province_state
                 );
-                active_layer.has_province_definitions = true;
+                active_layer.has_region_txt = true;
             }
         }
 
@@ -883,8 +886,8 @@ struct layers_stack {
             active_layer.provinces_image->available_b
         };
 
+        active_layer.v2id_to_vector_position[def.v2id] = active_layer.province_definitions.size();
         active_layer.province_definitions.push_back(def);
-        active_layer.v2id_to_vector_position[def.v2id];
         auto new_rgb = rgb_to_uint(def.r, def.g, def.b);
         active_layer.rgb_to_v2id[new_rgb] = def.v2id;
 
@@ -910,22 +913,17 @@ struct layers_stack {
         active_layer.province_history[def.v2id] = p_new;
 
         //finally, update colors
-        active_layer.provinces_image->provinces_image_data[pixel * 4] = def.r;
-        active_layer.provinces_image->provinces_image_data[pixel * 4 + 1] = def.g;
-        active_layer.provinces_image->provinces_image_data[pixel * 4 + 2] = def.b;
-
-        indices.data[4 * pixel + 0] = def.v2id % 256;
-        indices.data[4 * pixel + 1] = def.v2id >> 8;
+        set_pixel(pixel, def.r, def.g, def.b);
         indices.commit_province_texture_changes_to_gpu();
 
         // inherit seas, state and ownership arrays
 
         active_layer.province_is_sea[def.v2id] = active_layer.province_is_sea[old_v2id];
-        active_layer.load_sea_texture_to_gpu();
+        active_layer.commit_sea_texture_to_gpu();
 
         active_layer.province_state[2 * def.v2id] = active_layer.province_state[2 * old_v2id];
         active_layer.province_state[2 * def.v2id + 1] = active_layer.province_state[2 * old_v2id + 1];
-        active_layer.load_state_texture_to_gpu();
+        active_layer.commit_state_texture_to_gpu();
 
         province_owner[3 * def.v2id] = province_owner[3 * old_v2id];
         province_owner[3 * def.v2id + 1] = province_owner[3 * old_v2id + 1];

@@ -5,6 +5,7 @@
 #include "selection_widget.hpp"
 
 #include "misc.hpp"
+#include <numbers>
 #include <string>
 #include <winuser.h>
 #include "editor.hpp"
@@ -113,7 +114,7 @@ namespace widgets {
 
             if (control.fill_mode == state::FILL_MODE::OWNER_AND_CONTROLLER) {
                 ImGui::Text("Fill with:");
-                ImGui::Text("%s", control.fill_with_tag.c_str());
+                ImGui::Text("%s", control.selected_tag.c_str());
             }
         }
 
@@ -201,14 +202,186 @@ namespace widgets {
     }
 
     void map_context(state::layers_stack& layers, state::control& control, GLuint adj_buffer, int& adj_vertices_count) {
-        ImGui::Begin(
-            "tooltip",
-            NULL,
-            ImGuiWindowFlags_NoTitleBar
+        auto flags = ImGuiWindowFlags_NoTitleBar
             | ImGuiWindowFlags_NoResize
             | ImGuiWindowFlags_NoScrollbar
-            | ImGuiWindowFlags_NoFocusOnAppearing
-        );
+            | ImGuiWindowFlags_NoFocusOnAppearing;
+
+
+        // editor tools
+        auto window_size = ImVec2(50, 50);
+        auto button_size = ImVec2(35, 35);
+        float radius = 80.f;
+        float angle = std::numbers::pi / 2;
+        float step = 2.f * std::numbers::pi / 8;
+
+        {
+            angle += step;
+            float shift_x = radius * cos(angle) - (float)window_size.x / 2;
+            float shift_y = radius * sin(angle) - (float)window_size.y / 2;
+            ImGui::SetNextWindowSize(window_size);
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("fill_tool_context", NULL, flags);
+            if (ImGui::Button("F", button_size)) {
+                control.mode = state::CONTROL_MODE::FILL;
+            }
+            ImGui::End();
+        }
+
+        {
+            angle += step;
+            float shift_x = radius * cos(angle) - (float)window_size.x / 2;
+            float shift_y = radius * sin(angle) - (float)window_size.y / 2;
+            ImGui::SetNextWindowSize(window_size);
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("select_tool_context", NULL, flags);
+            if (ImGui::Button("S", button_size)) {
+                control.mode = state::CONTROL_MODE::SELECT;
+            }
+            ImGui::End();
+        }
+
+        {
+            angle += step;
+            float shift_x = radius * cos(angle) - (float)window_size.x / 2;
+            float shift_y = radius * sin(angle) - (float)window_size.y / 2;
+            ImGui::SetNextWindowSize(window_size);
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("pick_tool_context", NULL, flags);
+            if (ImGui::Button("P", button_size)) {
+                control.mode = state::CONTROL_MODE::PICKING_COLOR;
+            }
+            ImGui::End();
+        }
+
+        radius = 150;
+        angle = 0.f;
+        step = -2.f * std::numbers::pi / 10;
+
+        auto shift_x = 50;
+        auto step_y = 25;
+
+        auto shift_y = -125;
+
+        {
+            shift_y += step_y;
+            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("tooltip_tag", NULL, flags);
+            ImGui::Text("%s", ("selected TAG: " + control.selected_tag).c_str());
+            ImGui::End();
+        }
+
+        {
+            shift_y += step_y;
+            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("tooltip_province", NULL, flags);
+            ImGui::Text("%s", ("selected v2id: " + std::to_string(control.selected_province_id)).c_str());
+            ImGui::End();
+        }
+
+        {
+            shift_y += step_y;
+            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("tooltip_tag", NULL, flags);
+            ImGui::Text("%s", ("context TAG: " + control.selected_tag).c_str());
+            ImGui::End();
+        }
+
+        {
+            shift_y += step_y;
+            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("tooltip_province", NULL, flags);
+            ImGui::Text("%s", ("context v2id: " + std::to_string(control.context_province)).c_str());
+            ImGui::End();
+        }
+
+        {
+            shift_y += step_y;
+            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("context_new_prov", NULL, flags);
+            if (ImGui::Button("New province")) {
+                auto prov = layers.new_province(control.context_pixel);
+                control.r = prov.r;
+                control.g = prov.g;
+                control.b = prov.b;
+            }
+            ImGui::End();
+        }
+
+        {
+            shift_y += step_y;
+            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("context_set_owner_controller", NULL, flags);
+            if (ImGui::Button("Set owner and controller")) {
+                state::paint_controler_and_owner_safe(
+                    control,
+                    layers,
+                    control.context_pixel
+                );
+            }
+            ImGui::End();
+        }
+
+        {
+            shift_y += step_y;
+            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("context_select", NULL, flags);
+            if (ImGui::Button("Select")) {
+                state::select_pixel(control, layers, control.context_pixel);
+            }
+            ImGui::End();
+        }
+
+        {
+            shift_y += step_y;
+            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("context_pick_color", NULL, flags);
+            if (ImGui::Button("Pick color")) {
+                state::pick_color_from_pixel(control, layers, control.context_pixel);
+            }
+            ImGui::End();
+        }
 
         if (control.selected_adjacency) {
             // auto& adj = map_state.adjacencies[control.selected_adjacency];
@@ -230,8 +403,6 @@ namespace widgets {
             //     layers.update_adj_buffers(adj_buffer, adj_vertices_count);
             // }
         }
-
-        ImGui::End();
     }
 
     void entities_table(state::control& control) {
@@ -373,8 +544,6 @@ namespace widgets {
             ImGui::SetNextWindowPos(ImVec2(window.mouse_x + 25, window.mouse_y + 25));
             widgets::map_tooltip(control);
         } else {
-            ImGui::SetNextWindowSize(ImVec2(200, 100));
-            ImGui::SetNextWindowPos(ImVec2(control.pixel_context.x, control.pixel_context.y));
             widgets::map_context(layers, control, centers_buffer, adj_vertices_count);
         }
 

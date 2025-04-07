@@ -172,6 +172,7 @@ namespace widgets {
                     ImGui::TableNextColumn();
                     if (ImGui::SmallButton(">>")) {
                         control.selected_province_id = v2id;
+                        control.selected_tag = history->owner_tag;
                     }
 
                     ImGui::PopID();

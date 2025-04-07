@@ -145,7 +145,7 @@ void province_texture::commit_province_texture_changes_to_gpu() {
 
     if (update_texture_part) {
         glBindTexture(GL_TEXTURE_2D, id);
-        auto width = update_texture_x_top - update_texture_x_bottom;
+        auto width = update_texture_x_top - update_texture_x_bottom + 1;
         for (int y = update_texture_y_bottom; y <= update_texture_y_top; y++) {
             auto pixel_index = coord_to_pixel(glm::ivec2{update_texture_x_bottom, y});
             glTexSubImage2D(

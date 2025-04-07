@@ -164,10 +164,7 @@ void wrapper::update(state::layers_stack& layers, state::control& control_state,
                 if (io.WantCaptureMouse) break;
 
                 update_context(control_state, layers);
-
-                control_state.pixel_context = {event.button.x, event.button.y};
-                // delete_last_vertex(line);
-                // delete_control_point(curve);
+                control_state.context_window_origin = {event.button.x, event.button.y};
             }
             break;
         case SDL_KEYDOWN:
@@ -198,16 +195,9 @@ void wrapper::update(state::layers_stack& layers, state::control& control_state,
             } else if (event.key.keysym.sym == SDLK_z) {
                 control_state.mode = state::CONTROL_MODE::PICKING_COLOR;
             } else if (event.key.keysym.sym == SDLK_x) {
-                // control_state.mode = CONTROL_MODE::PAINTING;
+                control_state.mode = state::CONTROL_MODE::FILL;
             } else if (event.key.keysym.sym == SDLK_c) {
                 control_state.mode = state::CONTROL_MODE::NONE;
-            } else if (event.key.keysym.sym == SDLK_n) {
-                if (layers.data.size() > 0) {
-                    auto prov = layers.new_province(state::pixel(control_state, layers));
-                    control_state.r = prov.r;
-                    control_state.g = prov.g;
-                    control_state.b = prov.b;
-                }
             }
 
             zoom = std::max(zoom, 1.f / 64.f);

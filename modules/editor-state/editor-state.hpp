@@ -30,7 +30,7 @@ struct control {
     uint32_t selected_pixel = 0;
     // glm::vec2 selected_province;
     uint32_t selected_province_id = 0;
-    std::string fill_with_tag {};
+    std::string selected_tag {};
     bool selection_delay = false;
     glm::vec2 hovered_province {};
     glm::vec2 mouse_map_coord {};
@@ -40,7 +40,9 @@ struct control {
     bool lmb_pressed = false;
     glm::ivec2 fill_center {};
     uint32_t context_province = 0;
-    glm::ivec2 pixel_context {};
+    uint32_t context_pixel = 0;
+    std::string context_tag {};
+    glm::vec2 context_window_origin {};
     CONTROL_MODE mode = CONTROL_MODE::SELECT;
     FILL_MODE fill_mode = FILL_MODE::PROVINCE;
     bool active = false;
@@ -71,8 +73,12 @@ void update_context(control& control_state, layers_stack& map);
 void pick_color(control& control_state, layers_stack& map);
 void paint(control& control_state, layers_stack& map);
 void paint_state(control& control_state, layers_stack& map);
+void paint_controler_and_owner_safe(control& control_state, layers_stack& map, int pixel_index);
 void paint_safe(control& control_state, layers_stack& map, int pixel_index, uint32_t province_index);
 void paint_line(control& control_state, layers_stack& map);
+
+void select_pixel(control& control_state, layers_stack& map, int pixel);
+void pick_color_from_pixel(control& control_state, layers_stack& map, int pixel);
 
 void update_mouse_move(control& state, layers_stack& map, glm::vec2 new_position);
 };
