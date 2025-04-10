@@ -91,7 +91,7 @@ namespace game_definition {
         std::string nationalvalue{};
         float literacy = 0.f;
         float non_state_culture_literacy = 0.f;
-        bool civilized = true;
+        bool civilized = false;
         bool is_releasable_vassal = true;
         std::vector<scripted_flag> govt_flag{};
         ankerl::unordered_dense::map<std::string, float> foreign_investment{};
