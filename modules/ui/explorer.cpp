@@ -1,9 +1,11 @@
 #include "explorer.hpp"
 
 #include "imgui.h"
+#include "misc/cpp/imgui_stdlib.h"
 
 #include "../editor-state/editor-state.hpp"
 #include "../assets-manager/assets.hpp"
+#include <array>
 #include <cstddef>
 
 namespace widgets {
@@ -187,6 +189,35 @@ namespace widgets {
     }
 
     void explorer_nations(state::layers_stack& map, state::control& control) {
+        // new nation creation:
+
+        ImGui::Text("Create new nation");
+        ImGui::InputText("TAG", &control.new_nation_tag);
+        ImGui::InputText("Name", &control.new_nation_filename);
+
+        std::array<int8_t, 3> tag_fixed_length = {
+            control.new_nation_tag[0],
+            control.new_nation_tag[1],
+            control.new_nation_tag[2]
+        };
+
+        if (control.new_nation_tag.length() == 3 && map.valid_tag(game_definition::tag_to_int(tag_fixed_length)))
+            if(ImGui::Button("Create nation")) {
+                std::array<int8_t, 3> selected_tag_fixed_length = {
+                    control.selected_tag[0],
+                    control.selected_tag[1],
+                    control.selected_tag[2]
+                };
+
+                map.new_nation(
+                    game_definition::tag_to_int(selected_tag_fixed_length),
+                    game_definition::tag_to_int(tag_fixed_length),
+                    control.new_nation_filename + ".txt"
+                );
+
+                control.selected_tag = control.new_nation_tag;
+            }
+
         static std::vector<int> list_of_tags {};
 
         auto& active_layer = map.data[map.current_layer_index];
@@ -195,6 +226,7 @@ namespace widgets {
             list_of_tags.clear();
 
         if (active_layer.has_nations_list && list_of_tags.size() != active_layer.nations.size()) {
+            list_of_tags.clear();
             for (int i = 0; i < active_layer.nations.size(); i++) {
                 auto& def = active_layer.nations[i];
                 list_of_tags.push_back(game_definition::tag_to_int(def.tag));
@@ -257,9 +289,6 @@ namespace widgets {
 
                         auto a_history = map.get_nation_history(a);
                         auto b_history = map.get_nation_history(b);
-
-                        auto a_size = map.indices.v2id_to_size[a];
-                        auto b_size = map.indices.v2id_to_size[b];
 
                         if (
                             a_def == nullptr
@@ -342,7 +371,6 @@ namespace widgets {
     void explorer_adjacencies(state::layers_stack& map, state::control& control) {
 
     }
-
 
     void explorer(state::layers_stack& map, state::control& control, state::editor& editor, assets::storage& storage) {
         ImGui::Begin(

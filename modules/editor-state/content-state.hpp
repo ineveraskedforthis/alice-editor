@@ -1,6 +1,7 @@
 #include "GL/glew.h"
 #include <algorithm>
 #include <array>
+#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <optional>
@@ -745,9 +746,39 @@ struct layers_stack {
         return result;
     }
 
-    void copy_province_history_to_current_layer(int province_index) {
-        auto available_history = get_province_history(province_index);
-        data[current_layer_index].province_history[province_index] = *available_history;
+    void copy_province_history_to_current_layer(int v2id) {
+        auto available_history = get_province_history(v2id);
+        data[current_layer_index].province_history[v2id] = *available_history;
+    }
+
+    void copy_nation_history_to_current_layer(int tag) {
+        auto available_history = get_nation_history(tag);
+        data[current_layer_index].tag_to_nation_history[tag] = *available_history;
+    }
+
+    void copy_nation_common_to_current_layer(int tag) {
+        auto def = get_nation_definition(tag);
+        if (def == nullptr) {
+            return;
+        }
+        auto common = get_nation_common(tag);
+        data[current_layer_index].filename_to_nation_common[def->filename] = *common;
+    }
+
+    void copy_nations_list_to_current_layer() {
+        layer* source = nullptr;
+        for (auto& l: data) {
+            if (l.visible && l.has_nations_list) {
+                source = &l;
+            }
+        }
+
+        auto& active_layer = data[current_layer_index];
+
+        if (source != nullptr) {
+            active_layer.has_nations_list = true;
+            active_layer.nations = source->nations;
+        }
     }
 
     void copy_province_map_to_current_layer() {
@@ -794,7 +825,52 @@ struct layers_stack {
         return result;
     }
 
-    game_definition::province new_province(uint32_t pixel) {
+    bool valid_tag(int32_t tag) {
+        auto def = get_nation_definition(tag);
+        if (def == nullptr) {
+            return true;
+        } else {
+            return false;
+        }
+    }
+
+    void new_nation(int32_t source_tag, int32_t tag, std::string filename) {
+        auto& active_layer = data[current_layer_index];
+
+        if (!active_layer.has_nations_list) {
+            copy_nations_list_to_current_layer();
+        }
+
+        game_definition::nation_definition def_template = {
+            game_definition::int_to_tag(tag),
+            filename,
+            false
+        };
+
+        active_layer.nations.push_back(def_template);
+        active_layer.tag_to_vector_position[tag] = active_layer.nations.size() - 1;
+
+        auto& def = active_layer.nations.back();
+
+        //generate history by cloning source if it exists
+        auto source_history = get_nation_history(source_tag);
+        game_definition::nation_history history = {};
+        if (source_history != nullptr)
+            history = *source_history;
+        auto array_tag = game_definition::int_to_tag(tag);
+        history.history_file_name = std::string{array_tag[0], array_tag[1], array_tag[2]} + " - " + filename;
+        active_layer.tag_to_nation_history[tag] = history;
+
+        // generate common by cloning souce if it exists
+        auto source_common = get_nation_common(source_tag);
+        game_definition::nation_common c = {};
+        if (source_common != nullptr)
+            c = *source_common;
+
+        active_layer.filename_to_nation_common[filename] = c;
+    };
+
+    game_definition::province& new_province(uint32_t pixel) {
 
         // when we create a new province, we have to:
         // 1) update the rgb province map and available rgb
@@ -878,7 +954,7 @@ struct layers_stack {
 
         // create new definition and upload it into arrays:
 
-        game_definition::province def = {
+        game_definition::province def_template = {
             active_layer.available_id,
             "UnknownProv" + std::to_string(active_layer.available_id),
             active_layer.provinces_image->available_r,
@@ -886,8 +962,11 @@ struct layers_stack {
             active_layer.provinces_image->available_b
         };
 
-        active_layer.v2id_to_vector_position[def.v2id] = active_layer.province_definitions.size();
-        active_layer.province_definitions.push_back(def);
+        active_layer.v2id_to_vector_position[def_template.v2id] = active_layer.province_definitions.size();
+        active_layer.province_definitions.push_back(def_template);
+
+        auto& def = active_layer.province_definitions[active_layer.province_definitions.size() - 1];
+
         auto new_rgb = rgb_to_uint(def.r, def.g, def.b);
         active_layer.rgb_to_v2id[new_rgb] = def.v2id;
 

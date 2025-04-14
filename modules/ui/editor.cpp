@@ -5,6 +5,7 @@
 #include "selection_widget.hpp"
 
 #include "misc.hpp"
+#include <cstddef>
 #include <numbers>
 #include <string>
 #include <winuser.h>
@@ -345,12 +346,29 @@ namespace widgets {
                 control.context_window_origin.y + shift_y
             ));
             ImGui::Begin("context_set_owner_controller", NULL, flags);
-            if (ImGui::Button("Set owner and controller")) {
+            if (ImGui::Button(("Set " + control.selected_tag + " as owner and controller").c_str())) {
                 state::paint_controler_and_owner_safe(
                     control,
                     layers,
                     control.context_pixel
                 );
+            }
+            ImGui::End();
+        }
+
+        {
+            shift_y += step_y;
+            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("context_set_capital", NULL, flags);
+            if (ImGui::Button(("Set capital of" + control.selected_tag).c_str())) {
+                auto history = layers.get_nation_history(game_definition::string_to_int(control.selected_tag));
+                if (history != nullptr) {
+                    history->capital = control.context_province;
+                }
             }
             ImGui::End();
         }

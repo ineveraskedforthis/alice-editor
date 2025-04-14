@@ -273,6 +273,11 @@ namespace widgets {
             }
 
             if (!can_edit) {
+
+                if (ImGui::Button("Copy province data to active mod layer")) {
+                    map.copy_province_history_to_current_layer(v2id);
+                }
+
                 ImGui::BeginDisabled();
             }
 
@@ -469,7 +474,10 @@ namespace widgets {
                     common->G = uint8_t(colour[1] * 255.f);
                     common->B = uint8_t(colour[2] * 255.f);
                 } else {
-                    ImGui::Text("%s", "This nation has no /common/countries file, do you want to generate it?");
+                    ImGui::Text("%s", "This nation has no /common/countries file in mod folders.");
+                    if (ImGui::Button("Copy data from the base game")) {
+                        map.copy_nation_common_to_current_layer(tag);
+                    }
                 }
                 ImGui::EndTabItem();
             }
@@ -510,7 +518,10 @@ namespace widgets {
                         common->parties.push_back(bdef);
                     }
                 } else {
-                    ImGui::Text("%s", "This nation has no /common/countries file, do you want to generate it?");
+                    ImGui::Text("%s", "This nation has no /common/countries file in mod folders.");
+                    if (ImGui::Button("Copy data from the base game")) {
+                        map.copy_nation_common_to_current_layer(tag);
+                    }
                 }
                 ImGui::EndTabItem();
             }
@@ -519,9 +530,14 @@ namespace widgets {
                 bool can_edit_common = map.can_edit_nation_common(tag);
                 if(can_edit_common) {
                     auto common = map.get_nation_common(tag);
-                    ImGui::InputText("Name", &common->graphical_culture);
+                    ImGui::InputText("Graphical culture", &common->graphical_culture);
                     ImGui::Text("Edit unit names manually, sorry.");
                     //ImGui::TextUnformatted("%s", common->unit_names.c_str());
+                } else {
+                    ImGui::Text("%s", "This nation has no /common/countries file in mod folders.");
+                    if (ImGui::Button("Copy data from the base game")) {
+                        map.copy_nation_common_to_current_layer(tag);
+                    }
                 }
 
                 ImGui::EndTabItem();
@@ -536,8 +552,12 @@ namespace widgets {
                 {
                     if (ImGui::BeginTabItem("Main"))
                     {
-                        if (!can_edit_history)
+                        if (!can_edit_history) {
+                            if (ImGui::Button("Copy history from the base game.")) {
+                                map.copy_nation_history_to_current_layer(tag);
+                            }
                             ImGui::BeginDisabled();
+                        }
                         ImGui::InputInt("Capital", &history->capital);
                         if (history->capital == -1) {
                             ImGui::Text("Undefined");
@@ -581,6 +601,11 @@ namespace widgets {
 
                     if (ImGui::BeginTabItem("Technologies"))
                     {
+                        if (!can_edit_history) {
+                            if (ImGui::Button("Copy history from the base game.")) {
+                                map.copy_nation_history_to_current_layer(tag);
+                            }
+                        }
                         ImGuiTabBarFlags technology_history_tab_bar_flags = ImGuiTabBarFlags_None;
                         if (ImGui::BeginTabBar("TechnologyNationHistoryTabs", tab_bar_flags))
                         {
@@ -636,6 +661,11 @@ namespace widgets {
 
                     if (ImGui::BeginTabItem("Inventions"))
                     {
+                        if (!can_edit_history) {
+                            if (ImGui::Button("Copy history from the base game.")) {
+                                map.copy_nation_history_to_current_layer(tag);
+                            }
+                        }
                         ImGuiTabBarFlags inventions_history_tab_bar_flags = ImGuiTabBarFlags_None;
                         if (ImGui::BeginTabBar("InventionsNationHistoryTabs", tab_bar_flags))
                         {
@@ -691,6 +721,11 @@ namespace widgets {
 
                     if (ImGui::BeginTabItem("Issues"))
                     {
+                        if (!can_edit_history) {
+                            if (ImGui::Button("Copy history from the base game.")) {
+                                map.copy_nation_history_to_current_layer(tag);
+                            }
+                        }
                         if (!can_edit_history)
                             ImGui::BeginDisabled();
 

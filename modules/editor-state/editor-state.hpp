@@ -50,6 +50,8 @@ struct control {
     uint8_t g = 0;
     uint8_t b = 0;
     std::vector<float> rivers_mesh = {};
+    std::string new_nation_tag{};
+    std::string new_nation_filename{};
 };
 
 struct editor {

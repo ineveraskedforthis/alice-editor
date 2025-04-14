@@ -201,6 +201,9 @@ namespace game_definition {
         };
     }
 
+    inline int32_t string_to_int(std::string tag) {
+        return (int32_t)(tag[0]) + (int32_t)(tag[1]) * 256 + (int32_t)(tag[2]) * 256 * 256;
+    }
     inline int32_t tag_to_int(std::array<int8_t, 3> tag) {
         return (int32_t)(tag[0]) + (int32_t)(tag[1]) * 256 + (int32_t)(tag[2]) * 256 * 256;
     }
