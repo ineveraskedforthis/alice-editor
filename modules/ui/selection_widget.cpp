@@ -9,6 +9,7 @@
 
 #include <shobjidl_core.h>
 #include <shobjidl.h>
+#include <vector>
 
 
 //we need only declarations here
@@ -17,6 +18,7 @@
 
 #include "../editor-state/editor-state.hpp"
 #include "../assets-manager/assets.hpp"
+#include "../misc.hpp"
 
 // copied from Project Alice
 // Related GPL file can be found in ParserGenerator folder
@@ -40,7 +42,7 @@ std::string wstring_to_utf8(std::wstring str) {
 
 namespace widgets {
 
-    void technology_folder(state::layers_stack& map, game_definition::nation_history* history, bool can_edit, game_definition::tech_folder folder) {
+    void technology_folder(state::layers_stack& map, game_definition::nation_history* history, bool can_edit, std::wstring folder) {
         if (history == nullptr) {
             return;
         }
@@ -70,7 +72,7 @@ namespace widgets {
             ImGui::EndDisabled();
     }
 
-    void inventions_folder(state::layers_stack& map, game_definition::nation_history* history, bool can_edit, game_definition::tech_folder folder) {
+    void inventions_folder(state::layers_stack& map, game_definition::nation_history* history, bool can_edit, std::wstring folder) {
         if (history == nullptr) {
             return;
         }
@@ -281,7 +283,7 @@ namespace widgets {
                 ImGui::BeginDisabled();
             }
 
-            ImGui::Text("%s", (def->name + " (" + history->history_file_name + ") " + std::to_string(def->v2id)).c_str());
+            ImGui::Text("%s", ((def->name) + conversions::wstring_to_utf8(L" (" + history->history_file_name + L") " + std::to_wstring(def->v2id))).c_str());
 
             if (ImGui::InputText("Owner", &history->owner_tag)) {
                 map.province_owner[3 * v2id + 0] = history->owner_tag[0];
@@ -607,52 +609,19 @@ namespace widgets {
                             }
                         }
                         ImGuiTabBarFlags technology_history_tab_bar_flags = ImGuiTabBarFlags_None;
-                        if (ImGui::BeginTabBar("TechnologyNationHistoryTabs", tab_bar_flags))
-                        {
-                            if (ImGui::BeginTabItem("Army")) {
-                                technology_folder(
-                                    map,
-                                    history,
-                                    can_edit_history,
-                                    game_definition::tech_folder::army
-                                );
-                                ImGui::EndTabItem();
-                            }
-                            if (ImGui::BeginTabItem("Navy")) {
-                                technology_folder(
-                                    map,
-                                    history,
-                                    can_edit_history,
-                                    game_definition::tech_folder::navy
-                                );
-                                ImGui::EndTabItem();
-                            }
-                            if (ImGui::BeginTabItem("Culture")) {
-                                technology_folder(
-                                    map,
-                                    history,
-                                    can_edit_history,
-                                    game_definition::tech_folder::culture
-                                );
-                                ImGui::EndTabItem();
-                            }
-                            if (ImGui::BeginTabItem("Commerce")) {
-                                technology_folder(
-                                    map,
-                                    history,
-                                    can_edit_history,
-                                    game_definition::tech_folder::commerce
-                                );
-                                ImGui::EndTabItem();
-                            }
-                            if (ImGui::BeginTabItem("Industry")) {
-                                technology_folder(
-                                    map,
-                                    history,
-                                    can_edit_history,
-                                    game_definition::tech_folder::industry
-                                );
-                                ImGui::EndTabItem();
+                        std::vector<std::wstring> folders{};
+                        map.retrieve_tech_folders(folders);
+                        if (ImGui::BeginTabBar("TechnologyNationHistoryTabs", tab_bar_flags)) {
+                            for (auto& folder : folders) {
+                                if (ImGui::BeginTabItem(conversions::wstring_to_utf8(folder).c_str())) {
+                                    technology_folder(
+                                        map,
+                                        history,
+                                        can_edit_history,
+                                        folder
+                                    );
+                                    ImGui::EndTabItem();
+                                }
                             }
                             ImGui::EndTabBar();
                         }
@@ -666,53 +635,20 @@ namespace widgets {
                                 map.copy_nation_history_to_current_layer(tag);
                             }
                         }
+                        std::vector<std::wstring> folders{};
+                        map.retrieve_inventions_folders(folders);
                         ImGuiTabBarFlags inventions_history_tab_bar_flags = ImGuiTabBarFlags_None;
-                        if (ImGui::BeginTabBar("InventionsNationHistoryTabs", tab_bar_flags))
-                        {
-                            if (ImGui::BeginTabItem("Army")) {
-                                inventions_folder(
-                                    map,
-                                    history,
-                                    can_edit_history,
-                                    game_definition::tech_folder::army
-                                );
-                                ImGui::EndTabItem();
-                            }
-                            if (ImGui::BeginTabItem("Navy")) {
-                                inventions_folder(
-                                    map,
-                                    history,
-                                    can_edit_history,
-                                    game_definition::tech_folder::navy
-                                );
-                                ImGui::EndTabItem();
-                            }
-                            if (ImGui::BeginTabItem("Culture")) {
-                                inventions_folder(
-                                    map,
-                                    history,
-                                    can_edit_history,
-                                    game_definition::tech_folder::culture
-                                );
-                                ImGui::EndTabItem();
-                            }
-                            if (ImGui::BeginTabItem("Commerce")) {
-                                inventions_folder(
-                                    map,
-                                    history,
-                                    can_edit_history,
-                                    game_definition::tech_folder::commerce
-                                );
-                                ImGui::EndTabItem();
-                            }
-                            if (ImGui::BeginTabItem("Industry")) {
-                                inventions_folder(
-                                    map,
-                                    history,
-                                    can_edit_history,
-                                    game_definition::tech_folder::industry
-                                );
-                                ImGui::EndTabItem();
+                        if (ImGui::BeginTabBar("InventionsNationHistoryTabs", tab_bar_flags)) {
+                            for (auto& folder : folders) {
+                                if (ImGui::BeginTabItem(conversions::wstring_to_utf8(folder).c_str())) {
+                                    inventions_folder(
+                                        map,
+                                        history,
+                                        can_edit_history,
+                                        folder
+                                    );
+                                    ImGui::EndTabItem();
+                                }
                             }
                             ImGui::EndTabBar();
                         }

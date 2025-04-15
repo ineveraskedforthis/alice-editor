@@ -1,3 +1,5 @@
+#include "modules/misc.hpp"
+#include <shobjidl_core.h>
 #undef max
 #undef min
 #undef clamp
@@ -40,6 +42,50 @@ std::string to_string(std::string_view str) {
     return std::string(str.begin(), str.end());
 }
 
+
+std::wstring open_path_selection_dialog() {
+    IFileOpenDialog* DIALOG;
+    auto DIALOG_RESULT = CoCreateInstance(
+        CLSID_FileOpenDialog,
+        NULL,
+        CLSCTX_ALL,
+        IID_IFileOpenDialog,
+        reinterpret_cast<void**>(&DIALOG)
+    );
+    if(FAILED(DIALOG_RESULT)) {
+        return L"";
+    }
+
+    DIALOG->SetOptions(FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_NOCHANGEDIR | FOS_FORCEFILESYSTEM | FOS_PICKFOLDERS);
+
+    DIALOG_RESULT = DIALOG->Show(NULL);
+    if(FAILED(DIALOG_RESULT)) {
+        DIALOG->Release();
+        return L"";
+    }
+
+    IShellItem* ITEM;
+    DIALOG_RESULT = DIALOG->GetResult(&ITEM);
+    if(FAILED(DIALOG_RESULT)) {
+        DIALOG->Release();
+        return L"";
+    }
+
+    //  STORE AND CONVERT THE FILE NAME
+    PWSTR RETRIEVED_PATH;
+    DIALOG_RESULT = ITEM->GetDisplayName(SIGDN_FILESYSPATH, &RETRIEVED_PATH);
+    if(FAILED(DIALOG_RESULT)) {
+        ITEM->Release();
+        DIALOG->Release();
+        return L"";
+    }
+
+    std::wstring path(RETRIEVED_PATH);
+    CoTaskMemFree(RETRIEVED_PATH);
+    ITEM->Release();
+    DIALOG->Release();
+    return path;
+}
 
 GLuint create_shader(GLenum type, const char *source) {
     GLuint result = glCreateShader(type);
@@ -388,6 +434,22 @@ int main(int argc, char* argv[]) {
                 ImGui::SetNextWindowSize(ImVec2(400, 400));
                 ImGui::SetNextWindowPos(ImVec2(int(window.width / 2 - 200), int(window.height / 2 - 200)));
                 ImGui::Begin("Main menu");
+
+                static std::wstring path_basegame = L"./base-game";
+                static std::wstring path_mod = L"./editor-input";
+
+                ImGui::Text("Current path to base game");
+                ImGui::Text("%ls", path_basegame.c_str());
+                if (ImGui::Button("Select path to base game")) {
+                    path_basegame = open_path_selection_dialog();
+                }
+
+                ImGui::Text("Current path to mod");
+                ImGui::Text("%ls", path_mod.c_str());
+                if (ImGui::Button("Select path to mod folder")) {
+                    path_mod = open_path_selection_dialog();
+                }
+
                 if(ImGui::Button("Load")){
                     parsers::load_templates(editor, "./editor-input");
 
@@ -397,7 +459,7 @@ int main(int argc, char* argv[]) {
 
                     {
                         state::layer l {};
-                        l.path = "./base-game";
+                        l.path = conversions::wstring_to_utf8(path_basegame);
                         parsers::load_layer(layers, l);
                         l.load_state_texture_to_gpu();
                         l.load_sea_texture_to_gpu();
@@ -411,7 +473,7 @@ int main(int argc, char* argv[]) {
 
                     {
                         state::layer l {};
-                        l.path = "./editor-input";
+                        l.path = conversions::wstring_to_utf8(path_mod);
                         parsers::load_layer(layers, l);
                         l.load_state_texture_to_gpu();
                         l.load_sea_texture_to_gpu();

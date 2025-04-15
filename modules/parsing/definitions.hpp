@@ -13,18 +13,18 @@ namespace game_definition {
         std::vector<std::string> options{};
     };
 
-    enum class tech_folder {
-        army, navy, commerce, culture, industry
-    };
+    // enum class tech_folder {
+    //     army, navy, commerce, culture, industry
+    // };
 
     struct invention {
         std::string name;
-        tech_folder folder;
+        std::wstring invention_file;
     };
 
     struct technology {
         std::string name;
-        tech_folder folder;
+        std::wstring folder;
     };
 
     struct secondary_rgo {
@@ -220,7 +220,7 @@ namespace game_definition {
     }
 
     struct province_history {
-        std::string history_file_name{};
+        std::wstring history_file_name{};
         std::string owner_tag{};
         std::string controller_tag{};
         std::vector<std::string> cores{};
@@ -233,7 +233,7 @@ namespace game_definition {
         int colonial;
         int colony;
         std::vector<state_building> buildings{};
-        std::string historical_region = "unknown";
+        std::wstring historical_region = L"unknown";
         std::string terrain{};
         std::string is_slave{};
     };
@@ -255,12 +255,12 @@ namespace game_definition {
     };
 
     struct adjacency {
-        uint32_t from;
-        uint32_t through;
-        uint32_t to;
-        ADJACENCY_TYPE type;
-        std::string data;
-        std::string comment;
+        uint32_t from = 0;
+        uint32_t through = 0;
+        uint32_t to = 0;
+        ADJACENCY_TYPE type = ADJACENCY_TYPE::INVALID;
+        std::string data {};
+        std::string comment {};
 
         bool mark_for_delete = false;
     };

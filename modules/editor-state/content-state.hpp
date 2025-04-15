@@ -1,7 +1,6 @@
 #include "GL/glew.h"
 #include <algorithm>
 #include <array>
-#include <cstddef>
 #include <cstdint>
 #include <iostream>
 #include <optional>
@@ -17,6 +16,10 @@
 #include "../parsing/definitions.hpp"
 
 #include "../map/unordered_dense.h"
+#include "../misc.hpp"
+
+#undef max
+#undef min
 
 namespace state {
 
@@ -290,9 +293,9 @@ struct layer {
     bool has_governments_list = false;
 
     ankerl::unordered_dense::map<std::string, game_definition::technology> tech{};
-    std::array<bool, 5> has_tech{};
+    ankerl::unordered_dense::map<std::wstring, bool> has_tech{};
     ankerl::unordered_dense::map<std::string, game_definition::invention> inventions{};
-    std::array<bool, 5> has_invention{};
+    ankerl::unordered_dense::map<std::wstring, bool> has_invention{};
     ankerl::unordered_dense::map<std::string, game_definition::issue> issues{};
     bool has_issues = false;
 };
@@ -583,11 +586,11 @@ struct layers_stack {
         return result;
     }
 
-    bool has_tech_key(game_definition::tech_folder folder, std::string key) {
+    bool has_tech_key(std::wstring folder, std::string key) {
         // CAUTION: this could fail
         layer* last = nullptr;
         for (auto& l: data) {
-            if(l.visible && l.has_tech[(int)folder]) {
+            if(l.visible && l.has_tech.contains(folder)) {
                 last = &l;
             }
         }
@@ -600,30 +603,47 @@ struct layers_stack {
 
     bool has_tech_key(std::string key) {
         bool result = false;
-        for (int i = 0; i < 5; i++) {
-            result = result || has_tech_key((game_definition::tech_folder)(i), key);
+
+        ankerl::unordered_dense::map<std::wstring, bool> registered_folders;
+        for (auto& l: data) {
+            for (auto& [key, value] : l.has_tech) {
+                registered_folders[key] = true;
+            }
         }
+
+        for (auto& [folder, value] : registered_folders) {
+            result = result || has_tech_key(folder, key);
+        }
+
         return result;
     }
 
-    bool has_invention_key(game_definition::tech_folder folder, std::string key) {
+    bool has_invention_key(std::wstring folder, std::string key) {
         // CAUTION: this could fail
         layer* last = nullptr;
         for (auto& l: data) {
-            if(l.visible && l.has_invention[(int)folder]) {
+            if(l.visible && l.has_invention.contains(folder)) {
                 last = &l;
             }
         }
         if (last==nullptr)
             return false;
-        auto it = last->tech.find(key);
-        if (it == last->tech.end()) return false;
+        auto it = last->inventions.find(key);
+        if (it == last->inventions.end()) return false;
         return true;
     }
     bool has_invention_key(std::string key) {
         bool result = false;
-        for (int i = 0; i < 5; i++) {
-            result = result || has_invention_key((game_definition::tech_folder)(i), key);
+
+        ankerl::unordered_dense::map<std::wstring, bool> registered_folders;
+        for (auto& l: data) {
+            for (auto& [key, value] : l.has_invention) {
+                registered_folders[key] = true;
+            }
+        }
+
+        for (auto& [folder, value] : registered_folders) {
+            result = result || has_invention_key(folder, key);
         }
         return result;
     }
@@ -641,10 +661,37 @@ struct layers_stack {
         return last->issues.find(key) != last->issues.end();
     }
 
-    void retrieve_techs(std::vector<std::string>& techs, game_definition::tech_folder folder) {
+    void retrieve_tech_folders(std::vector<std::wstring>& folders) {
+        ankerl::unordered_dense::map<std::wstring, bool> registered_folders;
+        for (auto& l: data) {
+            for (auto& [key, value] : l.has_tech) {
+                if (registered_folders.contains(key)) {
+
+                } else {
+                    registered_folders[key] = true;
+                    folders.push_back(key);
+                }
+            }
+        }
+    }
+    void retrieve_inventions_folders(std::vector<std::wstring>& folders) {
+        ankerl::unordered_dense::map<std::wstring, bool> registered_folders;
+        for (auto& l: data) {
+            for (auto& [key, value] : l.has_invention) {
+                if (registered_folders.contains(key)) {
+
+                } else {
+                    registered_folders[key] = true;
+                    folders.push_back(key);
+                }
+            }
+        }
+    }
+
+    void retrieve_techs(std::vector<std::string>& techs, std::wstring folder) {
         layer* last = nullptr;
         for (auto& l: data) {
-            if(l.visible && l.has_tech[(int)folder]) {
+            if(l.visible && l.has_tech.contains(folder)) {
                 last = &l;
             }
         }
@@ -657,17 +704,17 @@ struct layers_stack {
         }
     }
 
-    void retrieve_inventions(std::vector<std::string>& inventions, game_definition::tech_folder folder) {
+    void retrieve_inventions(std::vector<std::string>& inventions, std::wstring folder) {
         layer* last = nullptr;
         for (auto& l: data) {
-            if(l.visible && l.has_invention[(int)folder]) {
+            if(l.visible && l.has_invention.contains(folder)) {
                 last = &l;
             }
         }
         if (last==nullptr)
             return;
         for (auto const & [key, value] : last->inventions) {
-            if (value.folder == folder) {
+            if (value.invention_file == folder) {
                 inventions.push_back(key);
             }
         }
@@ -974,7 +1021,7 @@ struct layers_stack {
 
         game_definition::province_history p_new {};
 
-        p_new.history_file_name = std::to_string(active_layer.available_id) + " - " + def.name + ".txt";
+        p_new.history_file_name = std::to_wstring(active_layer.available_id) + L" - " + conversions::utf8_to_wstring(def.name) + L".txt";
 
         auto p_old = get_province_history(old_v2id);
 

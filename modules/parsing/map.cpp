@@ -231,8 +231,12 @@ namespace parsers{
             auto index = std::stoi(current_word);
             current_word.clear();
 
-            map.province_state[2 * index] = current_state_def % 256;
-            map.province_state[2 * index + 1] = current_state_def >> 8;
+            if (map.province_state[2 * index] == 0 && map.province_state[2 * index + 1] == 0) {
+                map.province_state[2 * index] = current_state_def % 256;
+                map.province_state[2 * index + 1] = current_state_def >> 8;
+            } else {
+                // todo: detect metaregions and move them elsewhere
+            }
         }
 
         void parse_symbol(state::layer& map, char c) {
@@ -249,7 +253,7 @@ namespace parsers{
 
             switch (task) {
             case REGIONS_PARSER_TASK::AWAIT_STATE_NAME: {
-                if (c == ' ' || c == '\n' || c == '=') {
+                if (parser::nothing(c) || c == '=') {
                     break;
                 } else {
                     current_word = c;
@@ -258,7 +262,7 @@ namespace parsers{
                 break;
             }
             case REGIONS_PARSER_TASK::READING_STATE_NAME: {
-                if (c == ' ' || c == '\n' || c == '=') {
+                if (parser::nothing(c) || c == '=') {
                     game_definition::state def {current_word};
                     map.states.push_back(def);
                     current_state_def = map.states.size() - 1;
@@ -271,7 +275,7 @@ namespace parsers{
                 break;
             }
             case REGIONS_PARSER_TASK::AWAIT_PROVINCE_NAME: {
-                if (c == ' ' || c == '\n' || c == '=' || c == '{') {
+                if (parser::nothing(c) || c == '=' || c == '{') {
                     break;
                 } else if (c == '}') {
                     task = REGIONS_PARSER_TASK::AWAIT_STATE_NAME;
@@ -295,7 +299,7 @@ namespace parsers{
                     current_word.clear();
                     break;
                 }
-                if (c == ' ') {
+                if (parser::nothing(c)) {
                     task = REGIONS_PARSER_TASK::AWAIT_PROVINCE_NAME;
                     set_prov(map);
                     current_word.clear();
@@ -631,34 +635,18 @@ namespace parsers{
         parsers::parse_issues_file(tk, errors, ctx_generic);
     };
 
-    void load_technology_list(state::layer &layer, std::string path, parsers::error_handler& errors) {
+    void load_technology_list(state::layer &layer, std::wstring path, parsers::error_handler& errors) {
         std::cout << "Parse technologies\n";
 
-        std::vector<std::string> list_of_tech_files {
-            "army_tech.txt",
-            "commerce_tech.txt",
-            "culture_tech.txt",
-            "industry_tech.txt",
-            "navy_tech.txt"
-        };
-
-        std::vector<game_definition::tech_folder> list_of_tech_folders {
-            game_definition::tech_folder::army,
-            game_definition::tech_folder::commerce,
-            game_definition::tech_folder::culture,
-            game_definition::tech_folder::industry,
-            game_definition::tech_folder::navy
-        };
-
-        for (int i = 0; i < 5; i++) {
-            auto filename = list_of_tech_files[i];
-            if (std::filesystem::exists(path + "/technologies/" + filename)) {
-                std::cout << filename << " was found\n";
-                std::ifstream file(path + "/technologies/" + filename);
+        for (auto& entry : std::filesystem::directory_iterator  {path + L"/technologies"}) {
+            if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
+                auto filename = entry.path().filename().wstring();
+                std::wcout << filename << L" was found\n";
+                std::ifstream file(entry.path());
                 parsers::technology_context ctx {
-                    layer, list_of_tech_folders[i]
+                    layer, filename
                 };
-                layer.has_tech[i] = true;
+                layer.has_tech[filename] = true;
                 std::stringstream buffer;
                 buffer << file.rdbuf();
                 auto str = buffer.str();
@@ -668,33 +656,17 @@ namespace parsers{
         }
     };
 
-    void load_inventions_list(state::layer &layer, std::string path, parsers::error_handler& errors) {
-        std::cout << "Parse technologies\n";
+    void load_inventions_list(state::layer &layer, std::wstring path, parsers::error_handler& errors) {
+        std::cout << "Parse inventions\n";
 
-        std::vector<std::string> list_of_tech_files {
-            "army_inventions.txt",
-            "commerce_inventions.txt",
-            "culture_inventions.txt",
-            "industry_inventions.txt",
-            "navy_inventions.txt"
-        };
-
-        std::vector<game_definition::tech_folder> list_of_tech_folders {
-            game_definition::tech_folder::army,
-            game_definition::tech_folder::commerce,
-            game_definition::tech_folder::culture,
-            game_definition::tech_folder::industry,
-            game_definition::tech_folder::navy
-        };
-
-        for (int i = 0; i < 5; i++) {
-            auto filename = list_of_tech_files[i];
-            if (std::filesystem::exists(path + "/inventions/" + filename)) {
-                std::cout << filename << " was found\n";
-                std::ifstream file(path + "/inventions/" + filename);
-                layer.has_invention[i] = true;
+        for (auto& entry : std::filesystem::directory_iterator  {path + L"/inventions"}) {
+            if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
+                auto filename = entry.path().filename().wstring();
+                std::wcout << filename << L" was found\n";
+                std::ifstream file(entry.path());
+                layer.has_invention[filename] = true;
                 parsers::technology_context ctx {
-                    layer, list_of_tech_folders[i]
+                    layer, filename
                 };
                 std::stringstream buffer;
                 buffer << file.rdbuf();
@@ -848,6 +820,7 @@ namespace parsers{
     void load_nation_history(state::layers_stack& state, state::layer &layer, std::string path, parsers::error_handler& errors) {
         for (auto& entry : std::filesystem::directory_iterator  {path + "/history" + "/countries"}) {
             if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
+                errors.file_name = entry.path().filename().string();
                 auto name = entry.path().filename().string();
                 // std::cout << name << std::endl;
                 auto first_space = name.find_first_of(' ');
@@ -882,7 +855,8 @@ namespace parsers{
 
         for (auto& entry : std::filesystem::directory_iterator  {path + "/history" + "/provinces"}) {
             if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
-                auto name = entry.path().filename().string();
+                auto name = entry.path().filename().wstring();
+                errors.file_name = conversions::wstring_to_utf8(name);
                 // std::cout << name << std::endl;
                 auto first_space = name.find_first_of(' ');
                 auto id_string = name.substr(0, first_space);
@@ -891,7 +865,7 @@ namespace parsers{
 
                 game_definition::province_history p{};
                 p.history_file_name = name;
-                p.historical_region = "other";
+                p.historical_region = L"other";
 
                 parser_history_province2 parser {};
                 std::ifstream file(entry.path());
@@ -903,23 +877,28 @@ namespace parsers{
             }
 
             for (auto& province_description : std::filesystem::directory_iterator(entry.path())) {
-                auto name = province_description.path().filename().string();
+                auto name = province_description.path().filename().wstring();
+                errors.file_name = conversions::wstring_to_utf8(name);
                 // std::cout << name << std::endl;
                 auto first_space = name.find_first_of(' ');
                 auto id_string = name.substr(0, first_space);
-                auto id = std::stoi(id_string);
+                try {
+                    auto id = std::stoi(id_string);
 
-                // std::cout << id << " ";
+                    // std::cout << id << " ";
 
-                game_definition::province_history p{};
-                p.history_file_name = name;
-                p.historical_region = entry.path().filename().string();
+                    game_definition::province_history p{};
+                    p.history_file_name = name;
+                    p.historical_region = entry.path().filename().wstring();
 
-                parser_history_province2 parser {};
-                std::ifstream file(province_description.path());
-                parser.parse(p, file);
+                    parser_history_province2 parser {};
+                    std::ifstream file(province_description.path());
+                    parser.parse(p, file);
 
-                layer.province_history[id] = p;
+                    layer.province_history[id] = p;
+                } catch (const std::invalid_argument & e) {
+                    std::cout << e.what() << "\n";
+                }
             }
         }
     }
@@ -1071,15 +1050,15 @@ border_cutoff = 1100.0
         }
     }
 
-    void unload_province_history(state::layer& layer, std::string path){
+    void unload_province_history(state::layer& layer, std::wstring path){
         if(layer.province_history.empty()) return;
-        std::filesystem::create_directory(path + "/history");
-        std::filesystem::create_directory(path + "/history/provinces");
+        std::filesystem::create_directory(path + L"/history");
+        std::filesystem::create_directory(path + L"/history/provinces");
 
         for (auto& [key, val] : layer.province_history) {
-            auto folder_path = path + "/history/provinces/" + val.historical_region;
+            auto folder_path = path + L"/history/provinces/" + val.historical_region;
             std::filesystem::create_directory(folder_path);
-            std::ofstream file(folder_path + "/" + val.history_file_name);
+            std::ofstream file(folder_path + L"/" + val.history_file_name);
 
             if (val.owner_tag.length() > 0)
                 file << "owner = " << val.owner_tag << std::endl;
@@ -1170,8 +1149,8 @@ border_cutoff = 1100.0
         load_regions(layer, layer.path);
         load_adjacencies(layer, layer.path);
         load_governments_list(layer, layer.path, errors);
-        load_technology_list(layer, layer.path, errors);
-        load_inventions_list(layer, layer.path, errors);
+        load_technology_list(layer, conversions::utf8_to_wstring(layer.path), errors);
+        load_inventions_list(layer, conversions::utf8_to_wstring(layer.path), errors);
         load_issues_list(layer, layer.path, errors);
         load_nations_list(layer, layer.path, errors);
         load_nations_common(layer, layer.path, errors);
@@ -1194,7 +1173,7 @@ border_cutoff = 1100.0
         unload_nations_list(layer, path);
         unload_nations_common(layer, path);
         unload_nation_history(layer, path);
-        unload_province_history(layer, path);
+        unload_province_history(layer, conversions::utf8_to_wstring(path));
         unload_flags(layer, path);
     }
 }

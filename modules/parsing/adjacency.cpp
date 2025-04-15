@@ -1,9 +1,11 @@
 #include "adjacency.hpp"
+#include <charconv>
 #include <iostream>
 #include "parser.hpp"
 
 namespace parser {
-void adj::parse(std::ifstream& file, std::vector<game_definition::adjacency>& storage) {
+int adj::parse(std::ifstream& file, std::vector<game_definition::adjacency>& storage) {
+    int line = 1;
     char c;
     file.get(c);
     while(true) {
@@ -12,16 +14,16 @@ void adj::parse(std::ifstream& file, std::vector<game_definition::adjacency>& st
         current_word += c;
 
         // handle comments in the body of csv
-        if (c == '#') {
+        if (c == '#' || current_word[0] == ';') {
             current_word.clear();
             while(parser::until_end_of_the_line(c)) {
                 if(!file.get(c)) {
-                    return;
+                    return 1;
                 }
             };
             while(parser::end_of_the_line(c)) {
                 if(!file.get(c)) {
-                    return;
+                    return 1;
                 }
             };
 
@@ -38,12 +40,12 @@ void adj::parse(std::ifstream& file, std::vector<game_definition::adjacency>& st
 
             while(parser::until_end_of_the_line(c)) {
                 if(!file.get(c)) {
-                    return;
+                    return 1;
                 }
             };
             while(parser::end_of_the_line(c)) {
                 if(!file.get(c)) {
-                    return;
+                    return 1;
                 }
             };
 
@@ -61,8 +63,14 @@ void adj::parse(std::ifstream& file, std::vector<game_definition::adjacency>& st
         while(file.get(c) && parser::until_semicolon(c)) {
             current_word += c;
         }
-        def.to = std::stoi(current_word);
-        current_word.clear();
+        if (current_word.size() > 0) {
+            def.to = std::stoi(current_word);
+            std::from_chars(current_word.c_str(), current_word.c_str() + current_word.size(), def.to);
+            current_word.clear();
+        } else {
+            std::cout << "wrong adjacency at line " << line << "\n";
+            return 0;
+        }
 
         while(file.get(c) && parser::until_semicolon(c)) {
             current_word += c;
@@ -76,6 +84,8 @@ void adj::parse(std::ifstream& file, std::vector<game_definition::adjacency>& st
             def.type = game_definition::ADJACENCY_TYPE::IMPASSABLE;
         } else {
             def.type = game_definition::ADJACENCY_TYPE::INVALID;
+            std::cout << "wrong adjacency at line " << line << "\n";
+            return 0;
         }
         current_word.clear();
 
@@ -100,15 +110,16 @@ void adj::parse(std::ifstream& file, std::vector<game_definition::adjacency>& st
 
         while(parser::until_end_of_the_line(c)) {
             if(!file.get(c)) {
-                return;
+                return 1;
             }
         };
         while(parser::end_of_the_line(c)) {
             if(!file.get(c)) {
-                return;
+                return 1;
             }
         };
+        line++;
     }
-    return;
+    return 1;
 }
 }

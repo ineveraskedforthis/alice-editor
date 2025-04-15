@@ -32,9 +32,12 @@ void state_building::parse(game_definition::state_building& def, std::ifstream& 
 
                 def.upgrade = value.data;
             }
+        } else {
+            while (!parser::end_of_the_line(c) && file.get(c));
         }
 
-        while (parser::end_of_the_line(c) && file.get(c));
+        while(parser::nothing(c) && file.get(c));
+
         if (parser::end_of_the_line(c)) {
             if (!file.get(c)){
                 break;

@@ -30,7 +30,7 @@ struct issue_group_context{
 
 struct technology_context{
 	state::layer& map;
-	game_definition::tech_folder folder;
+	std::wstring folder;
 };
 
 struct context_with_file_label{

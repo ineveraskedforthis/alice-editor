@@ -107,8 +107,9 @@ namespace parser {
                                 while (word.parse(c) && file.get(c));
                                 party.war_policy = word.data;
                             }
+                        } else {
+                            while (!parser::strict_end_of_the_line(c) && file.get(c));
                         }
-                        while (!parser::strict_end_of_the_line(c) && file.get(c));
                         while (parser::nothing(c) && file.get(c));
                     }
                     n.parties.push_back(party);
