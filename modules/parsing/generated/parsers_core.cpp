@@ -181,9 +181,5 @@ void nation_handler::ruling_party(association_type, std::string_view value, erro
 void nation_handler::decision(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
     std::string actual_value = {value.begin(), value.end()};
     context.nation.decision.push_back(actual_value);
-
-    if (context.nation.primary_culture == "british") {
-        std::cout << "decision" << " --> " << value << "\n";
-    }
 };
 }
