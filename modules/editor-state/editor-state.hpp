@@ -16,7 +16,7 @@ void check_gl_error(std::string message);
 
 
 enum class CONTROL_MODE {
-    NONE, SELECT, PICKING_COLOR, PAINTING, FILL, SET_STATE
+    NONE, SELECT, PICKING_COLOR, PAINTING, FILL
 };
 
 
@@ -74,7 +74,7 @@ void update_select(control& control_state, layers_stack& map);
 void update_context(control& control_state, layers_stack& map);
 void pick_color(control& control_state, layers_stack& map);
 void paint(control& control_state, layers_stack& map);
-void paint_state(control& control_state, layers_stack& map);
+void paint_state(control& control_state, layers_stack& map, uint32_t target_pixel, uint32_t source_pixel);
 void paint_controler_and_owner_safe(control& control_state, layers_stack& map, int pixel_index);
 void paint_safe(control& control_state, layers_stack& map, int pixel_index, uint32_t province_index);
 void paint_line(control& control_state, layers_stack& map);

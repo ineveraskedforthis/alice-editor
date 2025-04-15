@@ -2,6 +2,7 @@
 #include <algorithm>
 #include <array>
 #include <cstdint>
+#include <cstring>
 #include <iostream>
 #include <optional>
 #include <vector>
@@ -537,7 +538,21 @@ struct layers_stack {
     void copy_state_from_province_to_province(int source, int target) {
         if (current_layer_index == -1) return;
         auto& active_layer = data[current_layer_index];
-        if (!active_layer.has_region_txt) return;
+        if (!active_layer.has_region_txt) {
+            // find layer with region txt
+            layer* source_layer = nullptr;
+            for (auto& l: data) {
+                if(l.visible && l.has_region_txt) {
+                    source_layer = &l;
+                }
+            }
+
+            if (source_layer != nullptr) {
+                std::memcpy(active_layer.province_state, source_layer->province_state, 256 * 256 * 2);
+            } else {
+                return;
+            }
+        };
         active_layer.province_state[2 * target] = active_layer.province_state[2 * source];
         active_layer.province_state[2 * target + 1] = active_layer.province_state[2 * source + 1];
     }

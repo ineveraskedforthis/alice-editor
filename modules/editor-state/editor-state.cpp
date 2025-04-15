@@ -107,10 +107,10 @@ void paint(control& control_state, layers_stack& map) {
     map.set_pixel(pixel_index, control_state.r, control_state.g, control_state.b);
 }
 
-void paint_state(control& control_state, layers_stack& map) {
-    auto selected_prov = map.sample_province_index(control_state.selected_pixel);
-    auto current_prov = map.sample_province_index(pixel(control_state, map));
-    map.copy_state_from_province_to_province(selected_prov, current_prov);
+void paint_state(control& control_state, layers_stack& map, uint32_t target_pixel, uint32_t source_pixel) {
+    auto target_prov = map.sample_province_index(target_pixel);
+    auto source_prov = map.sample_province_index(source_pixel);
+    map.copy_state_from_province_to_province(source_prov, target_prov);
 }
 
 void paint_province_safe(control& control_state, layers_stack& map, int pixel_index, uint32_t province_index) {

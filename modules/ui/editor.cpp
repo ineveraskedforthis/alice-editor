@@ -6,6 +6,7 @@
 
 #include "misc.hpp"
 #include <cstddef>
+#include <filesystem>
 #include <numbers>
 #include <string>
 #include <winuser.h>
@@ -59,6 +60,7 @@ namespace widgets {
         );
 
         if (ImGui::Button("SAVE")) {
+            std::filesystem::create_directory("./editor-output");
             parsers::unload_data(
                 layers.data[layers.current_layer_index],
                 "./editor-output/" + std::to_string(layers.current_layer_index) + "/"
@@ -150,9 +152,6 @@ namespace widgets {
         case state::CONTROL_MODE::FILL:
             ImGui::Text("Fill");
             break;
-        case state::CONTROL_MODE::SET_STATE:
-            ImGui::Text("Set state");
-            break;
         case state::CONTROL_MODE::SELECT:
             ImGui::Text("Select");
             break;
@@ -190,8 +189,6 @@ namespace widgets {
         case state::CONTROL_MODE::FILL:
             ImGui::Text("Fill");
             break;
-        case state::CONTROL_MODE::SET_STATE:
-            ImGui::Text("Set state");
         case state::CONTROL_MODE::SELECT:
             ImGui::Text("Select");
         break;
@@ -334,6 +331,21 @@ namespace widgets {
                 control.r = prov.r;
                 control.g = prov.g;
                 control.b = prov.b;
+            }
+            ImGui::End();
+        }
+
+        {
+            shift_y += step_y;
+            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("context_set_state", NULL, flags);
+            if (ImGui::Button("Copy state from the selected province")) {
+                state::paint_state(control, layers, control.context_pixel, control.selected_pixel);
+                layers.commit_state_texture();
             }
             ImGui::End();
         }
@@ -604,10 +616,6 @@ namespace widgets {
                     paint_line(control, layers);
                 }
                 break;
-                case state::CONTROL_MODE::SET_STATE:
-                paint_state(control, layers);
-                layers.commit_state_texture();
-                break;
             }
         }
 
@@ -618,8 +626,6 @@ namespace widgets {
                 case state::CONTROL_MODE::PAINTING:
                     break;
                 case state::CONTROL_MODE::FILL:
-                    break;
-                case state::CONTROL_MODE::SET_STATE:
                     break;
                 case state::CONTROL_MODE::SELECT:
                     break;
