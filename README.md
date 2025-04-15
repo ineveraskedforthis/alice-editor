@@ -21,7 +21,11 @@ Inside the editor there are three main tools displayed on the left bar:
 - Fill tool: choose any pixel and hold the `LMB` to paint provinces with a line. *BE CAREFUL WITH THIS TOOL AS THERE IS NO UNDO OPTION YET*
 - Pick color tool: press pixel to pick nation and province to use during painting
 
-Also there is an auxilarry tool: Context. Press `RMB` on any pixel to quickly select the tool to perform some additional actions.
+Also there is an auxilarry tool: Context. Press `RMB` on any pixel to quickly select any of main tool or to perform one of additional actions.
+
+## Explorers:
+Currently there are two explorers: Provinces and nations.
+National explorer allows you to create new nations based on currently selected nation. Do not forget to set their capital to a new province.
 
 ## Saving
 At the right top corner there is a "Save" button. Saves are stored in the `editor-output` folder.
