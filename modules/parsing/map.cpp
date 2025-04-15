@@ -638,6 +638,11 @@ namespace parsers{
     void load_technology_list(state::layer &layer, std::wstring path, parsers::error_handler& errors) {
         std::cout << "Parse technologies\n";
 
+        if (!std::filesystem::exists(path + L"/technologies")) {
+            std::cout << "Techs not found\n";
+            return;
+        }
+
         for (auto& entry : std::filesystem::directory_iterator  {path + L"/technologies"}) {
             if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
                 auto filename = entry.path().filename().wstring();
@@ -658,6 +663,11 @@ namespace parsers{
 
     void load_inventions_list(state::layer &layer, std::wstring path, parsers::error_handler& errors) {
         std::cout << "Parse inventions\n";
+
+        if (!std::filesystem::exists(path + L"/inventions")) {
+            std::cout << "Inventions not found\n";
+            return;
+        }
 
         for (auto& entry : std::filesystem::directory_iterator  {path + L"/inventions"}) {
             if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {

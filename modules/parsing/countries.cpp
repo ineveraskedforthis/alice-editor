@@ -145,14 +145,20 @@ namespace parser {
         while (true) {
             // parse line:
             while (true) {
-
-                while (parser::nothing(c) && file.get(c));
-
-                if (c != '#') {
+                while (parser::nothing(c)) {
+                    if (!file.get(c)){
+                        return;
+                    }
+                }
+                if (c != '#' && !parser::nothing(c)) {
                     key.reset();
                     while (key.parse(c) && file.get(c));
                     if (key.data == "dynamic_tags") {
                         dynamic_tags = true;
+                        while(parser::nothing(c) && file.get(c));
+                        file.get(c);
+                        while(parser::nothing(c) && file.get(c));
+                        while(!parser::nothing(c) && file.get(c));
                     } else {
                         parser::string_after_equality value;
                         while (value.parse(c) && file.get(c));
@@ -172,19 +178,11 @@ namespace parser {
                         };
                         map.nations.emplace_back(n);
                         map.tag_to_vector_position[tag_id] = map.nations.size() - 1;
+
+                        file.get(c);
                     }
-                }
-                while (!parser::strict_end_of_the_line(c) && file.get(c));
-                while (parser::end_of_the_line(c) && file.get(c));
-                if (parser::end_of_the_line(c)) {
-                    if (!file.get(c)){
-                        break;
-                    }
-                }
-            }
-            if (parser::end_of_the_line(c)) {
-                if (!file.get(c)){
-                    break;
+                } else {
+                    while (!parser::strict_end_of_the_line(c) && file.get(c));
                 }
             }
         }

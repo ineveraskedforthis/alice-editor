@@ -1,19 +1,27 @@
-# alice-editor
+# Project Alice Map Editor
 Tool to edit maps and according files required to create Project Alice scenarios.
 
 # CAUTION: ALWAYS MAKE BACKUPS OF YOUR WORK
 # CURRENTLY DOESN'T SUPPORT MULTIPLE BOOKMARKS
 
-place vic2 files to corresponding folders in editor-input and run the editor
+## Editor controls:
+- wasd - camera shift
+- qe - zoom
 
-# Controls:
+## How to start:
 
-wasd - camera shift
-qe - zoom
+- Launch `editor.exe`.
+- Choose paths to base game and mod folders.
+- (Alternatively: Place vic2/mod files to default folders)
+- Load and wait: depending on a mod loading might take some time
 
-z - pick province color
-c - cancel action
-n - create a new province at selected pixel
-f - line fill with current color
-p - save result
-r - paint with state of selected province
+Inside the editor there are three main tools displayed on the left bar:
+
+- Selection tool: allows to select provinces/nations on map
+- Fill tool: choose any pixel and hold the `LMB` to paint provinces with a line. *BE CAREFUL WITH THIS TOOL AS THERE IS NO UNDO OPTION YET*
+- Pick color tool: press pixel to pick nation and province to use during painting
+
+Also there is an auxilarry tool: Context. Press `RMB` on any pixel to quickly select the tool to perform some additional actions.
+
+## Saving
+At the right top corner there is a "Save" button. Saves are stored in the `editor-output` folder.

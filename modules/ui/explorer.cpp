@@ -347,12 +347,19 @@ namespace widgets {
 
                     // CIV
                     ImGui::TableNextColumn();
-                    if (!map.can_edit_nation_history(tag)) {
-                        ImGui::BeginDisabled();
-                    }
-                    ImGui::Checkbox("##", &(history->civilized));
-                    if (!map.can_edit_nation_history(tag)) {
-                        ImGui::EndDisabled();
+
+                    if (history != nullptr) {
+                        if (!map.can_edit_nation_history(tag)) {
+                            ImGui::BeginDisabled();
+                        }
+                        ImGui::Checkbox("##", &(history->civilized));
+                        if (!map.can_edit_nation_history(tag)) {
+                            ImGui::EndDisabled();
+                        }
+                    } else {
+                        ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(255,0,0,255));
+                        ImGui::Text("No history");
+                        ImGui::PopStyleColor();
                     }
 
                     // SELECT
