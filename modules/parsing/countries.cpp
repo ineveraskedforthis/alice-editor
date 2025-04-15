@@ -11,7 +11,7 @@
 namespace parser {
 
     void country_file_common(game_definition::nation_common& n, std::ifstream& file, std::string filename) {
-        std::cout << "Parse common for " << filename << "\n";
+        // std::cout << "Parse common for " << filename << "\n";
 
         parser::word key;
         parser::word value;
@@ -24,7 +24,7 @@ namespace parser {
                 while (key.parse(c) && file.get(c));
 
                 if (key.data == "color") {
-                    std::cout << "color detected\n";
+                    // std::cout << "color detected\n";
 
                     // parse color:
 
@@ -37,22 +37,22 @@ namespace parser {
                     value.reset();
                     while(parser::nothing(c) && file.get(c));
                     while(value.parse(c) && file.get(c));
-                    std::cout << "R:" << value.data;
+                    // std::cout << "R:" << value.data;
                     n.R = std::stoi(value.data);
 
                     value.reset();
                     while(parser::nothing(c) && file.get(c));
                     while(value.parse(c) && file.get(c));
-                    std::cout << "G:" << value.data;
+                    // std::cout << "G:" << value.data;
                     n.G = std::stoi(value.data);
 
                     value.reset();
                     while(parser::nothing(c) && file.get(c));
                     while(value.parse(c) && file.get(c));
-                    std::cout << "B:" << value.data;
+                    // std::cout << "B:" << value.data;
                     n.B = std::stoi(value.data);
 
-                    std::cout << "\n";
+                    // std::cout << "\n";
 
 
                     while (parser::until_close_bracket(c) && file.get(c));

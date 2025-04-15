@@ -73,7 +73,9 @@ void national_flag_handler::government(association_type, std::string_view value,
     _flag = value;
 };
 
-void enter_country_file_dated_block(std::string_view label, token_generator& gen, error_handler& err, nation_history_file& context) {};
+void enter_country_file_dated_block(std::string_view label, token_generator& gen, error_handler& err, nation_history_file& context) {
+    gen.discard_group();
+};
 
 void nation_handler::finish(nation_history_file&){
 
@@ -179,5 +181,9 @@ void nation_handler::ruling_party(association_type, std::string_view value, erro
 void nation_handler::decision(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
     std::string actual_value = {value.begin(), value.end()};
     context.nation.decision.push_back(actual_value);
+
+    if (context.nation.primary_culture == "british") {
+        std::cout << "decision" << " --> " << value << "\n";
+    }
 };
 }

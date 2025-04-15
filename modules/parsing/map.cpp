@@ -828,6 +828,7 @@ namespace parsers{
     }
 
     void load_nation_history(state::layers_stack& state, state::layer &layer, std::string path, parsers::error_handler& errors) {
+        std::cout << "Parse nations history\n";
         for (auto& entry : std::filesystem::directory_iterator  {path + "/history" + "/countries"}) {
             if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
                 errors.file_name = entry.path().filename().string();

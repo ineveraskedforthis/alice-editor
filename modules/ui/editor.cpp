@@ -365,9 +365,15 @@ namespace widgets {
             ));
             ImGui::Begin("context_set_capital", NULL, flags);
             if (ImGui::Button(("Set capital of" + control.selected_tag).c_str())) {
-                auto history = layers.get_nation_history(game_definition::string_to_int(control.selected_tag));
+                auto tag_int = game_definition::string_to_int(control.selected_tag);
+                auto history = layers.get_nation_history(tag_int);
                 if (history != nullptr) {
-                    history->capital = control.context_province;
+                    if (!layers.can_edit_nation_history(tag_int)) {
+                        layers.copy_nation_history_to_current_layer(tag_int);
+                        layers.get_nation_history(tag_int)->capital = control.context_province;
+                    } else {
+                        history->capital = control.context_province;
+                    }
                 }
             }
             ImGui::End();
