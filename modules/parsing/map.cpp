@@ -20,6 +20,7 @@
 #include "countries.hpp"
 
 #include "../misc.hpp"
+#include "../editor-state/editor-enums.hpp"
 
 #define STB_IMAGE_IMPLEMENTATION
 #include "../stbimage/stb_image.h"
@@ -770,7 +771,8 @@ namespace parsers{
 
             file << "primary_culture = " << value.primary_culture << "\n";
             for (auto & culture : value.culture)
-                file << "culture = " << culture << "\n";
+                if (culture.length() > 0)
+                    file << "culture = " << culture << "\n";
             file << "religion = " << value.religion << "\n";
             file << "government = " << value.government << "\n";
             file << "plurality = " << value.plurality << "\n";
@@ -1056,7 +1058,7 @@ border_cutoff = 1100.0
             }
 
             if (!adj.mark_for_delete) {
-                file << adj.from << ";" << adj.to << ";" << type << ";" << adj.through << ";" << adj.data << ";" << adj.comment << "\n";
+                file << adj.from << ";" << adj.to << ";" << type << ";" << adj.through << ";" << adj.data << "#" << adj.comment << "\n";
             }
         }
     }
@@ -1127,7 +1129,7 @@ border_cutoff = 1100.0
     };
 
 
-    void unload_flags(state::layer& layer, std::string path) {
+    void unload_flags(state::layer& layer, std::string path, state::FLAG_EXPORT_OPTIONS export_option) {
         // keys: "/gfx/flags/" + string_tag + ".tga"
         std::filesystem::create_directory(path + "gfx");
         std::filesystem::create_directory(path + "gfx/flags");
@@ -1146,7 +1148,11 @@ border_cutoff = 1100.0
                 &channels,
                 3
             );
-            stbi_write_tga((path + key).c_str(), size_x, size_y, 3, flag_data);
+            if (export_option == state::FLAG_EXPORT_OPTIONS::TGA) {
+                stbi_write_tga((path + "gfx/flags/" + key + ".tga").c_str(), size_x, size_y, 3, flag_data);
+            } else {
+                stbi_write_png((path + "gfx/flags/" + key + ".png").c_str(), size_x, size_y, 3, flag_data, 0);
+            }
             delete []flag_data;
         }
     }
@@ -1171,7 +1177,7 @@ border_cutoff = 1100.0
         std::cout << errors.accumulated_errors;
     }
 
-    void unload_data(state::layer& layer, std::string path) {
+    void unload_data(state::layer& layer, std::string path, state::FLAG_EXPORT_OPTIONS flag_option) {
         std::cout << "Create directory: " << path << "\n";
         std::filesystem::create_directory(path);
 
@@ -1185,6 +1191,6 @@ border_cutoff = 1100.0
         unload_nations_common(layer, path);
         unload_nation_history(layer, path);
         unload_province_history(layer, conversions::utf8_to_wstring(path));
-        unload_flags(layer, path);
+        unload_flags(layer, path, flag_option);
     }
 }

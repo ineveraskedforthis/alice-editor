@@ -10,8 +10,10 @@
 
 #include "GL/glew.h"
 #include "content-state.hpp"
+#include "editor-enums.hpp"
 
 namespace state {
+
 void check_gl_error(std::string message);
 
 
@@ -26,7 +28,9 @@ enum class FILL_MODE {
 
 std::string fill_mode_string(FILL_MODE MODE);
 
+
 struct control {
+    FLAG_EXPORT_OPTIONS flags_export = FLAG_EXPORT_OPTIONS::TGA;
     uint32_t selected_pixel = 0;
     // glm::vec2 selected_province;
     uint32_t selected_province_id = 0;
@@ -54,13 +58,12 @@ struct control {
     std::string new_nation_filename{};
 };
 
+
 struct editor {
     uint8_t* rivers_raw = nullptr;
     ankerl::unordered_dense::map<std::string, ankerl::unordered_dense::map<std::string, int>> secondary_rgo_templates {};
     GLuint fill_tool_VertexArray = 0;
     GLuint fill_tool_ArrayBuffer = 0;
-
-
     GLuint map_fake_VAO = 0;
     GLuint map_program;
     GLuint triangle_program;

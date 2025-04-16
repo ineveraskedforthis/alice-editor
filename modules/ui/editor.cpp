@@ -63,8 +63,34 @@ namespace widgets {
             std::filesystem::create_directory("./editor-output");
             parsers::unload_data(
                 layers.data[layers.current_layer_index],
-                "./editor-output/" + std::to_string(layers.current_layer_index) + "/"
+                "./editor-output/" + std::to_string(layers.current_layer_index) + "/",
+                control.flags_export
             );
+        }
+
+        ImGui::Text("Flags export mode");
+        std::string preview = "TGA";
+        if (control.flags_export == state::FLAG_EXPORT_OPTIONS::PNG) {
+            preview = "PNG";
+        }
+        if (ImGui::BeginCombo("dropdown fill", preview.c_str())) {
+            {
+                const bool is_selected = (control.flags_export == state::FLAG_EXPORT_OPTIONS::PNG);
+                if (ImGui::Selectable("PNG", is_selected))
+                    control.flags_export = state::FLAG_EXPORT_OPTIONS::PNG;
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+
+            {
+                const bool is_selected = (control.flags_export == state::FLAG_EXPORT_OPTIONS::TGA);
+                if (ImGui::Selectable("TGA", is_selected))
+                    control.flags_export = state::FLAG_EXPORT_OPTIONS::TGA;
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+
+            ImGui::EndCombo();
         }
 
         ImGui::Text("Layers:");

@@ -1039,22 +1039,28 @@ struct layers_stack {
         p_new.history_file_name = std::to_wstring(active_layer.available_id) + L" - " + conversions::utf8_to_wstring(def.name) + L".txt";
 
         auto p_old = get_province_history(old_v2id);
+            // check if it is a sea
+            if (p_old != nullptr) {
 
-        p_new.life_rating = p_old->life_rating;
-        p_new.owner_tag = p_old->owner_tag;
-        p_new.controller_tag = p_old->controller_tag;
-        p_new.main_trade_good = p_old->main_trade_good;
-        p_new.colonial = p_old->colonial;
-        p_new.historical_region = p_old->historical_region;
 
-        for (auto& core: p_old->cores) {
-            p_new.cores.push_back(core);
+            p_new.life_rating = p_old->life_rating;
+            p_new.owner_tag = p_old->owner_tag;
+            p_new.controller_tag = p_old->controller_tag;
+            p_new.main_trade_good = p_old->main_trade_good;
+            p_new.colonial = p_old->colonial;
+            p_new.historical_region = p_old->historical_region;
+
+            for (auto& core: p_old->cores) {
+                p_new.cores.push_back(core);
+            }
+
+            active_layer.province_history[def.v2id] = p_new;
         }
 
-        active_layer.province_history[def.v2id] = p_new;
 
         //finally, update colors
         set_pixel(pixel, def.r, def.g, def.b);
+        active_layer.provinces_image->recalculate_present_colors();
         indices.commit_province_texture_changes_to_gpu();
 
         // inherit seas, state and ownership arrays

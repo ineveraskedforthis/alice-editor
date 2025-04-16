@@ -195,21 +195,22 @@ namespace widgets {
         return path;
     }
 
-    void flag_widget(state::layers_stack& layers, assets::storage& storage, std::string& flag_path_from_layer) {
+    bool flag_widget(state::layers_stack& layers, assets::storage& storage, std::string flag_key, std::string& flag_path_from_layer) {
         state::layer& active_layer = layers.data[layers.current_layer_index];
         if (ImGui::Button("Choose a new flag")) {
             auto result = open_image_selection_dialog();
-            active_layer.paths_to_new_flags[flag_path_from_layer] = result;
+            active_layer.paths_to_new_flags[flag_key] = result;
         }
+        bool flag_found = false;
         for (int i = layers.current_layer_index; i >= 0; i--) {
             auto& layer = layers.data[i];
             auto flag_path = layer.path + flag_path_from_layer;
-            if (layer.paths_to_new_flags.contains(flag_path_from_layer)) {
-                flag_path = wstring_to_utf8(layer.paths_to_new_flags[flag_path_from_layer]);
+            if (layer.paths_to_new_flags.contains(flag_key)) {
+                flag_path = wstring_to_utf8(layer.paths_to_new_flags[flag_key]);
             }
             if (storage.filename_to_texture_asset.contains(flag_path)) {
-                if (layer.paths_to_new_flags.contains(flag_path_from_layer)) {
-                    auto path = layer.paths_to_new_flags[flag_path_from_layer];
+                if (layer.paths_to_new_flags.contains(flag_key)) {
+                    auto path = layer.paths_to_new_flags[flag_key];
                     ImGui::Text("%s", wstring_to_utf8(path).c_str());
                 } else {
                     ImGui::Text("%s", (layer.path + flag_path_from_layer).c_str());
@@ -217,12 +218,13 @@ namespace widgets {
 
                 auto asset = storage.filename_to_texture_asset[flag_path];
                 ImGui::Image((ImTextureID)(intptr_t)asset.texture, ImVec2(asset.w, asset.h));
-                return;
+                return true;
             } else {
                 //check if path really exists:
                 if (!std::filesystem::exists(flag_path)) {
                     continue;
                 }
+                flag_found = true;
 
                 int size_x;
                 int size_y;
@@ -259,6 +261,7 @@ namespace widgets {
                 storage.filename_to_texture_asset[flag_path] = flag;
             }
         }
+        return flag_found;
     }
 
     void selection_province(state::layers_stack& map, state::control& control, state::editor& editor) {
@@ -397,6 +400,9 @@ namespace widgets {
             ImGui::InputInt("Railroad: ", &history->railroad);
             ImGui::InputInt("Naval base: ", &history->naval_base);
             ImGui::InputInt("Fort: ", &history->fort);
+
+            ImGui::InputInt("Colonial: ", &history->colonial);
+            ImGui::InputInt("Colony: ", &history->colony);
 
             bool remove_flag = false;
             int remove_index = 0;
@@ -683,23 +689,26 @@ namespace widgets {
                 ImGui::Text("Default flag");
                 std::string string_tag {(char)def->tag[0], (char)def->tag[1], (char)def->tag[2]};
                 std::string default_flag_path = "/gfx/flags/" + string_tag + ".tga";
+                std::string default_flag_path_png = "/gfx/flags/" + string_tag + ".png";
 
                 auto& active_layer = map.data[map.current_layer_index];
 
-                if (active_layer.paths_to_new_flags.contains(default_flag_path)) {
+                if (active_layer.paths_to_new_flags.contains(string_tag)) {
                     if (ImGui::Button("Copy default flag to other positions")) {
                         auto flags = map.get_flags();
                         if (flags != nullptr){
                             for(auto& flagtype : *flags) {
-                                std::string flag_path = "/gfx/flags/" + string_tag + + "_" + flagtype + ".tga";
-                                active_layer.paths_to_new_flags[flag_path] = active_layer.paths_to_new_flags[default_flag_path];
+                                std::string flag_key = string_tag + + "_" + flagtype;
+                                active_layer.paths_to_new_flags[flag_key] = active_layer.paths_to_new_flags[string_tag];
                             }
                         }
                     }
                 }
 
                 ImGui::PushID(0);
-                flag_widget(map, storage, default_flag_path);
+                if (!flag_widget(map, storage, string_tag, default_flag_path_png)) {
+                    flag_widget(map, storage, string_tag, default_flag_path);
+                }
                 ImGui::PopID();
                 auto flags = map.get_flags();
                 if (flags != nullptr){
@@ -707,8 +716,12 @@ namespace widgets {
                     for(auto& flagtype : *flags) {
                         ImGui::PushID(counter);
                         ImGui::Text("%s", flagtype.c_str());
-                        std::string flag_path = "/gfx/flags/" + string_tag + + "_" + flagtype + ".tga";
-                        flag_widget(map, storage, flag_path);
+                        std::string flag_key = string_tag + + "_" + flagtype;
+                        std::string flag_path = "/gfx/flags/" + flag_key + ".tga";
+                        std::string flag_path_png = "/gfx/flags/" + flag_key + ".png";
+                        if (!flag_widget(map, storage, flag_key, flag_path_png)) {
+                            flag_widget(map, storage, flag_key, flag_path);
+                        }
                         counter++;
                         ImGui::PopID();
                     }

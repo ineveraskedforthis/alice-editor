@@ -101,7 +101,7 @@ int adj::parse(std::ifstream& file, std::vector<game_definition::adjacency>& sto
         def.data = current_word;
         current_word.clear();
 
-        while(file.get(c) && parser::until_end_of_the_line(c)) {
+        while(parser::until_end_of_the_line(c) && file.get(c)) {
             current_word += c;
         }
         def.comment = current_word;
