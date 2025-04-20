@@ -116,7 +116,7 @@ void paint_state(control& control_state, layers_stack& map, uint32_t target_pixe
 void paint_province_safe(control& control_state, layers_stack& map, int pixel_index, uint32_t province_index) {
     auto color = map.sample_province_color(pixel_index);
     auto rgb_target = state::rgb_to_uint(color.r, color.g, color.b);
-    auto index_target = map.rgb_to_index(color.r, color.g, color.b);
+    auto index_target = map.rgb_to_v2id(color.r, color.g, color.b);
     if (index_target == std::nullopt) return;
     auto source_is_sea = map.sample_province_is_sea(province_index);
     auto target_is_sea = map.sample_province_is_sea(index_target.value());
@@ -127,7 +127,7 @@ void paint_province_safe(control& control_state, layers_stack& map, int pixel_in
 void paint_controler_and_owner_safe(control& control_state, layers_stack& map, int pixel_index) {
     auto color = map.sample_province_color(pixel_index);
     auto rgb_target = state::rgb_to_uint(color.r, color.g, color.b);
-    auto index_target_optional = map.rgb_to_index(color.r, color.g, color.b);
+    auto index_target_optional = map.rgb_to_v2id(color.r, color.g, color.b);
     if (index_target_optional == std::nullopt) return;
     auto index_target = index_target_optional.value();
     auto target_is_sea = map.sample_province_is_sea(index_target);
@@ -187,7 +187,7 @@ void paint_line(control& control_state, layers_stack& map) {
 
     while (x != end.x || y != end.y) {
         {
-            auto index = map.rgb_to_index(control_state.r, control_state.g, control_state.b);
+            auto index = map.rgb_to_v2id(control_state.r, control_state.g, control_state.b);
             if (index == std::nullopt) continue;
 
             auto pixel_index = map.coord_to_pixel(glm::ivec2{x, y});

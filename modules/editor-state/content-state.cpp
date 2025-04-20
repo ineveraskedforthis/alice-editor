@@ -1,6 +1,48 @@
 #include "content-state.hpp"
 
 namespace state {
+
+void province_map::clear() {
+    size_x = 0;
+    size_y = 0;
+    provinces_image_data = nullptr;
+    available_color = 0;
+    available_r = 0;
+    available_g = 0;
+    available_b = 0;
+    color_present.clear();
+}
+
+void province_map::update_available_colors() {
+    std::cout << "Update available colors\n";
+    auto starting_color = available_color;
+
+    while (color_present[available_color]) {
+        available_color += 97;
+        available_color = available_color % (256 * 256 * 256);
+        if (starting_color == available_color) {
+            break;
+        }
+    }
+
+    auto converted_color = uint_to_r_g_b(available_color);
+    available_r = converted_color.r;
+    available_g = converted_color.g;
+    available_b = converted_color.b;
+
+    // for (int _r = 0; _r < 256; _r++)
+    //     for (int _g = 0; _g < 256; _g++)
+    //         for (int _b = 0; _b < 256; _b++) {
+    //             auto rgb = rgb_to_uint(_r, _g, _b);
+    //             if (!color_present[rgb]) {
+    //                 available_r = _r;
+    //                 available_g = _g;
+    //                 available_b = _b;
+    //                 return;
+    //             }
+    //         }
+}
+
 glm::vec2 screen_to_texture(
     int x_in,
     int y_in,

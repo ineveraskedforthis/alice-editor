@@ -42,6 +42,8 @@ glm::vec2 screen_to_texture(
     // OTHERWISE DATA EDITING SHOULD BE BLOCKED
     // USER CAN REQUEST TO COPY DATA TO THE ACTIVE LAYER FROM THE HIGHEST VISIBLE LAYER WHICH HAS THE REQUIRED DATA
 
+
+// converts rgb to a single number
 uint32_t inline rgb_to_uint(int r, int g, int b) {
     return (r << 16) + (g << 8) + b;
 }
@@ -105,45 +107,8 @@ struct province_map {
 
     std::vector<uint8_t> color_present {};
 
-    void clear() {
-        size_x = 0;
-        size_y = 0;
-        provinces_image_data = nullptr;
-        available_r = 0;
-        available_g = 0;
-        available_b = 0;
-        color_present.clear();
-    }
-
-    void update_available_colors() {
-        std::cout << "Update available colors\n";
-        auto starting_color = available_color;
-
-        while (color_present[available_color]) {
-            available_color += 97;
-            available_color = available_color % (256 * 256 * 256);
-            if (starting_color == available_color) {
-                break;
-            }
-        }
-
-        auto converted_color = uint_to_r_g_b(available_color);
-        available_r = converted_color.r;
-        available_g = converted_color.g;
-        available_b = converted_color.b;
-
-        // for (int _r = 0; _r < 256; _r++)
-        //     for (int _g = 0; _g < 256; _g++)
-        //         for (int _b = 0; _b < 256; _b++) {
-        //             auto rgb = rgb_to_uint(_r, _g, _b);
-        //             if (!color_present[rgb]) {
-        //                 available_r = _r;
-        //                 available_g = _g;
-        //                 available_b = _b;
-        //                 return;
-        //             }
-        //         }
-    }
+    void clear();
+    void update_available_colors();
 
     void recalculate_present_colors() {
         color_present.clear();
@@ -156,6 +121,56 @@ struct province_map {
             auto b = provinces_image_data[4 * i + 2];
             auto rgb = rgb_to_uint(r, g, b);
             color_present[rgb] = true;
+        }
+    }
+
+    void populate_adjacent_colors(uint32_t rgb, std::vector<uint32_t> & result) {
+        ankerl::unordered_dense::map<uint32_t, bool> temp_result {};
+        for (auto x = 0; x < size_x - 1; x++) {
+            for (auto y = 0; y < size_y - 1; y++) {
+                auto local = y * size_x + x;
+                auto bottom = (y + 1) * size_x + (x);
+                auto right = (y) * size_x + (x + 1);
+
+                uint32_t local_rgb;
+                {
+                    auto r = provinces_image_data[4 * local + 0];
+                    auto g = provinces_image_data[4 * local + 1];
+                    auto b = provinces_image_data[4 * local + 2];
+                    local_rgb = rgb_to_uint(r, g, b);
+                }
+
+                uint32_t bottom_rgb;
+                {
+                    auto r = provinces_image_data[4 * bottom + 0];
+                    auto g = provinces_image_data[4 * bottom + 1];
+                    auto b = provinces_image_data[4 * bottom + 2];
+                    bottom_rgb = rgb_to_uint(r, g, b);
+                }
+
+                uint32_t right_rgb;
+                {
+                    auto r = provinces_image_data[4 * right + 0];
+                    auto g = provinces_image_data[4 * right + 1];
+                    auto b = provinces_image_data[4 * right + 2];
+                    right_rgb = rgb_to_uint(r, g, b);
+                }
+
+
+                if (local_rgb == rgb) {
+                    temp_result[bottom_rgb] = true;
+                    temp_result[right_rgb] = true;
+                }
+                if (bottom_rgb == rgb) {
+                    temp_result[local_rgb] = true;
+                }
+                if (right_rgb == rgb) {
+                    temp_result[local_rgb] = true;
+                }
+            }
+        }
+        for (auto [key, value] : temp_result) {
+            result.push_back(key);
         }
     }
 
@@ -455,6 +470,20 @@ struct layers_stack {
         }
         return result;
     }
+
+    void populate_adjacent_colors(uint32_t rgb, std::vector<uint32_t> & result) {
+        layer * last_layer;
+        for (auto& l: data) {
+            if (l.visible && l.provinces_image != std::nullopt) {
+                last_layer = &l;
+            }
+        }
+
+        if (last_layer != nullptr) {
+            last_layer->provinces_image->populate_adjacent_colors(rgb, result);
+        }
+    }
+
     int screen_to_pixel(glm::vec2 screen) {
         auto w = get_provinces_image_x();
         auto h = get_provinces_image_y();
@@ -513,7 +542,19 @@ struct layers_stack {
         return result;
     }
 
-    std::optional<int> rgb_to_index(uint8_t r, uint8_t g, uint8_t b) {
+    std::optional<int> rgb_to_v2id(uint32_t rgb) {
+        std::optional<int> index = std::nullopt;
+        for (auto& l: data) {
+            if(l.visible && l.has_province_definitions) {
+                if (l.rgb_to_v2id.contains(rgb)) {
+                    index = l.rgb_to_v2id[rgb];
+                }
+            }
+        }
+        return index;
+    }
+
+    std::optional<int> rgb_to_v2id(uint8_t r, uint8_t g, uint8_t b) {
         auto rgb = rgb_to_uint(r, g, b);
         std::optional<int> index = std::nullopt;
         for (auto& l: data) {
@@ -539,7 +580,7 @@ struct layers_stack {
         auto x = active_layer.provinces_image->size_x;
         auto y = active_layer.provinces_image->size_y;
 
-        auto index = rgb_to_index(r, g, b);
+        auto index = rgb_to_v2id(r, g, b);
         if (index != std::nullopt) {
             active_layer.provinces_image->provinces_image_data[pixel * 4] = r;
             active_layer.provinces_image->provinces_image_data[pixel * 4 + 1] = g;

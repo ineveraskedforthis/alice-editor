@@ -751,6 +751,20 @@ namespace widgets {
             glDrawArrays(GL_LINE_LOOP, 0, 3);
         }
 
+        {
+            glm::vec2 size = glm::vec2{size_x, size_y};
+            glUseProgram(editor.triangle_program);
+            glUniformMatrix4fv(uniform_locations[SHADER_UNIFORMS::TRIANGLE_MODEL], 1, false, reinterpret_cast<float*>(&model));
+            glUniformMatrix4fv(uniform_locations[SHADER_UNIFORMS::TRIANGLE_VIEW], 1, false, reinterpret_cast<float*>(&view));
+            glUniform2f(uniform_locations[SHADER_UNIFORMS::TRIANGLE_POINT_0], control.local_adjacency_center.x / size_x, control.local_adjacency_center.y / size_y);
+            for (auto i = 0; i < control.local_adjacency.size(); i++) {
+                glUniform2f(uniform_locations[SHADER_UNIFORMS::TRIANGLE_POINT_1], control.local_adjacency[i].x / size_x, control.local_adjacency[i].y / size_y);
+                glUniform2f(uniform_locations[SHADER_UNIFORMS::TRIANGLE_POINT_2], control.local_adjacency[i].x / size_x, control.local_adjacency[i].y / size_y);
+                glBindVertexArray(editor.fill_tool_VertexArray);
+                glDrawArrays(GL_LINE_LOOP, 0, 3);
+            }
+        }
+
 
         glUseProgram(editor.line_program);
         glUniformMatrix4fv(uniform_locations[SHADER_UNIFORMS::MODEL_LINE], 1, false, reinterpret_cast<float*>(&model));

@@ -835,6 +835,9 @@ namespace parsers{
 
     void load_nation_history(state::layers_stack& state, state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "Parse nations history\n";
+        if (!std::filesystem::exists(path + "/history" + "/countries")) {
+            return;
+        }
         for (auto& entry : std::filesystem::directory_iterator  {path + "/history" + "/countries"}) {
             if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
                 errors.file_name = entry.path().filename().string();
@@ -869,7 +872,9 @@ namespace parsers{
 
     void load_province_history(state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "reading province history\n";
-
+        if (!std::filesystem::exists(path + "/history" + "/provinces")) {
+            return;
+        }
         for (auto& entry : std::filesystem::directory_iterator  {path + "/history" + "/provinces"}) {
             if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
                 auto name = entry.path().filename().wstring();

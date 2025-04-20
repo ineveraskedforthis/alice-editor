@@ -1,4 +1,5 @@
 #pragma once
+#include <vector>
 #undef max
 #undef min
 #undef clamp
@@ -53,7 +54,11 @@ struct control {
     uint8_t r = 0;
     uint8_t g = 0;
     uint8_t b = 0;
-    std::vector<float> rivers_mesh = {};
+
+    glm::vec2 local_adjacency_center{};
+    std::vector<glm::vec2> local_adjacency{};
+
+    std::vector<float> rivers_mesh{};
     std::string new_nation_tag{};
     std::string new_nation_filename{};
 };

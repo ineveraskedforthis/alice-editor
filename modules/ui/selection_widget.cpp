@@ -2,6 +2,8 @@
 #include "misc/cpp/imgui_stdlib.h"
 #include <array>
 #include <cassert>
+#include <cstddef>
+#include <cstdint>
 #include <iostream>
 #include <string>
 #include <filesystem>
@@ -271,6 +273,25 @@ namespace widgets {
             auto history = map.get_province_history(control.selected_province_id);
             auto def = map.get_province_definition(control.selected_province_id);
             auto v2id = control.selected_province_id;
+
+            if (def != nullptr) {
+                if (ImGui::Button("Recalculate local adjacencies")) {
+                    control.local_adjacency_center = map.indices.v2id_to_mean[v2id];
+                    control.local_adjacency.clear();
+
+                    std::vector<uint32_t> adj_colors{};
+                    map.populate_adjacent_colors(state::rgb_to_uint(def->r, def->g, def->b), adj_colors);
+
+                    for (auto & rgb : adj_colors) {
+                        auto adj_v2id = map.rgb_to_v2id(rgb);
+
+                        if(adj_v2id.has_value()) {
+                            auto mean = map.indices.v2id_to_mean[adj_v2id.value()];
+                            control.local_adjacency.push_back(mean);
+                        }
+                    }
+                }
+            }
 
             if (history == nullptr || def == nullptr) {
                 ImGui::Text("Sea province or area without definition");
