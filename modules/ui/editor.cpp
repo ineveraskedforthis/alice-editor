@@ -73,7 +73,7 @@ namespace widgets {
         if (control.flags_export == state::FLAG_EXPORT_OPTIONS::PNG) {
             preview = "PNG";
         }
-        if (ImGui::BeginCombo("dropdown fill", preview.c_str())) {
+        if (ImGui::BeginCombo("dropdown export", preview.c_str())) {
             {
                 const bool is_selected = (control.flags_export == state::FLAG_EXPORT_OPTIONS::PNG);
                 if (ImGui::Selectable("PNG", is_selected))

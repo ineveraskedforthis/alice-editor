@@ -750,6 +750,10 @@ namespace parsers{
 
     void load_nations_common(state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "Parse nations common definitions\n";
+        if (!std::filesystem::exists(path + "/common/countries")) {
+            std::cout << path + "/common/countries" << " is missing." << "\n";
+            return;
+        }
         for (auto& entry : std::filesystem::directory_iterator  {path + "/common/countries"}) {
             if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
                 auto name = entry.path().filename().string();
