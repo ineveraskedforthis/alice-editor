@@ -15,8 +15,8 @@
 
 
 //we need only declarations here
-#include "../stbimage/stb_image.h"
-#include "../stbimage/stb_image_write.h"
+#include "SOIL2.h"
+// #include "stb_image_write.h"
 
 #include "../editor-state/editor-state.hpp"
 #include "../assets-manager/assets.hpp"
@@ -232,7 +232,7 @@ namespace widgets {
                 int size_y;
                 int channels;
 
-                auto flag_data = stbi_load(
+                auto flag_data = SOIL_load_image(
                     (flag_path).c_str(),
                     &size_x,
                     &size_y,

@@ -22,11 +22,7 @@
 #include "../misc.hpp"
 #include "../editor-state/editor-enums.hpp"
 
-#define STB_IMAGE_IMPLEMENTATION
-#include "../stbimage/stb_image.h"
-#define STB_IMAGE_WRITE_IMPLEMENTATION
-#include "../stbimage/stb_image_write.h"
-
+#include "SOIL2.h"
 
 namespace parsers{
 
@@ -327,7 +323,7 @@ namespace parsers{
         auto has_v2_provinces = std::filesystem::exists(path + "/map/provinces.bmp");
 
         if (has_alice_provinces) {
-            auto map = stbi_load(
+            auto map = SOIL_load_image(
                 (path + "/map/alice_provinces.png").c_str(),
                 &size_x,
                 &size_y,
@@ -342,7 +338,7 @@ namespace parsers{
             result.update_available_colors();
             layer.provinces_image = std::move(result);
         } else if (has_v2_provinces) {
-            auto map = stbi_load(
+            auto map = SOIL_load_image(
                 (path + "/map/provinces.bmp").c_str(),
                 &size_x,
                 &size_y,
@@ -952,13 +948,13 @@ namespace parsers{
         std::filesystem::create_directory(path + "/map");
 
         std::cout << "write provinces image";
-        stbi_write_png(
+        SOIL_save_image(
             (path + "/map/alice_provinces.png").c_str(),
+            SOIL_SAVE_TYPE_PNG,
             layer.provinces_image->size_x,
             layer.provinces_image->size_y,
             4,
-            layer.provinces_image->provinces_image_data,
-            0
+            layer.provinces_image->provinces_image_data
         );
     }
 
@@ -1150,7 +1146,7 @@ border_cutoff = 1100.0
             int size_x;
             int size_y;
             int channels;
-            auto flag_data = stbi_load(
+            auto flag_data = SOIL_load_image(
                 conversions::wstring_to_utf8(flag_path).c_str(),
                 &size_x,
                 &size_y,
@@ -1158,9 +1154,23 @@ border_cutoff = 1100.0
                 3
             );
             if (export_option == state::FLAG_EXPORT_OPTIONS::TGA) {
-                stbi_write_tga((path + "gfx/flags/" + key + ".tga").c_str(), size_x, size_y, 3, flag_data);
+                SOIL_save_image(
+                    (path + "gfx/flags/" + key + ".tga").c_str(),
+                    SOIL_SAVE_TYPE_TGA,
+                    size_x,
+                    size_y,
+                    3,
+                    flag_data
+                );
             } else {
-                stbi_write_png((path + "gfx/flags/" + key + ".png").c_str(), size_x, size_y, 3, flag_data, 0);
+                SOIL_save_image(
+                    (path + "gfx/flags/" + key + ".png").c_str(),
+                    SOIL_SAVE_TYPE_PNG,
+                    size_x,
+                    size_y,
+                    3,
+                    flag_data
+                );
             }
             delete []flag_data;
         }
