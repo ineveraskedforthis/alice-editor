@@ -844,7 +844,9 @@ namespace parsers{
                     file << key << " = yes\n";
             }
             for (auto & [key, value] : value.issues) {
-                file << key << " = " << value << "\n";
+                if (value.size() > 0) {
+                    file << key << " = " << value << "\n";
+                }
             }
         }
     }
