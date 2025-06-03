@@ -58,13 +58,13 @@ namespace widgets {
             if (history->tech.contains(name)) {
                 present = history->tech[name];
             }
+            bool old = present;
 
             ImGui::PushID(row);
             ImGui::Checkbox("##", &present);
             ImGui::SameLine();
             ImGui::Text("%s", name.c_str());
 
-            bool old = present;
             if (old != present)
                 history->tech[name] = present;
 
@@ -88,13 +88,13 @@ namespace widgets {
             if (history->inventions.contains(name)) {
                 present = history->inventions[name];
             }
+            bool old = present;
 
             ImGui::PushID(row);
             ImGui::Checkbox("##", &present);
             ImGui::SameLine();
             ImGui::Text("%s", name.c_str());
 
-            bool old = present;
             if (old != present)
                 history->inventions[name] = present;
 
