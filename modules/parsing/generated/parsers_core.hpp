@@ -9,8 +9,14 @@ namespace state {
 };
 
 namespace parsers {
+
 struct generic_context{
 	state::layer& map;
+};
+
+struct gfx_sprite_context{
+	state::layer& map;
+	game_definition::sprite& sprite;
 };
 
 struct generic_global_context {
@@ -58,6 +64,27 @@ struct inventions_file {
 
 struct technology_sub_file {
 	void finish(technology_context&) { }
+};
+
+struct core_gfx_file {
+	void finish(generic_context&) { }
+};
+
+struct sprites_group {
+	void finish(generic_context&) {}
+};
+
+struct sprite {
+	void finish(generic_context&) {}
+	void name(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void effectfile(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void clicksound(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void loadtype(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void noofframes(association_type, int value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void norefcount(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void texturefile(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void transparencecheck(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void allwaystransparent(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context);
 };
 
 void make_issue(std::string_view name, token_generator& gen, error_handler& err, issue_group_context& context);

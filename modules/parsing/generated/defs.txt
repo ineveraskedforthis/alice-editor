@@ -3,6 +3,31 @@ issue
 	administrative value     bool                   member_fn
 	#any           extern    register_issue_option        discard
 
+sprite
+	name					value		text		member_fn
+	texturefile				value		text		member_fn
+	noofframes				value		int			member_fn
+	effectfile				value		text		member_fn
+	clicksound				value		text		member_fn
+	transparencecheck		value		bool		member_fn
+	allwaystransparent		value		bool		member_fn
+	norefcount 				value		bool		member_fn
+	loadtype				value		text		member_fn
+
+sprites_group
+	spritetype				extern		make_sprite				discard
+	textspritetype			extern		make_text_sprite		discard
+	corneredtilespritetype	extern		make_cornered_sprite	discard
+	maskedshieldtype		extern		make_masked_shield		discard
+
+core_gfx_file
+	spritetypes			extern		handle_sprites		discard
+	lighttypes			extern		save_light_types	discard
+	objecttypes			extern		save_object_types	discard
+	bitmapfonts			extern		save_bitmap_fonts	discard
+	bitmapfont			extern		save_bitmap_font	discard
+	fonts 				extern		save_fonts			discard
+
 issues_group
 	#any           extern    make_issue             discard
 

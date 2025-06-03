@@ -611,6 +611,14 @@ namespace parsers{
         parsers::parse_governments_file(tk, errors, ctx_generic);
     };
 
+    void load_core_gfx_file(state::layer &layer, std::string path, parsers::error_handler& errors) {
+        std::cout << "Parse core.gfx\n";
+        if (!std::filesystem::exists(path + "/interface/core.gfx")) {
+            std::cout << "Not found\n";
+            return;
+        }
+    }
+
     void load_issues_list(state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "Parse issues\n";
         if (!std::filesystem::exists(path + "/common/issues.txt")) {
@@ -826,6 +834,18 @@ namespace parsers{
                 file << "set_global_flag = " << flag << "\n";
             for (auto & dec : value.decision)
                 file << "decision = " << dec << "\n";
+
+            for (auto & [key, value] : value.tech) {
+                if (value)
+                    file << key << " = yes\n";
+            }
+            for (auto & [key, value] : value.inventions) {
+                if (value)
+                    file << key << " = yes\n";
+            }
+            for (auto & [key, value] : value.issues) {
+                file << key << " = " << value << "\n";
+            }
         }
     }
 

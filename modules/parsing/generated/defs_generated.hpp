@@ -61,6 +61,297 @@ issue parse_issue(token_generator& gen, error_handler& err, C&& context) {
 	return cobj;
 }
 template<typename C>
+sprite parse_sprite(token_generator& gen, error_handler& err, C&& context) {
+	sprite cobj;
+	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {
+		if(cur.type == token_type::open_brace) { 
+			err.unhandled_free_group(cur); gen.discard_group();
+			continue;
+		}
+		auto peek_result = gen.next();
+		if(peek_result.type == token_type::special_identifier) {
+			auto peek2_result = gen.next_next();
+			if(peek2_result.type == token_type::open_brace) {
+				gen.get(); gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					err.unhandled_group_key(cur); gen.discard_group();
+					break;
+				}
+			} else {
+				auto const assoc_token = gen.get();
+				auto const assoc_type = parse_association_type(assoc_token.content, assoc_token.line, err);
+				auto const rh_token = gen.get();
+				switch(int32_t(cur.content.length())) {
+				case 4:
+					// name
+					if((true && (*(uint32_t const*)(&cur.content[0]) | uint32_t(0x20202020) ) == uint32_t(0x656D616E))) {
+						cobj.name(assoc_type, parse_text(rh_token.content, rh_token.line, err), err, cur.line, context);
+					} else {
+						err.unhandled_association_key(cur);
+					}
+					break;
+				case 8:
+					// loadtype
+					if((true && (*(uint64_t const*)(&cur.content[0]) | uint64_t(0x2020202020202020) ) == uint64_t(0x6570797464616F6C))) {
+						cobj.loadtype(assoc_type, parse_text(rh_token.content, rh_token.line, err), err, cur.line, context);
+					} else {
+						err.unhandled_association_key(cur);
+					}
+					break;
+				case 10:
+					switch(0x20 | int32_t(cur.content[0])) {
+					case 0x63:
+						// clicksound
+						if((true && (*(uint64_t const*)(&cur.content[1]) | uint64_t(0x2020202020202020) ) == uint64_t(0x6E756F736B63696C) && (cur.content[9] | 0x20 ) == 0x64)) {
+							cobj.clicksound(assoc_type, parse_text(rh_token.content, rh_token.line, err), err, cur.line, context);
+						} else {
+							err.unhandled_association_key(cur);
+						}
+						break;
+					case 0x65:
+						// effectfile
+						if((true && (*(uint64_t const*)(&cur.content[1]) | uint64_t(0x2020202020202020) ) == uint64_t(0x6C69667463656666) && (cur.content[9] | 0x20 ) == 0x65)) {
+							cobj.effectfile(assoc_type, parse_text(rh_token.content, rh_token.line, err), err, cur.line, context);
+						} else {
+							err.unhandled_association_key(cur);
+						}
+						break;
+					case 0x6E:
+						// NO
+						// running -  O
+						if((true && (cur.content[1] | 0x20 ) == 0x6F)) {
+							switch(0x20 | int32_t(cur.content[2])) {
+							case 0x6F:
+								// noofframes
+								if((true && (*(uint32_t const*)(&cur.content[3]) | uint32_t(0x20202020) ) == uint32_t(0x61726666) && (*(uint16_t const*)(&cur.content[7]) | 0x2020 ) == 0x656D && (cur.content[9] | 0x20 ) == 0x73)) {
+									cobj.noofframes(assoc_type, parse_int(rh_token.content, rh_token.line, err), err, cur.line, context);
+								} else {
+									err.unhandled_association_key(cur);
+								}
+								break;
+							case 0x72:
+								// norefcount
+								if((true && (*(uint32_t const*)(&cur.content[3]) | uint32_t(0x20202020) ) == uint32_t(0x6F636665) && (*(uint16_t const*)(&cur.content[7]) | 0x2020 ) == 0x6E75 && (cur.content[9] | 0x20 ) == 0x74)) {
+									cobj.norefcount(assoc_type, parse_bool(rh_token.content, rh_token.line, err), err, cur.line, context);
+								} else {
+									err.unhandled_association_key(cur);
+								}
+								break;
+							default:
+								err.unhandled_association_key(cur);
+								break;
+							}
+						} else {
+							err.unhandled_association_key(cur);
+							}
+						break;
+					default:
+						err.unhandled_association_key(cur);
+						break;
+					}
+					break;
+				case 11:
+					// texturefile
+					if((true && (*(uint64_t const*)(&cur.content[0]) | uint64_t(0x2020202020202020) ) == uint64_t(0x6665727574786574) && (*(uint16_t const*)(&cur.content[8]) | 0x2020 ) == 0x6C69 && (cur.content[10] | 0x20 ) == 0x65)) {
+						cobj.texturefile(assoc_type, parse_text(rh_token.content, rh_token.line, err), err, cur.line, context);
+					} else {
+						err.unhandled_association_key(cur);
+					}
+					break;
+				case 17:
+					// transparencecheck
+					if((true && (*(uint64_t const*)(&cur.content[0]) | uint64_t(0x2020202020202020) ) == uint64_t(0x726170736E617274) && (*(uint64_t const*)(&cur.content[8]) | uint64_t(0x2020202020202020) ) == uint64_t(0x6365686365636E65) && (cur.content[16] | 0x20 ) == 0x6B)) {
+						cobj.transparencecheck(assoc_type, parse_bool(rh_token.content, rh_token.line, err), err, cur.line, context);
+					} else {
+						err.unhandled_association_key(cur);
+					}
+					break;
+				case 18:
+					// allwaystransparent
+					if((true && (*(uint64_t const*)(&cur.content[0]) | uint64_t(0x2020202020202020) ) == uint64_t(0x74737961776C6C61) && (*(uint64_t const*)(&cur.content[8]) | uint64_t(0x2020202020202020) ) == uint64_t(0x65726170736E6172) && (*(uint16_t const*)(&cur.content[16]) | 0x2020 ) == 0x746E)) {
+						cobj.allwaystransparent(assoc_type, parse_bool(rh_token.content, rh_token.line, err), err, cur.line, context);
+					} else {
+						err.unhandled_association_key(cur);
+					}
+					break;
+				default:
+					err.unhandled_association_key(cur);
+					break;
+				}
+			}
+		} else {
+			err.unhandled_free_value(cur);
+		}
+	}
+	cobj.finish(context);
+	return cobj;
+}
+template<typename C>
+sprites_group parse_sprites_group(token_generator& gen, error_handler& err, C&& context) {
+	sprites_group cobj;
+	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {
+		if(cur.type == token_type::open_brace) { 
+			err.unhandled_free_group(cur); gen.discard_group();
+			continue;
+		}
+		auto peek_result = gen.next();
+		if(peek_result.type == token_type::special_identifier) {
+			auto peek2_result = gen.next_next();
+			if(peek2_result.type == token_type::open_brace) {
+				gen.get(); gen.get();
+				switch(int32_t(cur.content.length())) {
+				case 10:
+					// spritetype
+					if((true && (*(uint64_t const*)(&cur.content[0]) | uint64_t(0x2020202020202020) ) == uint64_t(0x7974657469727073) && (*(uint16_t const*)(&cur.content[8]) | 0x2020 ) == 0x6570)) {
+						make_sprite(gen, err, context);
+					} else {
+						err.unhandled_group_key(cur); gen.discard_group();
+					}
+					break;
+				case 14:
+					// textspritetype
+					if((true && (*(uint64_t const*)(&cur.content[0]) | uint64_t(0x2020202020202020) ) == uint64_t(0x6972707374786574) && (*(uint32_t const*)(&cur.content[8]) | uint32_t(0x20202020) ) == uint32_t(0x79746574) && (*(uint16_t const*)(&cur.content[12]) | 0x2020 ) == 0x6570)) {
+						make_text_sprite(gen, err, context);
+					} else {
+						err.unhandled_group_key(cur); gen.discard_group();
+					}
+					break;
+				case 16:
+					// maskedshieldtype
+					if((true && (*(uint64_t const*)(&cur.content[0]) | uint64_t(0x2020202020202020) ) == uint64_t(0x687364656B73616D) && (*(uint64_t const*)(&cur.content[8]) | uint64_t(0x2020202020202020) ) == uint64_t(0x65707974646C6569))) {
+						make_masked_shield(gen, err, context);
+					} else {
+						err.unhandled_group_key(cur); gen.discard_group();
+					}
+					break;
+				case 22:
+					// corneredtilespritetype
+					if((true && (*(uint64_t const*)(&cur.content[0]) | uint64_t(0x2020202020202020) ) == uint64_t(0x646572656E726F63) && (*(uint64_t const*)(&cur.content[8]) | uint64_t(0x2020202020202020) ) == uint64_t(0x69727073656C6974) && (*(uint32_t const*)(&cur.content[16]) | uint32_t(0x20202020) ) == uint32_t(0x79746574) && (*(uint16_t const*)(&cur.content[20]) | 0x2020 ) == 0x6570)) {
+						make_cornered_sprite(gen, err, context);
+					} else {
+						err.unhandled_group_key(cur); gen.discard_group();
+					}
+					break;
+				default:
+					err.unhandled_group_key(cur); gen.discard_group();
+					break;
+				}
+			} else {
+				auto const assoc_token = gen.get();
+				auto const assoc_type = parse_association_type(assoc_token.content, assoc_token.line, err);
+				auto const rh_token = gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					err.unhandled_association_key(cur);
+					break;
+				}
+			}
+		} else {
+			err.unhandled_free_value(cur);
+		}
+	}
+	cobj.finish(context);
+	return cobj;
+}
+template<typename C>
+core_gfx_file parse_core_gfx_file(token_generator& gen, error_handler& err, C&& context) {
+	core_gfx_file cobj;
+	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {
+		if(cur.type == token_type::open_brace) { 
+			err.unhandled_free_group(cur); gen.discard_group();
+			continue;
+		}
+		auto peek_result = gen.next();
+		if(peek_result.type == token_type::special_identifier) {
+			auto peek2_result = gen.next_next();
+			if(peek2_result.type == token_type::open_brace) {
+				gen.get(); gen.get();
+				switch(int32_t(cur.content.length())) {
+				case 5:
+					// fonts
+					if((true && (*(uint32_t const*)(&cur.content[0]) | uint32_t(0x20202020) ) == uint32_t(0x746E6F66) && (cur.content[4] | 0x20 ) == 0x73)) {
+						save_fonts(gen, err, context);
+					} else {
+						err.unhandled_group_key(cur); gen.discard_group();
+					}
+					break;
+				case 10:
+					switch(0x20 | int32_t(cur.content[0])) {
+					case 0x62:
+						// bitmapfont
+						if((true && (*(uint64_t const*)(&cur.content[1]) | uint64_t(0x2020202020202020) ) == uint64_t(0x6E6F6670616D7469) && (cur.content[9] | 0x20 ) == 0x74)) {
+							save_bitmap_font(gen, err, context);
+						} else {
+							err.unhandled_group_key(cur); gen.discard_group();
+						}
+						break;
+					case 0x6C:
+						// lighttypes
+						if((true && (*(uint64_t const*)(&cur.content[1]) | uint64_t(0x2020202020202020) ) == uint64_t(0x6570797474686769) && (cur.content[9] | 0x20 ) == 0x73)) {
+							save_light_types(gen, err, context);
+						} else {
+							err.unhandled_group_key(cur); gen.discard_group();
+						}
+						break;
+					default:
+						err.unhandled_group_key(cur); gen.discard_group();
+						break;
+					}
+					break;
+				case 11:
+					switch(0x20 | int32_t(cur.content[0])) {
+					case 0x62:
+						// bitmapfonts
+						if((true && (*(uint64_t const*)(&cur.content[1]) | uint64_t(0x2020202020202020) ) == uint64_t(0x6E6F6670616D7469) && (*(uint16_t const*)(&cur.content[9]) | 0x2020 ) == 0x7374)) {
+							save_bitmap_fonts(gen, err, context);
+						} else {
+							err.unhandled_group_key(cur); gen.discard_group();
+						}
+						break;
+					case 0x6F:
+						// objecttypes
+						if((true && (*(uint64_t const*)(&cur.content[1]) | uint64_t(0x2020202020202020) ) == uint64_t(0x7079747463656A62) && (*(uint16_t const*)(&cur.content[9]) | 0x2020 ) == 0x7365)) {
+							save_object_types(gen, err, context);
+						} else {
+							err.unhandled_group_key(cur); gen.discard_group();
+						}
+						break;
+					case 0x73:
+						// spritetypes
+						if((true && (*(uint64_t const*)(&cur.content[1]) | uint64_t(0x2020202020202020) ) == uint64_t(0x7079746574697270) && (*(uint16_t const*)(&cur.content[9]) | 0x2020 ) == 0x7365)) {
+							handle_sprites(gen, err, context);
+						} else {
+							err.unhandled_group_key(cur); gen.discard_group();
+						}
+						break;
+					default:
+						err.unhandled_group_key(cur); gen.discard_group();
+						break;
+					}
+					break;
+				default:
+					err.unhandled_group_key(cur); gen.discard_group();
+					break;
+				}
+			} else {
+				auto const assoc_token = gen.get();
+				auto const assoc_type = parse_association_type(assoc_token.content, assoc_token.line, err);
+				auto const rh_token = gen.get();
+				switch(int32_t(cur.content.length())) {
+				default:
+					err.unhandled_association_key(cur);
+					break;
+				}
+			}
+		} else {
+			err.unhandled_free_value(cur);
+		}
+	}
+	cobj.finish(context);
+	return cobj;
+}
+template<typename C>
 issues_group parse_issues_group(token_generator& gen, error_handler& err, C&& context) {
 	issues_group cobj;
 	for(token_and_type cur = gen.get(); cur.type != token_type::unknown && cur.type != token_type::close_brace; cur = gen.get()) {

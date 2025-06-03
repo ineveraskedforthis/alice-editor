@@ -4,7 +4,6 @@
 #include "parsers.hpp"
 
 namespace parsers {
-
 void register_issue_option(std::string_view name, token_generator& gen, error_handler& err, issue_context& context) {
     std::string actual_string {name};
     context.map.issues[context.issue_name].options.push_back(actual_string);
@@ -181,5 +180,38 @@ void nation_handler::ruling_party(association_type, std::string_view value, erro
 void nation_handler::decision(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
     std::string actual_value = {value.begin(), value.end()};
     context.nation.decision.push_back(actual_value);
+};
+
+void sprite::name(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.sprite.name = actual_value;
+};
+void sprite::effectfile(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.sprite.effectfile = actual_value;
+};
+void sprite::clicksound(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.sprite.clicksound = actual_value;
+};
+void sprite::loadtype(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.sprite.loadtype = actual_value;
+};
+void sprite::noofframes(association_type, int value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    context.sprite.noofframes = value;
+};
+void sprite::norefcount(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    context.sprite.norefcount = value;
+};
+void sprite::texturefile(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.sprite.texturefile = actual_value;
+};
+void sprite::transparencecheck(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    context.sprite.transparencecheck = value;
+};
+void sprite::allwaystransparent(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    context.sprite.allwaystransparent = value;
 };
 }

@@ -79,6 +79,20 @@ namespace game_definition {
         std::string unit_names{};
     };
 
+    struct sprite {
+        std::string name;
+        std::string texturefile;
+        std::string effectfile;
+        std::string loadtype;
+        std::string clicksound;
+
+        int noofframes;
+
+        bool transparencecheck;
+        bool allwaystransparent;
+        bool norefcount;
+    };
+
     struct nation_history {
         std::string history_file_name{};
         std::string primary_culture{};
