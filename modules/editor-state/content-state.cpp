@@ -43,6 +43,70 @@ void province_map::update_available_colors() {
     //         }
 }
 
+void province_map::recalculate_present_colors() {
+    color_present.clear();
+    color_present.resize(256 * 256 * 256);
+
+    for (auto i = 0; i < size_x * size_y; i++) {
+        // std::cout << i << " ";
+        auto r = provinces_image_data[4 * i + 0];
+        auto g = provinces_image_data[4 * i + 1];
+        auto b = provinces_image_data[4 * i + 2];
+        auto rgb = rgb_to_uint(r, g, b);
+        color_present[rgb] = true;
+    }
+}
+
+void province_map::populate_adjacent_colors(uint32_t rgb, std::vector<uint32_t> & result) {
+    ankerl::unordered_dense::map<uint32_t, bool> temp_result {};
+    for (auto x = 0; x < size_x - 1; x++) {
+        for (auto y = 0; y < size_y - 1; y++) {
+            auto local = y * size_x + x;
+            auto bottom = (y + 1) * size_x + (x);
+            auto right = (y) * size_x + (x + 1);
+
+            uint32_t local_rgb;
+            {
+                auto r = provinces_image_data[4 * local + 0];
+                auto g = provinces_image_data[4 * local + 1];
+                auto b = provinces_image_data[4 * local + 2];
+                local_rgb = rgb_to_uint(r, g, b);
+            }
+
+            uint32_t bottom_rgb;
+            {
+                auto r = provinces_image_data[4 * bottom + 0];
+                auto g = provinces_image_data[4 * bottom + 1];
+                auto b = provinces_image_data[4 * bottom + 2];
+                bottom_rgb = rgb_to_uint(r, g, b);
+            }
+
+            uint32_t right_rgb;
+            {
+                auto r = provinces_image_data[4 * right + 0];
+                auto g = provinces_image_data[4 * right + 1];
+                auto b = provinces_image_data[4 * right + 2];
+                right_rgb = rgb_to_uint(r, g, b);
+            }
+
+
+            if (local_rgb == rgb) {
+                temp_result[bottom_rgb] = true;
+                temp_result[right_rgb] = true;
+            }
+            if (bottom_rgb == rgb) {
+                temp_result[local_rgb] = true;
+            }
+            if (right_rgb == rgb) {
+                temp_result[local_rgb] = true;
+            }
+        }
+    }
+    for (auto [key, value] : temp_result) {
+        result.push_back(key);
+    }
+}
+
 glm::vec2 screen_to_texture(
     int x_in,
     int y_in,
