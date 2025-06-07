@@ -75,7 +75,7 @@ struct sprites_group {
 };
 
 struct sprite {
-	void finish(generic_context&) {}
+	void finish(gfx_sprite_context&) {}
 	void name(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
 	void effectfile(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
 	void clicksound(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
@@ -83,9 +83,23 @@ struct sprite {
 	void noofframes(association_type, int value, error_handler& err, int32_t line, gfx_sprite_context& context);
 	void norefcount(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context);
 	void texturefile(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void texturefile1(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void texturefile2(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
 	void transparencecheck(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context);
 	void allwaystransparent(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context);
 };
+
+void make_sprite(token_generator& gen, error_handler& err, generic_context& context);
+void make_text_sprite(token_generator& gen, error_handler& err, generic_context& context);
+void make_masked_shield(token_generator& gen, error_handler& err, generic_context& context);
+void make_cornered_sprite(token_generator& gen, error_handler& err, generic_context& context);
+
+void handle_sprites_group(token_generator& gen, error_handler& err, generic_context& context);
+void save_light_types(token_generator& gen, error_handler& err, generic_context& context);
+void save_object_types(token_generator& gen, error_handler& err, generic_context& context);
+void save_bitmap_fonts(token_generator& gen, error_handler& err, generic_context& context);
+void save_bitmap_font(token_generator& gen, error_handler& err, generic_context& context);
+void save_fonts(token_generator& gen, error_handler& err, generic_context& context);
 
 void make_issue(std::string_view name, token_generator& gen, error_handler& err, issue_group_context& context);
 void make_issues_group(std::string_view name, token_generator& gen, error_handler& err, generic_context& context);
@@ -114,10 +128,12 @@ struct government_type {
 	void finish(government_type_context&) { }
 };
 
-//forward declaration for according cpp file
+//forward declaration for the correspording cpp file
 
 template<typename C>
 government_type parse_government_type(token_generator& gen, error_handler& err, C&& context);
+
+sprites_group parse_sprites_group(token_generator& gen, error_handler& err, generic_context&& context);
 
 struct nation_history_file{
     game_definition::nation_history& nation;
@@ -174,5 +190,4 @@ struct nation_handler {
 	void ruling_party(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
 	void decision(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
 };
-
 };

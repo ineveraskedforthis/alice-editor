@@ -15,6 +15,9 @@ ParserGenerator/.ninja_log
 ParserGenerator/ParserGenerator.exe
 ParserGenerator/ParserGenerator.exe.d
 
+modules/parsing/generated/generated_parser.cpp
+modules/parsing/generated/generated_parser.hpp
+
 SOIL2
 
 .vscode

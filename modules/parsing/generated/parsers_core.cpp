@@ -1,5 +1,6 @@
 #include <string>
 #include "parsers_core.hpp"
+#include "generated_parser.hpp"
 #include "../editor-state/content-state.hpp"
 #include "parsers.hpp"
 
@@ -208,10 +209,137 @@ void sprite::texturefile(association_type, std::string_view value, error_handler
     std::string actual_value = {value.begin(), value.end()};
     context.sprite.texturefile = actual_value;
 };
+void sprite::texturefile1(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.sprite.texturefile1 = actual_value;
+};
+void sprite::texturefile2(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.sprite.texturefile2 = actual_value;
+};
 void sprite::transparencecheck(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context){
     context.sprite.transparencecheck = value;
 };
 void sprite::allwaystransparent(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context){
     context.sprite.allwaystransparent = value;
 };
+
+
+void handle_sprites_group(token_generator& gen, error_handler& err, generic_context& context){
+    parse_sprites_group(gen, err, context);
+}
+
+void stupid_parsing(token_generator& gen, std::string& result) {
+    auto balance = 1;
+    result += " { ";
+    for(token_and_type cur = gen.get(); cur.type != token_type::unknown && balance > 0; cur = gen.get()) {
+        if (cur.type == token_type::quoted_string) {
+            result += '"';
+            result += cur.content;
+            result += '"';
+        } else {
+            result += cur.content;
+        }
+        if (cur.type == token_type::open_brace) {
+            balance++;
+        }
+        if (cur.type == token_type::close_brace) {
+            balance--;
+        }
+
+        if (balance <= 0) {
+            break;
+        }
+
+        result += " ";
+    }
+}
+
+void save_light_types(token_generator& gen, error_handler& err, generic_context& context) {
+    std::string data;
+    stupid_parsing(gen, data);
+    context.map.lightTypes_text.push_back(data);
+}
+void save_object_types(token_generator& gen, error_handler& err, generic_context& context){
+    std::string data;
+    stupid_parsing(gen, data);
+    context.map.objectTypes_text.push_back(data);
+}
+void save_bitmap_fonts(token_generator& gen, error_handler& err, generic_context& context){
+    std::string data;
+    stupid_parsing(gen, data);
+    context.map.bitmapfonts_text.push_back(data);
+}
+void save_bitmap_font(token_generator& gen, error_handler& err, generic_context& context){
+    std::string data;
+    stupid_parsing(gen, data);
+    context.map.bitmapfont_text.push_back(data);
+}
+void save_fonts(token_generator& gen, error_handler& err, generic_context& context){
+    std::string data;
+    stupid_parsing(gen, data);
+    context.map.fonts_text.push_back(data);
+}
+
+void make_sprite(token_generator& gen, error_handler& err, generic_context& context) {
+    game_definition::sprite result {};
+    gfx_sprite_context ctx {
+        .map = context.map,
+        .sprite = result,
+    };
+    parse_sprite(gen, err, ctx);
+    context.map.sprites.push_back(result);
+}
+void make_text_sprite(token_generator& gen, error_handler& err, generic_context& context) {
+    game_definition::sprite result {};
+    gfx_sprite_context ctx {
+        .map = context.map,
+        .sprite = result,
+    };
+    parse_sprite(gen, err, ctx);
+    context.map.text_sprites.push_back(result);
+}
+void make_masked_shield(token_generator& gen, error_handler& err, generic_context& context) {
+    game_definition::sprite result {};
+    gfx_sprite_context ctx {
+        .map = context.map,
+        .sprite = result,
+    };
+    parse_sprite(gen, err, ctx);
+    context.map.masked_shields.push_back(result);
+}
+void make_cornered_sprite(token_generator& gen, error_handler& err, generic_context& context) {
+    game_definition::sprite result {};
+    gfx_sprite_context ctx {
+        .map = context.map,
+        .sprite = result,
+    };
+    parse_sprite(gen, err, ctx);
+    context.map.cornered_sprites.push_back(result);
+}
+
+
+void make_issue(std::string_view name, token_generator& gen, error_handler& err, issue_group_context& context) {
+    std::string actual_string {name};
+    issue_context new_context(context.map, actual_string);
+    game_definition::issue issue{actual_string};
+    context.map.issues[actual_string] = issue;
+    std::cout << "detect issue: " << actual_string << "\n";
+    parse_issue(gen, err, new_context);
+};
+
+void make_issues_group(std::string_view name, token_generator& gen, error_handler& err, generic_context& context) {
+    std::string actual_string {name};
+    issue_group_context new_context(context.map, actual_string);
+    parse_issues_group(gen, err, new_context);
+};
+
+void create_government_type(std::string_view name, parsers::token_generator &gen, parsers::error_handler &err, parsers::generic_context &context) {
+    context.map.governments.emplace_back();
+    context.map.governments.back().name = name;
+    parsers::government_type_context ctx {
+        context.map, context.map.governments.back()
+    };
+    parse_government_type(gen, err, ctx);
+}
 }

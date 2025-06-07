@@ -591,49 +591,41 @@ std::string construct_match_tree_outer(auto const& vector, auto const& generator
 	return output;
 }
 
-void file_write_out(std::fstream& stream, std::vector<group_contents>& groups) {
+void file_write_out(std::fstream& stream, std::vector<group_contents>& groups, bool definitions, std::string include_header) {
 	//	process the parsed content into the generated file
 	std::string output;
+	if (!definitions) {
+		output += "#pragma once\n";
+	}
 	output += "#include \"parsers.hpp\"\n";
 	output += "#include \"parsers_core.hpp\"\n";
+	if (include_header.size() > 0) {
+		output += "#include \"" + include_header + "\"\n";
+	}
 	// output += "#pragma warning( push )\n";
 	// output += "#pragma warning( disable : 4065 )\n";
 	// output += "#pragma warning( disable : 4189 )\n";
 	output += "\n";
 	output += "namespace parsers {\n";
 	// fn bodies
-	std::vector<bool> declared_groups(groups.size(), false);
 	for(size_t i = 0; i < groups.size(); i++) {
 		auto const& g = groups[i];
-		// declare fns only when needed
-		for(size_t j = 0; j < groups.size(); j++)
-			if(!declared_groups[j]) {
-				bool fwd_decl = false;
-				auto const& f = groups[j];
-				fwd_decl = f.group_object_type == g.any_group_handler.handler.opt
-					|| f.group_object_type == g.set_handler.handler.opt
-					|| f.group_object_type == g.any_value_handler.handler.opt;
-				for(const auto& e : g.groups)
-					fwd_decl = fwd_decl || f.group_object_type == e.handler.opt;
-				for(const auto& e : g.values)
-					fwd_decl = fwd_decl || f.group_object_type == e.handler.opt;
-				if(fwd_decl) {
-					declared_groups[j] = fwd_decl;
-					if(g.group_context_type.empty()) {
-						output += "template<typename C>\n";
-						output += g.group_object_type + " parse_" + g.group_object_type + "(token_generator& gen, error_handler& err, C&& context);\n";
-					} else {
-						output += g.group_object_type + " parse_" + g.group_object_type + "(token_generator& gen, error_handler& err, " + g.group_context_type + "&& context);\n";
-					}
-				}
+
+		if (!definitions) {
+			if(g.group_context_type.empty()) {
+				output += "template<typename C>\n";
+				output += g.group_object_type + " parse_" + g.group_object_type + "(token_generator& gen, error_handler& err, C&& context);\n";
+			} else {
+				output += g.group_object_type + " parse_" + g.group_object_type + "(token_generator& gen, error_handler& err, " + g.group_context_type + "& context);\n";
 			}
-		declared_groups[i] = true;
+			continue;
+		}
 
 		if(g.group_context_type.empty()) {
 			output += "template<typename C>\n";
 			output += g.group_object_type + " parse_" + g.group_object_type + "(token_generator& gen, error_handler& err, C&& context) {\n";
 		} else {
-			output += g.group_object_type + " parse_" + g.group_object_type + "(token_generator& gen, error_handler& err, " + g.group_context_type + "&& context) {\n";
+			output += g.group_object_type + " parse_" + g.group_object_type + "(token_generator& gen, error_handler& err, " + g.group_context_type + "& context) {\n";
 		}
 
 		output += "\t" + g.group_object_type + " cobj;\n";
@@ -894,20 +886,17 @@ void file_write_out(std::fstream& stream, std::vector<group_contents>& groups) {
 };
 
 int main(int argc, char *argv[]) {
-	if(argc > 1) {
+	if(argc > 2) {
 		auto const input_filename = std::string(argv[1]);
 		std::string output_filename;
-		if(argc > 2) {
-			output_filename = std::string(argv[2]);
-		} else {
-			output_filename = std::string(argv[1]);
-			if(output_filename.length() >= 4 && output_filename[output_filename.length() - 4] == '.') {
-				output_filename.pop_back();
-				output_filename.pop_back();
-				output_filename.pop_back();
-				output_filename.pop_back();
-			}
-			output_filename += "_generated.hpp";
+		output_filename = std::string(argv[2]);
+
+		bool definitions = false;
+
+		std::string include_header = "";
+		if (argc > 3) {
+			include_header = std::string(argv[3]);
+			definitions = true;
 		}
 
 		std::fstream input_file;
@@ -926,9 +915,9 @@ int main(int argc, char *argv[]) {
 			std::exit(EXIT_FAILURE);
 
 		cxx_tree_builder tree_builder{};
-		tree_builder.file_write_out(output_file, state.groups);
+		tree_builder.file_write_out(output_file, state.groups, definitions, include_header);
 	} else {
-		fprintf(stderr, "Usage: %s <input> [output]\n", argv[0]);
+		fprintf(stderr, "Usage: %s <input> <output> [header name]\n", argv[0]);
 	}
 	return 0;
 }

@@ -278,6 +278,19 @@ struct layer {
     ankerl::unordered_dense::map<std::wstring, bool> has_invention{};
     ankerl::unordered_dense::map<std::string, game_definition::issue> issues{};
     bool has_issues = false;
+
+
+    // interface description
+    std::vector<game_definition::sprite> sprites{};
+    std::vector<game_definition::sprite> text_sprites{};
+    std::vector<game_definition::sprite> masked_shields{};
+    std::vector<game_definition::sprite> cornered_sprites{};
+    std::vector<std::string> lightTypes_text{};
+    std::vector<std::string> objectTypes_text{};
+    std::vector<std::string> bitmapfonts_text{};
+    std::vector<std::string> bitmapfont_text{};
+    std::vector<std::string> fonts_text{};
+    bool has_core_gfx = false;
 };
 
 struct layers_stack {

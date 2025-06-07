@@ -12,7 +12,7 @@
 #include "definitions.hpp"
 #include "generated/parsers.hpp"
 #include "generated/parsers_core.hpp"
-#include "generated/defs_generated.hpp"
+#include "generated/generated_parser.hpp"
 #include "parser.hpp"
 #include "secondary_rgo.hpp"
 #include "state_building.hpp"
@@ -25,32 +25,6 @@
 #include "SOIL2.h"
 
 namespace parsers{
-
-    void make_issue(std::string_view name, token_generator& gen, error_handler& err, issue_group_context& context) {
-        std::string actual_string {name};
-        issue_context new_context(context.map, actual_string);
-        game_definition::issue issue{actual_string};
-        context.map.issues[actual_string] = issue;
-        std::cout << "detect issue: " << actual_string << "\n";
-        parse_issue(gen, err, new_context);
-    };
-
-    void make_issues_group(std::string_view name, token_generator& gen, error_handler& err, generic_context& context) {
-        std::string actual_string {name};
-        issue_group_context new_context(context.map, actual_string);
-        parse_issues_group(gen, err, new_context);
-    };
-
-
-    void create_government_type(std::string_view name, parsers::token_generator &gen, parsers::error_handler &err, parsers::generic_context &context) {
-        context.map.governments.emplace_back();
-        context.map.governments.back().name = name;
-        parsers::government_type_context ctx {
-            context.map, context.map.governments.back()
-        };
-        parse_government_type(gen, err, ctx);
-    }
-
     enum class PARSER_TASK {
         READING_SPACE, READING_WORD
     };
@@ -610,14 +584,6 @@ namespace parsers{
         parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
         parsers::parse_governments_file(tk, errors, ctx_generic);
     };
-
-    void load_core_gfx_file(state::layer &layer, std::string path, parsers::error_handler& errors) {
-        std::cout << "Parse core.gfx\n";
-        if (!std::filesystem::exists(path + "/interface/core.gfx")) {
-            std::cout << "Not found\n";
-            return;
-        }
-    }
 
     void load_issues_list(state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "Parse issues\n";
@@ -1198,6 +1164,112 @@ border_cutoff = 1100.0
         }
     }
 
+    void load_core_gfx(state::layer& layer, std::string path, parsers::error_handler& errors) {
+        std::cout << "Parse core.gfx\n";
+        std::cout << path + "/interface/core.gfx" << "\n";
+        if (!std::filesystem::exists(path + "/interface/core.gfx")) {
+            std::cout << "Not found\n";
+            return;
+        }
+
+        layer.has_core_gfx = true;
+        std::ifstream file(path + "/interface/core.gfx");
+        parsers::generic_context ctx_generic {
+            layer
+        };
+
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        auto str = buffer.str();
+        parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+
+        parsers::parse_core_gfx_file(tk, errors, ctx_generic);
+    }
+
+    void write_gfx(game_definition::sprite& item, std::ofstream& file) {
+        file << "\t\tname = " << item.name << "\n";
+        if (item.texturefile.size() > 0) {
+            file << "\t\ttexturefile = \"" << item.texturefile << "\"\n";
+        }
+        if (item.texturefile1.size() > 0) {
+            file << "\t\ttextureFile1 = \"" << item.texturefile << "\"\n";
+        }
+        if (item.texturefile2.size() > 0) {
+            file << "\t\ttextureFile2 = \"" << item.texturefile << "\"\n";
+        }
+        if (item.noofframes > 0) {
+            file << "\t\tnoOfFrames = " << item.noofframes << "\n";
+        }
+        if (item.loadtype.size() > 0) {
+            file << "\t\tloadType = \"" << item.loadtype << "\"\n";
+        }
+        if (item.effectfile.size() > 0) {
+            file << "\t\teffectFile = \"" << item.effectfile << "\"\n";
+        }
+        if (item.clicksound.size() > 0) {
+            file << "\t\tclicksound = " << item.clicksound << "\n";
+        }
+        if (item.transparencecheck) {
+            file << "\t\ttransparencecheck = yes\n";
+        }
+        if (item.norefcount) {
+            file << "\t\tnorefcount = yes\n";
+        }
+        if (item.allwaystransparent) {
+            file << "\t\tallwaystransparent = yes\n";
+        }
+    }
+
+    void unload_core_gfx(state::layer& layer, std::string path) {
+        if (!layer.has_core_gfx) {
+            return;
+        }
+
+        std::filesystem::create_directory(path + "/interface");
+        std::ofstream file(path + "/interface/core.gfx");
+
+        file << "spriteTypes = {\n";
+
+        for (auto & item : layer.sprites) {
+            file << "\tspriteType = {\n";
+            write_gfx(item, file);
+            file << "\t}\n";
+        }
+        for (auto & item : layer.text_sprites) {
+            file << "\ttextSpriteType = {\n";
+            write_gfx(item, file);
+            file << "\t}\n";
+        }
+        for (auto & item : layer.masked_shields) {
+            file << "\tmaskedShieldType = {\n";
+            write_gfx(item, file);
+            file << "\t}\n";
+        }
+        for (auto & item : layer.cornered_sprites) {
+            file << "\tcorneredTileSpriteType = {\n";
+            write_gfx(item, file);
+            file << "\t}\n";
+        }
+
+        file << "}\n";
+
+        for (auto & item : layer.lightTypes_text) {
+            file << "lightTypes = " << item << "\n";
+        }
+        for (auto & item : layer.objectTypes_text) {
+            file << "objectTypes = " << item << "\n";
+        }
+        for (auto & item : layer.bitmapfonts_text) {
+            file << "bitmapfonts = " << item << "\n";
+        }
+        for (auto & item : layer.bitmapfont_text) {
+            file << "bitmapfont = " << item << "\n";
+        }
+        for (auto & item : layer.fonts_text) {
+            file << "fonts = " << item << "\n";
+        }
+    }
+
     void load_layer(state::layers_stack& state, state::layer &layer) {
         parsers::error_handler errors("parsing_errors.txt");
 
@@ -1214,6 +1286,7 @@ border_cutoff = 1100.0
         load_nations_common(layer, layer.path, errors);
         load_nation_history(state, layer, layer.path, errors);
         load_province_history(layer, layer.path, errors);
+        load_core_gfx(layer, layer.path, errors);
 
         std::cout << errors.accumulated_errors;
     }
@@ -1233,5 +1306,6 @@ border_cutoff = 1100.0
         unload_nation_history(layer, path);
         unload_province_history(layer, conversions::utf8_to_wstring(path));
         unload_flags(layer, path, flag_option);
+        unload_core_gfx(layer, path);
     }
 }

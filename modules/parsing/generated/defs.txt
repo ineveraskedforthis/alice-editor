@@ -1,11 +1,15 @@
 issue
+#issue_context
 	next_step_only value     bool                   member_fn
 	administrative value     bool                   member_fn
 	#any           extern    register_issue_option        discard
 
 sprite
+#gfx_sprite_context
 	name					value		text		member_fn
 	texturefile				value		text		member_fn
+	texturefile1			value		text		member_fn
+	texturefile2			value		text		member_fn
 	noofframes				value		int			member_fn
 	effectfile				value		text		member_fn
 	clicksound				value		text		member_fn
@@ -15,13 +19,16 @@ sprite
 	loadtype				value		text		member_fn
 
 sprites_group
+#generic_context
 	spritetype				extern		make_sprite				discard
 	textspritetype			extern		make_text_sprite		discard
 	corneredtilespritetype	extern		make_cornered_sprite	discard
 	maskedshieldtype		extern		make_masked_shield		discard
 
+
 core_gfx_file
-	spritetypes			extern		handle_sprites		discard
+#generic_context
+	spritetypes			extern		handle_sprites_group		discard
 	lighttypes			extern		save_light_types	discard
 	objecttypes			extern		save_object_types	discard
 	bitmapfonts			extern		save_bitmap_fonts	discard
@@ -29,21 +36,27 @@ core_gfx_file
 	fonts 				extern		save_fonts			discard
 
 issues_group
+#issue_group_context
 	#any           extern    make_issue             discard
 
 issues_file
+#generic_context
 	#any           extern    make_issues_group      discard
 
 technology_sub_file
+#technology_context
 	#any           extern     register_technology       discard
 
 inventions_file
+#technology_context
 	#any           extern     register_invention        discard
 
 governments_file
+#generic_context
 	#any           extern    create_government_type        discard
 
 government_type
+#government_type_context
 	flagtype                 value     text        member_fn
 	election                 value     bool        member_fn
 	duration                 value     int         member_fn
@@ -51,16 +64,20 @@ government_type
 	#any                     value     bool        member_fn
 
 national_flag_handler
+#nation_history_file
 	government                      value      text                              member_fn
 	flag                            value      text                              member_fn
 
 upper_house_handler
+#nation_history_file
 	#any                            value      float                             member_fn
 
 foreign_investment_handler
+#nation_history_file
 	#any                            value      float                             member_fn
 
 nation_handler
+#nation_history_file
 	#any                            extern     enter_country_file_dated_block    discard
 	#any                            value      text                              member_fn
 	primary_culture                 value      text                              member_fn

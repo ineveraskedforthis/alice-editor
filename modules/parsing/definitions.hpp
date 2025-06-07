@@ -80,17 +80,20 @@ namespace game_definition {
     };
 
     struct sprite {
-        std::string name;
-        std::string texturefile;
-        std::string effectfile;
-        std::string loadtype;
-        std::string clicksound;
+        std::string key{};
+        std::string name{};
+        std::string texturefile{};
+        std::string texturefile1{};
+        std::string texturefile2{};
+        std::string effectfile{};
+        std::string loadtype{};
+        std::string clicksound{};
 
-        int noofframes;
+        int noofframes=0;
 
-        bool transparencecheck;
-        bool allwaystransparent;
-        bool norefcount;
+        bool transparencecheck = false;
+        bool allwaystransparent = false;
+        bool norefcount = false;
     };
 
     struct nation_history {
