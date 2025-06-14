@@ -197,6 +197,253 @@ namespace widgets {
         return path;
     }
 
+    void commodity_widget_definition(state::layers_stack& layers, std::string commodity_name) {
+        state::layer& active_layer = layers.data[layers.current_layer_index];
+        auto commodity = layers.get_commodity_definition(commodity_name);
+
+        if (commodity == nullptr) {
+            ImGui::Text("INVALID TRADE GOOD");
+        }
+
+        ImGui::Text("%s", commodity_name.c_str());
+
+        auto blocked_definition = false;
+        if (!active_layer.has_goods) {
+            blocked_definition = true;
+            ImGui::Text("No goods are defined on the active layer.");
+            ImGui::Text("Do you wish to copy goods to the active layer to edit them?");
+            if (ImGui::Button("Copy goods to the active layer.")) {
+                layers.copy_goods_to_current_layer();
+                return;
+            }
+        }
+
+        if (blocked_definition) {
+            ImGui::BeginDisabled();
+        }
+
+        ImGui::InputFloat("Starting price", &commodity->cost);
+        ImGui::Checkbox("Is money", &commodity->money);
+        ImGui::Checkbox("Is local", &commodity->is_local);
+        ImGui::Checkbox("Is tradeable", &commodity->tradeable);
+        ImGui::Checkbox("Overseas penalty", &commodity->overseas_penalty);
+        ImGui::Checkbox("Available from start", &commodity->available_from_start);
+        ImGui::Checkbox("Uses potentials", &commodity->uses_potentials);
+
+        float fr = (float)(commodity->r) / 255.f;
+        float fg = (float)(commodity->g) / 255.f;
+        float fb = (float)(commodity->b) / 255.f;
+
+        float colors[3] = {fr, fg, fb};
+
+        ImGui::PushItemWidth(128);
+
+        ImGui::ColorPicker3("Color", colors);
+
+        if (colors[0] != fr || colors[1] != fg || colors[2] != fb) {
+            commodity->r = static_cast<uint8_t>(colors[0] * 255.f);
+            commodity->g = static_cast<uint8_t>(colors[1] * 255.f);
+            commodity->b = static_cast<uint8_t>(colors[2] * 255.f);
+        }
+
+        ImGui::PopItemWidth();
+
+        if (blocked_definition) {
+            ImGui::EndDisabled();
+        }
+    }
+
+    void compress_image_to_commodity_strip(
+        state::interface_dds_image& target,
+        int count,
+        int target_index,
+        uint8_t* new_image,
+        int size_x,
+        int size_y,
+        int channels
+    ) {
+        auto compressed_x = target.size_x / (count + 1);
+        auto compressed_y = target.size_y;
+
+        float area_x = float(size_x) / (float)compressed_x;
+        float area_y = float(size_y) / (float)compressed_y;
+
+        for (int i = 0; i < compressed_x; i++) {
+            for (int j = 0; j < compressed_y; j++) {
+                float total_count = 0.f;
+                float total_r = 0.f;
+                float total_g = 0.f;
+                float total_b = 0.f;
+                float total_a = 0.f;
+
+                for (int shift_i = 0; shift_i < area_x; shift_i++) {
+                    for (int shift_j = 0; shift_j < area_y; shift_j++) {
+                        float width = 1.f;
+                        if (area_x - (float)shift_i < 1.f) {
+                            width = area_x - (float)shift_i;
+                        }
+                        float height = 1.f;
+                        if (area_y - (float)shift_j < 1.f) {
+                            height = area_y - (float)shift_j;
+                        }
+
+                        float area = width * height;
+                        total_count += area;
+
+                        int final_i = (int)(i * area_x + shift_i);
+                        int final_j = (int)(j * area_y + shift_j);
+                        int pixel = final_i + final_j * size_x;
+
+                        total_r += new_image[pixel * channels + 0];
+                        total_g += new_image[pixel * channels + 1];
+                        total_b += new_image[pixel * channels + 2];
+                        if (channels > 3) {
+                            total_a += new_image[pixel * channels + 3];
+                        } else {
+                            total_a += area * 255.f;
+                        }
+                    }
+                }
+
+                int strip_i = compressed_x * (target_index + 1) + i;
+                int strip_j = j;
+                int pixel = strip_i + strip_j * target.size_x;
+
+                target.data[pixel * target.channels + 0] = static_cast<uint8_t>(std::clamp(total_r / total_count, 0.f, 255.f));
+                target.data[pixel * target.channels + 1] = static_cast<uint8_t>(std::clamp(total_g / total_count, 0.f, 255.f));
+                target.data[pixel * target.channels + 2] = static_cast<uint8_t>(std::clamp(total_b / total_count, 0.f, 255.f));
+                if (target.channels > 3) {
+                    target.data[pixel * target.channels + 3] = static_cast<uint8_t>(std::clamp(total_a / total_count, 0.f, 255.f));
+                }
+            }
+        }
+
+        target.commit_to_gpu();
+    }
+
+    void commodity_widget_icon(state::layers_stack& layers, std::string commodity_name) {
+        state::layer& active_layer = layers.data[layers.current_layer_index];
+        auto commodity = layers.get_commodity_definition(commodity_name);
+        if (commodity == nullptr) {
+            ImGui::Text("INVALID TRADE GOOD");
+        }
+
+        ImGui::Text("%s", commodity_name.c_str());
+
+        auto count = layers.get_commodities_count();
+        auto width = 1.f / (float)(count + 1);
+        auto start = width * (commodity->index + 1);
+        auto end = width + start;
+
+        {
+            GLuint texture;
+            int size_x;
+            int size_y;
+            ImGui::Text("resources_big.dds");
+            if (layers.get_resources_texture_big(texture, size_x, size_y)) {
+                ImGui::Image(
+                    texture,
+                    ImVec2(size_x * width, size_y),
+                    ImVec2(start, 0.f),
+                    ImVec2(end, 1.f)
+                );
+            }
+        }
+
+        {
+            GLuint texture;
+            int size_x;
+            int size_y;
+            ImGui::Text("resources.dds");
+            if (layers.get_resources_texture_medium(texture, size_x, size_y)) {
+                ImGui::Image(
+                    texture,
+                    ImVec2(size_x * width, size_y),
+                    ImVec2(start, 0.f),
+                    ImVec2(end, 1.f)
+                );
+            }
+        }
+
+        {
+            GLuint texture;
+            int size_x;
+            int size_y;
+            ImGui::Text("resources_small.dds");
+            if (layers.get_resources_texture_small(texture, size_x, size_y)) {
+                ImGui::Image(
+                    texture,
+                    ImVec2(size_x * width, size_y),
+                    ImVec2(start, 0.f),
+                    ImVec2(end, 1.f)
+                );
+            }
+        }
+
+        if (ImGui::Button("Choose a new image")) {
+
+            if (
+                !active_layer.resources_big.valid()
+                || !active_layer.resources_medium.valid()
+                || !active_layer.resources_small.valid()
+            ) {
+                layers.copy_resources_to_current_layer();
+            }
+
+            auto result = open_image_selection_dialog();
+
+            if (result.empty()) {
+                return;
+            }
+
+            int size_x;
+            int size_y;
+            int channels;
+
+            auto new_image = SOIL_load_image(
+                (wstring_to_utf8(result)).c_str(),
+                &size_x,
+                &size_y,
+                &channels,
+                SOIL_LOAD_AUTO
+            );
+
+            if (size_x < width) {
+                return;
+            }
+            if (size_y < active_layer.resources_big.size_y) {
+                return;
+            }
+            compress_image_to_commodity_strip(
+                active_layer.resources_big, count, commodity->index,
+                new_image, size_x, size_y, channels
+            );
+            compress_image_to_commodity_strip(
+                active_layer.resources_medium, count, commodity->index,
+                new_image, size_x, size_y, channels
+            );
+            compress_image_to_commodity_strip(
+                active_layer.resources_small, count, commodity->index,
+                new_image, size_x, size_y, channels
+            );
+        }
+    }
+
+    void commodity_widget(state::layers_stack& layers, std::string commodity_name) {
+        ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+        if (ImGui::BeginTabBar("GoodsTabs", tab_bar_flags)) {
+            if (ImGui::BeginTabItem("Definition")) {
+                commodity_widget_definition(layers, commodity_name);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Icons")) {
+                commodity_widget_icon(layers, commodity_name);
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
+        }
+    }
+
     bool flag_widget(state::layers_stack& layers, assets::storage& storage, std::string flag_key, std::string& flag_path_from_layer) {
         state::layer& active_layer = layers.data[layers.current_layer_index];
         if (ImGui::Button("Choose a new flag")) {
@@ -815,6 +1062,12 @@ namespace widgets {
                     widgets::selection_nation(map, control, storage, id);
                 }
                 ImGui::EndTabItem();
+            }
+            if (control.selected_commodity.size() != 0) {
+                if (ImGui::BeginTabItem("Commodity")) {
+                    widgets::commodity_widget(map, control.selected_commodity);
+                    ImGui::EndTabItem();
+                }
             }
             ImGui::EndTabBar();
         }

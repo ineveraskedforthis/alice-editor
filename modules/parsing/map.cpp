@@ -1222,6 +1222,7 @@ border_cutoff = 1100.0
     }
 
     void unload_core_gfx(state::layer& layer, std::string path) {
+        std::cout << "Write core.gfx\n";
         if (!layer.has_core_gfx) {
             return;
         }
@@ -1292,21 +1293,23 @@ border_cutoff = 1100.0
     }
 
     void unload_goods(state::layer& layer, std::string path) {
+        std::cout << "Write goods\n";
         if (!layer.has_goods) {
             return;
         }
 
-        std::filesystem::create_directory(path + "/common");
-        std::ofstream file(path + "/common/goods.txt");
+        std::filesystem::create_directory(path + "common");
+        std::ofstream file(path + "common/goods.txt");
 
         ankerl::unordered_dense::map<std::string, std::vector<std::string>> group_to_goods {};
 
         for (auto& [key, commodity] : layer.goods) {
             auto iterator = group_to_goods.find(commodity.group);
             if (iterator == group_to_goods.end()) {
-                group_to_goods[commodity.group] = {};
+                group_to_goods[commodity.group] = {commodity.name};
+            } else {
+                iterator->second.push_back(commodity.name);
             }
-            iterator->second.push_back(commodity.name);
         }
 
         std::string name{};
@@ -1360,6 +1363,21 @@ border_cutoff = 1100.0
         }
     }
 
+    void load_resources_image(state::layer &layer, std::string path) {
+        std::cout << "loading resources images";
+        layer.resources_big.load(path + "/gfx/interface/resources_big.dds");
+        layer.resources_medium.load(path + "/gfx/interface/resources.dds");
+        layer.resources_small.load(path + "/gfx/interface/resources_small.dds");
+    }
+
+    void unload_resources_image(state::layer& layer, std::string path) {
+        std::cout << "saving resources images";
+        std::filesystem::create_directory(path + "/gfx/interface/");
+        layer.resources_big.save(path + "/gfx/interface/resources_big.dds");
+        layer.resources_medium.save(path + "/gfx/interface/resources.dds");
+        layer.resources_small.save(path + "/gfx/interface/resources_small.dds");
+    }
+
     void load_layer(state::layers_stack& state, state::layer &layer) {
         parsers::error_handler errors("parsing_errors.txt");
 
@@ -1378,6 +1396,7 @@ border_cutoff = 1100.0
         load_province_history(layer, layer.path, errors);
         load_core_gfx(layer, layer.path, errors);
         load_goods(layer, layer.path, errors);
+        load_resources_image(layer, layer.path);
 
         std::cout << errors.accumulated_errors;
     }
@@ -1399,5 +1418,6 @@ border_cutoff = 1100.0
         unload_flags(layer, path, flag_option);
         unload_core_gfx(layer, path);
         unload_goods(layer, path);
+        unload_resources_image(layer, path);
     }
 }

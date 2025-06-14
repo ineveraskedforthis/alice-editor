@@ -477,7 +477,23 @@ namespace widgets {
 
                     // icon
                     ImGui::TableNextColumn();
-                    ImGui::Text("%d", def.index);
+                    GLuint texture_index;
+                    int x;
+                    int y;
+                    if (map.get_resources_texture_big(texture_index, x, y)) {
+                        auto count = (float)active_layer.goods.size() + 1;
+                        auto width = 1.f / count;
+                        auto start = width * (def.index + 1);
+                        ImGui::Image(
+                            (ImTextureID)(intptr_t)texture_index,
+                            ImVec2(24, 24),
+                            ImVec2(start, 0.0f),
+                            ImVec2(start + width, 1.0f)
+                        );
+                    } else {
+                        ImGui::Text("%d", def.index);
+                    }
+
 
                     // NAME
                     ImGui::TableNextColumn();

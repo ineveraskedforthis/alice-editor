@@ -6,6 +6,9 @@
 #include <iostream>
 #include <optional>
 #include <vector>
+#include <filesystem>
+
+#include "SOIL2.h"
 
 #include "../glm/fwd.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
@@ -215,6 +218,25 @@ struct province_map {
     }
 };
 
+struct interface_dds_image {
+    uint8_t* data = nullptr;
+    int size_x;
+    int size_y;
+    int channels;
+
+    GLuint texture_id = 0;
+
+    interface_dds_image& operator=(interface_dds_image& source);
+
+    bool valid();
+    bool load(std::string path);
+    void save(std::string path);
+    // initial loading
+    void upload_to_gpu();
+    // update existing texture
+    void commit_to_gpu();
+};
+
 // represent specific mod folder which overwrites previous definitions
 struct layer {
     std::string path = "./base-game";
@@ -294,6 +316,11 @@ struct layer {
     std::vector<std::string> bitmapfont_text{};
     std::vector<std::string> fonts_text{};
     bool has_core_gfx = false;
+
+    // resources images
+    interface_dds_image resources_small;
+    interface_dds_image resources_medium;
+    interface_dds_image resources_big;
 };
 
 struct layers_stack {
@@ -833,6 +860,28 @@ struct layers_stack {
         return result;
     }
 
+    game_definition::commodity* get_commodity_definition(std::string name) {
+        game_definition::commodity* result = nullptr;
+        for (auto& l: data) {
+            if(l.visible && l.has_goods) {
+                auto iterator = l.goods.find(name);
+                if (iterator != l.goods.end())
+                    result = &iterator->second;
+            }
+        }
+        return result;
+    }
+
+    int get_commodities_count() {
+        int result = 1;
+        for (auto& l: data) {
+            if(l.visible && l.has_goods) {
+                result = l.goods.size();
+            }
+        }
+        return result;
+    }
+
     void copy_province_history_to_current_layer(int v2id) {
         auto available_history = get_province_history(v2id);
         data[current_layer_index].province_history[v2id] = *available_history;
@@ -865,6 +914,46 @@ struct layers_stack {
         if (source != nullptr) {
             active_layer.has_nations_list = true;
             active_layer.nations = source->nations;
+        }
+    }
+
+    void copy_resources_to_current_layer(){
+        auto& active_layer = data[current_layer_index];
+        if (!active_layer.resources_small.valid()) {
+            layer* source = nullptr;
+            for (auto& l: data) {
+                if (l.visible && l.resources_small.valid()) {
+                    source = &l;
+                }
+            }
+
+            if (source != nullptr) {
+                active_layer.resources_small = source->resources_small;
+            }
+        }
+        if (!active_layer.resources_medium.valid()) {
+            layer* source = nullptr;
+            for (auto& l: data) {
+                if (l.visible && l.resources_medium.valid()) {
+                    source = &l;
+                }
+            }
+
+            if (source != nullptr) {
+                active_layer.resources_medium = source->resources_medium;
+            }
+        }
+        if (!active_layer.resources_big.valid()) {
+            layer* source = nullptr;
+            for (auto& l: data) {
+                if (l.visible && l.resources_big.valid()) {
+                    source = &l;
+                }
+            }
+
+            if (source != nullptr) {
+                active_layer.resources_big = source->resources_big;
+            }
         }
     }
 
@@ -1287,6 +1376,42 @@ struct layers_stack {
         for (auto& l: data) {
             if (l.visible && l.has_default_map) {
                 result = l.sea_texture;
+                found = true;
+            }
+        }
+        return found;
+    }
+    bool get_resources_texture_small(GLuint& result, int& x, int& y){
+        bool found = false;
+        for (auto& l: data) {
+            if (l.visible && l.resources_small.valid()) {
+                result = l.resources_small.texture_id;
+                x = l.resources_small.size_x;
+                y = l.resources_small.size_y;
+                found = true;
+            }
+        }
+        return found;
+    }
+    bool get_resources_texture_big(GLuint& result, int& x, int& y){
+        bool found = false;
+        for (auto& l: data) {
+            if (l.visible && l.resources_big.valid()) {
+                result = l.resources_big.texture_id;
+                x = l.resources_big.size_x;
+                y = l.resources_big.size_y;
+                found = true;
+            }
+        }
+        return found;
+    }
+    bool get_resources_texture_medium(GLuint& result, int& x, int& y){
+        bool found = false;
+        for (auto& l: data) {
+            if (l.visible && l.resources_medium.valid()) {
+                result = l.resources_medium.texture_id;
+                x = l.resources_medium.size_x;
+                y = l.resources_medium.size_y;
                 found = true;
             }
         }

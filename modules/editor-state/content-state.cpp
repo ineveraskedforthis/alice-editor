@@ -205,6 +205,18 @@ province_texture& province_texture::operator=(province_texture& source) {
     return *this;
 }
 
+interface_dds_image& interface_dds_image::operator=(interface_dds_image& source) {
+    size_x = source.size_x;
+    size_y = source.size_y;
+    channels = source.channels;
+
+    delete[] data;
+    data = new uint8_t[size_x * size_y * channels];
+    std::copy(source.data, source.data + size_x * size_y * channels, data);
+    upload_to_gpu();
+    return *this;
+}
+
 int province_texture::coord_to_pixel(glm::ivec2 coord) {
     return coord.y * size_x + coord.x;
 }
@@ -274,4 +286,83 @@ void province_texture::commit_province_texture_changes_to_gpu() {
         update_texture_part = false;
     }
 }
+
+
+
+bool interface_dds_image::valid() {
+    return !(data == nullptr);
+}
+
+bool interface_dds_image::load(std::string path) {
+    std::cout << "loading image:" << path;
+    auto image_exists = std::filesystem::exists(path);
+    if (!image_exists) {
+        return false;
+    }
+    data = SOIL_load_image(
+        path.c_str(),
+        &size_x,
+        &size_y,
+        &channels,
+        SOIL_LOAD_AUTO
+    );
+    upload_to_gpu();
+
+    return true;
+}
+
+void interface_dds_image::save(std::string path) {
+    if (valid()) {
+        SOIL_save_image(
+            path.c_str(),
+            SOIL_SAVE_TYPE_DDS,
+            size_x,
+            size_y,
+            channels,
+            data
+        );
+    }
+}
+
+void interface_dds_image::upload_to_gpu() {
+    glGenTextures(1, &texture_id);
+    glBindTexture(GL_TEXTURE_2D, texture_id);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
+    glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
+    auto format = GL_RGBA;
+    if (channels == 3) {
+        format = GL_RGB;
+    }
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        format,
+        size_x,
+        size_y,
+        0,
+        format,
+        GL_UNSIGNED_BYTE,
+        data
+    );
+}
+
+void interface_dds_image::commit_to_gpu() {
+    glBindTexture(GL_TEXTURE_2D, texture_id);
+    auto format = GL_RGBA;
+    if (channels == 3) {
+        format = GL_RGB;
+    }
+    glTexImage2D(
+        GL_TEXTURE_2D,
+        0,
+        format,
+        size_x,
+        size_y,
+        0,
+        format,
+        GL_UNSIGNED_BYTE,
+        data
+    );
+}
+
 }
