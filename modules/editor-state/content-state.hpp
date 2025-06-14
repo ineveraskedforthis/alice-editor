@@ -279,6 +279,9 @@ struct layer {
     ankerl::unordered_dense::map<std::string, game_definition::issue> issues{};
     bool has_issues = false;
 
+    // goods
+    ankerl::unordered_dense::map<std::string, game_definition::commodity> goods{};
+    bool has_goods = false;
 
     // interface description
     std::vector<game_definition::sprite> sprites{};
@@ -532,19 +535,23 @@ struct layers_stack {
         auto y = active_layer.provinces_image->size_y;
 
         auto index = rgb_to_v2id(r, g, b);
+        active_layer.provinces_image->provinces_image_data[pixel * 4] = r;
+        active_layer.provinces_image->provinces_image_data[pixel * 4 + 1] = g;
+        active_layer.provinces_image->provinces_image_data[pixel * 4 + 2] = b;
+        indices.update_texture_part = true;
+        int coord_y = pixel / x;
+        int coord_x = pixel - (coord_y * x);
+        indices.update_texture_x_bottom = std::min(coord_x, indices.update_texture_x_bottom);
+        indices.update_texture_y_bottom = std::min(coord_y, indices.update_texture_y_bottom);
+        indices.update_texture_x_top = std::max(coord_x, indices.update_texture_x_top);
+        indices.update_texture_y_top = std::max(coord_y, indices.update_texture_y_top);
+
         if (index != std::nullopt) {
-            active_layer.provinces_image->provinces_image_data[pixel * 4] = r;
-            active_layer.provinces_image->provinces_image_data[pixel * 4 + 1] = g;
-            active_layer.provinces_image->provinces_image_data[pixel * 4 + 2] = b;
             indices.data[4 * pixel + 0] = index.value() % 256;
             indices.data[4 * pixel + 1] = index.value() / 256;
-            indices.update_texture_part = true;
-            int coord_y = pixel / x;
-            int coord_x = pixel - (coord_y * x);
-            indices.update_texture_x_bottom = std::min(coord_x, indices.update_texture_x_bottom);
-            indices.update_texture_y_bottom = std::min(coord_y, indices.update_texture_y_bottom);
-            indices.update_texture_x_top = std::max(coord_x, indices.update_texture_x_top);
-            indices.update_texture_y_top = std::max(coord_y, indices.update_texture_y_top);
+        } else {
+            indices.data[4 * pixel + 0] = 0;
+            indices.data[4 * pixel + 1] = 0;
         }
     }
 
@@ -873,6 +880,22 @@ struct layers_stack {
 
         if (result != nullptr) {
             active_layer.provinces_image = result->provinces_image.value();
+        }
+    }
+
+    void copy_goods_to_current_layer() {
+        layer* source = nullptr;
+        for (auto& l: data) {
+            if (l.visible && l.has_goods) {
+                source = &l;
+            }
+        }
+
+        auto& active_layer = data[current_layer_index];
+
+        if (source != nullptr) {
+            active_layer.has_goods = true;
+            active_layer.goods = source->goods;
         }
     }
 

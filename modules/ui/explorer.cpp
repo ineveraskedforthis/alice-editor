@@ -7,6 +7,7 @@
 #include "../assets-manager/assets.hpp"
 #include <array>
 #include <cstddef>
+#include <string>
 
 namespace widgets {
 
@@ -22,6 +23,10 @@ namespace widgets {
         nation_name,
         nation_civilized,
         nation_select,
+
+        goods_icon,
+        goods_name,
+        goods_select,
     };
 
     void explorer_provinces(state::layers_stack& map, state::control& control) {
@@ -375,6 +380,120 @@ namespace widgets {
         }
     }
 
+    void explorer_goods(state::layers_stack& map, state::control& control) {
+        static ImGuiTableFlags flags =
+            ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti
+            | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_NoBordersInBody
+            | ImGuiTableFlags_ScrollY;
+        ImGuiStyle& style = ImGui::GetStyle();
+        auto& active_layer = map.data[map.current_layer_index];
+
+        static std::vector<std::string> list_of_goods {};
+        if (!active_layer.has_goods) {
+            list_of_goods.clear();
+            ImGui::Text("No goods are defined on the active layer.");
+            ImGui::Text("Do you wish to copy goods to the active layer?");
+            if (ImGui::Button("Copy goods to the active layer.")) {
+                map.copy_goods_to_current_layer();
+                list_of_goods.clear();
+                for (auto& [key, value] : active_layer.goods) {
+                    list_of_goods.push_back(key);
+                }
+            }
+            return;
+        }
+
+        if (active_layer.has_goods && list_of_goods.size() != active_layer.goods.size()) {
+            list_of_goods.clear();
+            for (auto& [key, value] : active_layer.goods) {
+                list_of_goods.push_back(key);
+            }
+        }
+
+        if (ImGui::BeginTable("table_sorting", 4, flags, ImVec2(0.0f, 500), 0.0f)) {
+            ImGui::TableSetupColumn(
+                "Icon",
+                ImGuiTableColumnFlags_NoSort
+                | ImGuiTableColumnFlags_WidthFixed,
+                80.0f,
+                goods_icon
+            );
+            ImGui::TableSetupColumn(
+                "Name",
+                ImGuiTableColumnFlags_DefaultSort
+                | ImGuiTableColumnFlags_WidthFixed,
+                100.0f,
+                goods_name
+            );
+            ImGui::TableSetupColumn(
+                "Select",
+                ImGuiTableColumnFlags_NoSort
+                | ImGuiTableColumnFlags_WidthFixed,
+                40.0f,
+                goods_select
+            );
+            ImGui::TableSetupScrollFreeze(0, 1); // Make row always visible
+            ImGui::TableHeadersRow();
+
+            // Sort our data if sort specs have been changed!
+            if (ImGuiTableSortSpecs* sort_specs = ImGui::TableGetSortSpecs())
+                if (sort_specs->SpecsDirty) {
+                    std::sort(list_of_goods.begin(), list_of_goods.end(), [&](std::string a, std::string b) {
+                        auto a_def = active_layer.goods[a];
+                        auto b_def = active_layer.goods[b];
+
+                        for (int n = 0; n < sort_specs->SpecsCount; n++)
+                        {
+                            // Here we identify columns using the ColumnUserID value that we ourselves passed to TableSetupColumn()
+                            // We could also choose to identify columns based on their index (sort_spec->ColumnIndex), which is simpler!
+                            const ImGuiTableColumnSortSpecs* sort_spec = &sort_specs->Specs[n];
+                            int order = 0;
+                            switch (sort_spec->ColumnUserID)
+                            {
+                            case goods_name:  order = a.compare(b); break;
+                            default: IM_ASSERT(0); break;
+                            }
+                            if (order > 0)
+                                return (sort_spec->SortDirection == ImGuiSortDirection_Ascending) ? true : false;
+                            if (order < 0)
+                                return (sort_spec->SortDirection == ImGuiSortDirection_Ascending) ? false : true;
+                        }
+                        return a > b;
+                    });
+                    sort_specs->SpecsDirty = false;
+                }
+
+            ImGuiListClipper clipper;
+            clipper.Begin(list_of_goods.size());
+            while (clipper.Step())
+                for (int row_n = clipper.DisplayStart; row_n < clipper.DisplayEnd; row_n++)
+                {
+                    // Display a data item
+                    auto name = list_of_goods[row_n];
+                    auto def = active_layer.goods[name];
+
+                    ImGui::PushID(name.c_str());
+                    ImGui::TableNextRow();
+
+                    // icon
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%d", def.index);
+
+                    // NAME
+                    ImGui::TableNextColumn();
+                    ImGui::Text("%s", name.c_str());
+
+                    // SELECT
+                    ImGui::TableNextColumn();
+                    if (ImGui::SmallButton(">>")) {
+                        control.selected_commodity = name;
+                    }
+                    ImGui::PopID();
+                }
+            ImGui::EndTable();
+        }
+    }
+
     void explorer_adjacencies(state::layers_stack& map, state::control& control) {
 
     }
@@ -394,6 +513,10 @@ namespace widgets {
             }
             if (ImGui::BeginTabItem("Nations")) {
                 explorer_nations(map, control);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Goods")) {
+                explorer_goods(map, control);
                 ImGui::EndTabItem();
             }
             // if (ImGui::BeginTabItem("Adjacencies")) {

@@ -172,7 +172,7 @@ void wrapper::update(state::layers_stack& layers, state::control& control_state,
                 break;
             }
 
-            control_state.context_province = 0;
+            control_state.context_province = -1;
             if (event.key.keysym.sym == SDLK_a)
             {
                 camera_shift.x += 0.1f * zoom;

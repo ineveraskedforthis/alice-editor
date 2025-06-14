@@ -2,14 +2,14 @@
 
 
 #cflags = -std=c++20 -O3 -DWIN32 -DSDL_MAIN_HANDLED -Wall -I./modules/sdl -I./modules/imgui -I./modules/glew
-cflags = -std=c++20 -O0 -DWIN32 -D_AMD64_ -DSDL_MAIN_HANDLED -I./modules/sdl -I./modules/imgui -I./modules/glew -I./SOIL2/src/SOIL2
+cflags = -std=c++20 -O3 -DWIN32 -D_AMD64_ -DSDL_MAIN_HANDLED -I./modules/sdl -I./modules/imgui -I./modules/glew -I./SOIL2/src/SOIL2
 
 # flags for debug
-debug_flags = -g -gdwarf-3 -gcodeview
-debug_flags_link = -g -gdwarf-3
+#debug_flags = -g -gdwarf-3 -gcodeview
+#debug_flags_link = -g -gdwarf-3
 # flags for optimised
-#debug_flags =
-#debug_flags_link =
+debug_flags =
+debug_flags_link =
 
 rule cc
   command = clang++ -MD -MF $out.d $cflags $debug_flags -c $in -o $out

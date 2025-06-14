@@ -1,4 +1,6 @@
 #pragma once
+#include <array>
+#include <cstdint>
 #include <string>
 #include "parsers.hpp"
 #include "../definitions.hpp"
@@ -12,6 +14,17 @@ namespace parsers {
 
 struct generic_context{
 	state::layer& map;
+};
+
+struct commodity_group_context {
+	state::layer& map;
+	std::string group;
+};
+
+
+struct commodity_context {
+	state::layer& map;
+	game_definition::commodity& target;
 };
 
 struct gfx_sprite_context{
@@ -73,6 +86,46 @@ struct core_gfx_file {
 struct sprites_group {
 	void finish(generic_context&) {}
 };
+
+struct goods_file {
+	void finish(generic_context&) {}
+};
+
+struct goods_group {
+	void finish(commodity_group_context&) {}
+};
+
+struct color_from_3i {
+	int index = 0;
+	std::array<uint8_t, 3> colors;
+	template<typename C>
+	void finish(C& context) {
+		if (index == 1) {
+			colors[1] = colors[0];
+			colors[2] = colors[0];
+		}
+	}
+	template<typename C>
+	void free_value(int32_t v, error_handler& err, int32_t line, C& context) {
+		colors[index] = (uint8_t)v;
+		index++;
+	}
+};
+
+struct good {
+	void finish(commodity_context&) {}
+	void cost(association_type, float value, error_handler& err, int32_t line, commodity_context& context);
+	void color(color_from_3i value, error_handler& err, int32_t line, commodity_context& context);
+	void available_from_start(association_type, bool value, error_handler& err, int32_t line, commodity_context& context);
+	void is_local(association_type, bool value, error_handler& err, int32_t line, commodity_context& context);
+	void tradeable(association_type, bool value, error_handler& err, int32_t line, commodity_context& context);
+	void overseas_penalty(association_type, bool value, error_handler& err, int32_t line, commodity_context& context);
+	void money(association_type, bool value, error_handler& err, int32_t line, commodity_context& context);
+	void uses_potentials(association_type, bool value, error_handler& err, int32_t line, commodity_context& context);
+};
+
+void make_good(std::string_view name, token_generator& gen, error_handler& err, commodity_group_context& context);
+void make_goods_group(std::string_view name, token_generator& gen, error_handler& err, generic_context& context);
 
 struct sprite {
 	void finish(gfx_sprite_context&) {}

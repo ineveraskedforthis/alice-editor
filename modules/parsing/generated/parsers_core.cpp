@@ -342,4 +342,55 @@ void create_government_type(std::string_view name, parsers::token_generator &gen
     };
     parse_government_type(gen, err, ctx);
 }
+
+void good::cost(association_type, float value, error_handler& err, int32_t line, commodity_context& context){
+    context.target.cost = value;
+}
+void good::color(color_from_3i value, error_handler& err, int32_t line, commodity_context& context){
+    context.target.r = value.colors[0];
+    context.target.g = value.colors[1];
+    context.target.b = value.colors[2];
+}
+void good::available_from_start(association_type, bool value, error_handler& err, int32_t line, commodity_context& context){
+    context.target.available_from_start = value;
+}
+void good::is_local(association_type, bool value, error_handler& err, int32_t line, commodity_context& context){
+    context.target.is_local = value;
+}
+void good::tradeable(association_type, bool value, error_handler& err, int32_t line, commodity_context& context){
+    context.target.tradeable = value;
+}
+void good::overseas_penalty(association_type, bool value, error_handler& err, int32_t line, commodity_context& context){
+    context.target.overseas_penalty = value;
+}
+void good::money(association_type, bool value, error_handler& err, int32_t line, commodity_context& context){
+    context.target.money = value;
+}
+void good::uses_potentials(association_type, bool value, error_handler& err, int32_t line, commodity_context& context){
+    context.target.uses_potentials = value;
+}
+
+void make_good(std::string_view name, token_generator& gen, error_handler& err, commodity_group_context& context) {
+    std::string actual_string {name};
+    game_definition::commodity new_good {
+        .index = (int)context.map.goods.size(),
+        .name = actual_string,
+        .group = context.group
+    };
+    commodity_context new_context {
+        context.map,
+        new_good
+    };
+    parse_good(gen, err, new_context);
+    context.map.goods[actual_string] = new_good;
+}
+
+void make_goods_group(std::string_view name, token_generator& gen, error_handler& err, generic_context& context) {
+    std::string actual_string {name};
+    commodity_group_context new_context {
+        context.map, actual_string
+    };
+    parse_goods_group(gen, err, new_context);
+}
+
 }

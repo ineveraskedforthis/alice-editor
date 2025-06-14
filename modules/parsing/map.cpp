@@ -1,6 +1,5 @@
 #include "map.hpp"
 #include "../editor-state/content-state.hpp"
-#include <corecrt_terminate.h>
 #include <cstdint>
 #include <fstream>
 #include <iostream>
@@ -1178,6 +1177,8 @@ border_cutoff = 1100.0
             layer
         };
 
+        errors.file_name = "/interface/core.gfx";
+
         std::stringstream buffer;
         buffer << file.rdbuf();
         auto str = buffer.str();
@@ -1270,6 +1271,95 @@ border_cutoff = 1100.0
         }
     }
 
+    void load_goods(state::layer& layer, std::string path, parsers::error_handler& errors) {
+        std::cout << "Parse goods.txt\n";
+        std::cout << path + "/common/goods.txt" << "\n";
+        if (!std::filesystem::exists(path + "/common/goods.txt")) {
+            std::cout << "Not found\n";
+            return;
+        }
+        layer.has_goods = true;
+        std::ifstream file(path + "/common/goods.txt");
+        parsers::generic_context ctx_generic {
+            layer
+        };
+        errors.file_name = path + "/common/goods.txt";
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        auto str = buffer.str();
+        parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+        parsers::parse_goods_file(tk, errors, ctx_generic);
+    }
+
+    void unload_goods(state::layer& layer, std::string path) {
+        if (!layer.has_goods) {
+            return;
+        }
+
+        std::filesystem::create_directory(path + "/common");
+        std::ofstream file(path + "/common/goods.txt");
+
+        ankerl::unordered_dense::map<std::string, std::vector<std::string>> group_to_goods {};
+
+        for (auto& [key, commodity] : layer.goods) {
+            auto iterator = group_to_goods.find(commodity.group);
+            if (iterator == group_to_goods.end()) {
+                group_to_goods[commodity.group] = {};
+            }
+            iterator->second.push_back(commodity.name);
+        }
+
+        std::string name{};
+        std::string group{};
+        float cost = 1.f;
+        uint8_t r = 0;
+        uint8_t g = 0;
+        uint8_t b = 0;
+        bool available_from_start = true;
+        bool is_local = false;
+        bool tradeable = true;
+        bool overseas_penalty = false;
+        bool money = false;
+        bool uses_potentials = false;
+
+        for (auto& [key, commodity_group] : group_to_goods) {
+            file << key << " = {\n";
+
+            for (auto& name : commodity_group) {
+                file << "\t" << name << " = {\n";
+
+                auto& commodity = layer.goods[name];
+
+                file << "\t\tcost = " << commodity.cost << "\n";
+
+                if (!commodity.available_from_start) {
+                    file << "\t\tavailable_from_start = no\n";
+                }
+                if (commodity.is_local) {
+                    file << "\t\tis_local = yes\n";
+                }
+                if (!commodity.tradeable) {
+                    file << "\t\tis_local = no\n";
+                }
+                if (commodity.overseas_penalty) {
+                    file << "\t\tis_local = yes\n";
+                }
+                if (commodity.money) {
+                    file << "\t\tmoney = yes\n";
+                }
+                if (commodity.uses_potentials) {
+                    file << "\t\tuses_potentials = yes\n";
+                }
+
+                file << "\t\tcolor = {" << commodity.r << commodity.g << commodity.b << "}\n";
+
+                file << "\t}\n";
+            }
+
+            file << "}\n";
+        }
+    }
+
     void load_layer(state::layers_stack& state, state::layer &layer) {
         parsers::error_handler errors("parsing_errors.txt");
 
@@ -1287,6 +1377,7 @@ border_cutoff = 1100.0
         load_nation_history(state, layer, layer.path, errors);
         load_province_history(layer, layer.path, errors);
         load_core_gfx(layer, layer.path, errors);
+        load_goods(layer, layer.path, errors);
 
         std::cout << errors.accumulated_errors;
     }
@@ -1307,5 +1398,6 @@ border_cutoff = 1100.0
         unload_province_history(layer, conversions::utf8_to_wstring(path));
         unload_flags(layer, path, flag_option);
         unload_core_gfx(layer, path);
+        unload_goods(layer, path);
     }
 }

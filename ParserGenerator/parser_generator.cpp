@@ -608,16 +608,30 @@ void file_write_out(std::fstream& stream, std::vector<group_contents>& groups, b
 	output += "\n";
 	output += "namespace parsers {\n";
 	// fn bodies
-	for(size_t i = 0; i < groups.size(); i++) {
-		auto const& g = groups[i];
 
-		if (!definitions) {
+	if (!definitions) {
+		for(size_t i = 0; i < groups.size(); i++) {
+			auto const& g = groups[i];
 			if(g.group_context_type.empty()) {
 				output += "template<typename C>\n";
 				output += g.group_object_type + " parse_" + g.group_object_type + "(token_generator& gen, error_handler& err, C&& context);\n";
+			}
+		}
+	}
+
+	for(size_t i = 0; i < groups.size(); i++) {
+		auto const& g = groups[i];
+		if (!definitions) {
+			if(g.group_context_type.empty()) {
+				// do nothing, we had already declared them above
 			} else {
 				output += g.group_object_type + " parse_" + g.group_object_type + "(token_generator& gen, error_handler& err, " + g.group_context_type + "& context);\n";
+				continue;
 			}
+		}
+
+		if (definitions && g.group_context_type.empty()) {
+			// templates are in the header file
 			continue;
 		}
 

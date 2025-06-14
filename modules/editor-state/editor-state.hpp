@@ -19,7 +19,7 @@ void check_gl_error(std::string message);
 
 
 enum class CONTROL_MODE {
-    NONE, SELECT, PICKING_COLOR, PAINTING, FILL
+    NONE, SELECT, PICKING_COLOR, PAINTING, FILL, FILL_UNSAFE
 };
 
 
@@ -35,6 +35,7 @@ struct control {
     uint32_t selected_pixel = 0;
     // glm::vec2 selected_province;
     uint32_t selected_province_id = 0;
+    std::string selected_commodity {};
     std::string selected_tag {};
     bool selection_delay = false;
     glm::vec2 hovered_province {};
@@ -44,7 +45,7 @@ struct control {
     int selected_adjacency = 0;
     bool lmb_pressed = false;
     glm::ivec2 fill_center {};
-    uint32_t context_province = 0;
+    int32_t context_province = -1;
     uint32_t context_pixel = 0;
     std::string context_tag {};
     glm::vec2 context_window_origin {};
@@ -85,7 +86,7 @@ void paint(control& control_state, layers_stack& map);
 void paint_state(control& control_state, layers_stack& map, uint32_t target_pixel, uint32_t source_pixel);
 void paint_controler_and_owner_safe(control& control_state, layers_stack& map, int pixel_index);
 void paint_safe(control& control_state, layers_stack& map, int pixel_index, uint32_t province_index);
-void paint_line(control& control_state, layers_stack& map);
+void paint_line(control& control_state, layers_stack& map, bool respect_coasts);
 
 void select_pixel(control& control_state, layers_stack& map, int pixel);
 void pick_color_from_pixel(control& control_state, layers_stack& map, int pixel);

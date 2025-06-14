@@ -13,6 +13,22 @@ namespace game_definition {
         std::vector<std::string> options{};
     };
 
+    struct commodity {
+        int index = 0;
+        std::string name{};
+        std::string group{};
+        float cost = 1.f;
+        uint8_t r = 0;
+        uint8_t g = 0;
+        uint8_t b = 0;
+        bool available_from_start = true;
+        bool is_local = false;
+        bool tradeable = true;
+        bool overseas_penalty = false;
+        bool money = false;
+        bool uses_potentials = false;
+    };
+
     // enum class tech_folder {
     //     army, navy, commerce, culture, industry
     // };

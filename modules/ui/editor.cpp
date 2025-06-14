@@ -40,6 +40,12 @@ namespace widgets {
             control.active = false;
         };
 
+        if (ImGui::Button("UF", ImVec2(35, 35))) {
+            control.mode = state::CONTROL_MODE::FILL_UNSAFE;
+            SetCursor(window.cursor_line_fill);
+            control.active = false;
+        };
+
         if (ImGui::Button("P", ImVec2(35, 35))) {
             control.mode = state::CONTROL_MODE::PICKING_COLOR;
             SetCursor(window.cursor_pick_color);
@@ -178,6 +184,9 @@ namespace widgets {
         case state::CONTROL_MODE::FILL:
             ImGui::Text("Fill");
             break;
+        case state::CONTROL_MODE::FILL_UNSAFE:
+            ImGui::Text("Unsafe Fill");
+            break;
         case state::CONTROL_MODE::SELECT:
             ImGui::Text("Select");
             break;
@@ -215,6 +224,9 @@ namespace widgets {
         case state::CONTROL_MODE::FILL:
             ImGui::Text("Fill");
             break;
+        case state::CONTROL_MODE::FILL_UNSAFE:
+            ImGui::Text("Unsafe Fill");
+            break;
         case state::CONTROL_MODE::SELECT:
             ImGui::Text("Select");
         break;
@@ -251,6 +263,22 @@ namespace widgets {
             ImGui::Begin("fill_tool_context", NULL, flags);
             if (ImGui::Button("F", button_size)) {
                 control.mode = state::CONTROL_MODE::FILL;
+            }
+            ImGui::End();
+        }
+
+        {
+            angle += step;
+            float shift_x = radius * cos(angle) - (float)window_size.x / 2;
+            float shift_y = radius * sin(angle) - (float)window_size.y / 2;
+            ImGui::SetNextWindowSize(window_size);
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("unsafe_fill_tool_context", NULL, flags);
+            if (ImGui::Button("UF", button_size)) {
+                control.mode = state::CONTROL_MODE::FILL_UNSAFE;
             }
             ImGui::End();
         }
@@ -340,7 +368,11 @@ namespace widgets {
                 control.context_window_origin.y + shift_y
             ));
             ImGui::Begin("tooltip_province", NULL, flags);
-            ImGui::Text("%s", ("context v2id: " + std::to_string(control.context_province)).c_str());
+            if (control.context_province == 0) {
+                ImGui::Text("INVALID PROVINCE");
+            } else {
+                ImGui::Text("%s", ("context v2id: " + std::to_string(control.context_province)).c_str());
+            }
             ImGui::End();
         }
 
@@ -601,7 +633,7 @@ namespace widgets {
         widgets::explorer(layers, control, editor, storage);
         widgets::selection(layers, control, editor, storage);
 
-        if (control.context_province == 0) {
+        if (control.context_province == -1) {
             ImGui::SetNextWindowSize(ImVec2(200, 100));
             ImGui::SetNextWindowPos(ImVec2(window.mouse_x + 25, window.mouse_y + 25));
             widgets::map_tooltip(control);
@@ -626,6 +658,7 @@ namespace widgets {
                 layers.indices.commit_province_texture_changes_to_gpu();
                 break;
                 case state::CONTROL_MODE::FILL:
+                case state::CONTROL_MODE::FILL_UNSAFE:
                 while(target.x != control.delayed_map_coord.x || target.y != control.delayed_map_coord.y) {
                     if (target.x > control.delayed_map_coord.x) {
                         control.delayed_map_coord.x++;
@@ -639,7 +672,12 @@ namespace widgets {
                     if (target.y < control.delayed_map_coord.y) {
                         control.delayed_map_coord.y--;
                     }
-                    paint_line(control, layers);
+                    if (control.mode == state::CONTROL_MODE::FILL) {
+                        paint_line(control, layers, true);
+                    }
+                    if (control.mode == state::CONTROL_MODE::FILL_UNSAFE) {
+                        paint_line(control, layers, false);
+                    }
                 }
                 break;
             }
@@ -652,6 +690,8 @@ namespace widgets {
                 case state::CONTROL_MODE::PAINTING:
                     break;
                 case state::CONTROL_MODE::FILL:
+                    break;
+                case state::CONTROL_MODE::FILL_UNSAFE:
                     break;
                 case state::CONTROL_MODE::SELECT:
                     break;
@@ -733,7 +773,13 @@ namespace widgets {
 
         state::check_gl_error("After draw:");
 
-        if (control.mode == state::CONTROL_MODE::FILL && control.lmb_pressed) {
+        if (
+            (
+                control.mode == state::CONTROL_MODE::FILL
+                ||
+                control.mode == state::CONTROL_MODE::FILL_UNSAFE
+            ) && control.lmb_pressed
+        ) {
             // Draw triangle to show the fill tool current effect
             glUseProgram(editor.triangle_program);
             glUniformMatrix4fv(uniform_locations[SHADER_UNIFORMS::TRIANGLE_MODEL], 1, false, reinterpret_cast<float*>(&model));

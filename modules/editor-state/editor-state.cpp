@@ -124,6 +124,10 @@ void paint_province_safe(control& control_state, layers_stack& map, int pixel_in
     map.set_pixel(pixel_index, control_state.r, control_state.g, control_state.b);
 }
 
+void paint_province_unsafe(control& control_state, layers_stack& map, int pixel_index) {
+    map.set_pixel(pixel_index, control_state.r, control_state.g, control_state.b);
+}
+
 void paint_controler_and_owner_safe(control& control_state, layers_stack& map, int pixel_index) {
     auto color = map.sample_province_color(pixel_index);
     auto rgb_target = state::rgb_to_uint(color.r, color.g, color.b);
@@ -163,7 +167,7 @@ void paint_safe(control& control_state, layers_stack& map, int pixel_index, uint
 
 
 
-void paint_line(control& control_state, layers_stack& map) {
+void paint_line(control& control_state, layers_stack& map, bool respect_coasts) {
     auto start = control_state.fill_center;
     auto end = glm::ivec2(control_state.delayed_map_coord);
 
@@ -187,11 +191,14 @@ void paint_line(control& control_state, layers_stack& map) {
 
     while (x != end.x || y != end.y) {
         {
-            auto index = map.rgb_to_v2id(control_state.r, control_state.g, control_state.b);
-            if (index == std::nullopt) continue;
-
             auto pixel_index = map.coord_to_pixel(glm::ivec2{x, y});
-            paint_safe(control_state, map, pixel_index, index.value());
+            if (respect_coasts) {
+                auto index = map.rgb_to_v2id(control_state.r, control_state.g, control_state.b);
+                if (index == std::nullopt) continue;
+                paint_safe(control_state, map, pixel_index, index.value());
+            } else {
+                paint_province_unsafe(control_state, map, pixel_index);
+            }
         }
 
         auto error = pairing(normal, {x - start.x, y - start.y});

@@ -1,3 +1,4 @@
 parsers.cpp, parsers.hpp and float_from_chars.cpp are a part of Project Alice: https://github.com/schombert/Project-Alice
 defs.txt is a file derived from the similar file of Project Alice.
+Some of functions are derived from the similar functions in Project Alice and adapted to this program
 See the license related to these files in LICENSE file.
