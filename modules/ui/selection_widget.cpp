@@ -12,6 +12,7 @@
 #include <shobjidl_core.h>
 #include <shobjidl.h>
 #include <vector>
+#include "win-wrapper.hpp"
 
 
 //we need only declarations here
@@ -135,7 +136,7 @@ namespace widgets {
             ImGui::EndDisabled();
     }
 
-    std::wstring open_image_selection_dialog() {
+    std::wstring open_image_selection_dialog(GUID dialog_id) {
         IFileOpenDialog* DIALOG;
         auto DIALOG_RESULT = CoCreateInstance(
             CLSID_FileOpenDialog,
@@ -148,6 +149,7 @@ namespace widgets {
             return L"";
         }
 
+        DIALOG->SetClientGuid(dialog_id);
 
         DIALOG->SetDefaultExtension(L"tga");
 
@@ -390,7 +392,7 @@ namespace widgets {
                 layers.copy_resources_to_current_layer();
             }
 
-            auto result = open_image_selection_dialog();
+            auto result = open_image_selection_dialog(winapi::UUID_open_trade_goods_icon);
 
             if (result.empty()) {
                 return;
@@ -446,10 +448,7 @@ namespace widgets {
 
     bool flag_widget(state::layers_stack& layers, assets::storage& storage, std::string flag_key, std::string& flag_path_from_layer) {
         state::layer& active_layer = layers.data[layers.current_layer_index];
-        if (ImGui::Button("Choose a new flag")) {
-            auto result = open_image_selection_dialog();
-            active_layer.paths_to_new_flags[flag_key] = result;
-        }
+
         bool flag_found = false;
         for (int i = layers.current_layer_index; i >= 0; i--) {
             auto& layer = layers.data[i];
@@ -974,6 +973,10 @@ namespace widgets {
                 }
 
                 ImGui::PushID(0);
+                if (ImGui::Button("Choose a new flag")) {
+                    auto result = open_image_selection_dialog(winapi::UUID_open_flags);
+                    active_layer.paths_to_new_flags[string_tag] = result;
+                }
                 if (!flag_widget(map, storage, string_tag, default_flag_path_png)) {
                     flag_widget(map, storage, string_tag, default_flag_path);
                 }
@@ -987,6 +990,10 @@ namespace widgets {
                         std::string flag_key = string_tag + + "_" + flagtype;
                         std::string flag_path = "/gfx/flags/" + flag_key + ".tga";
                         std::string flag_path_png = "/gfx/flags/" + flag_key + ".png";
+                        if (ImGui::Button("Choose a new flag")) {
+                            auto result = open_image_selection_dialog(winapi::UUID_open_flags);
+                            active_layer.paths_to_new_flags[string_tag] = result;
+                        }
                         if (!flag_widget(map, storage, flag_key, flag_path_png)) {
                             flag_widget(map, storage, flag_key, flag_path);
                         }

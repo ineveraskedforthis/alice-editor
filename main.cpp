@@ -32,6 +32,8 @@
 #include "modules/editor-state/editor-state.hpp"
 #include "modules/assets-manager/assets.hpp"
 
+#include "win-wrapper.hpp"
+
 #include "objbase.h"
 
 #undef max
@@ -56,6 +58,7 @@ std::wstring open_path_selection_dialog() {
         return L"";
     }
 
+    DIALOG->SetClientGuid(winapi::UUID_open_mod);
     DIALOG->SetOptions(FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_NOCHANGEDIR | FOS_FORCEFILESYSTEM | FOS_PICKFOLDERS);
 
     DIALOG_RESULT = DIALOG->Show(NULL);
@@ -205,6 +208,8 @@ int main(int argc, char* argv[]) {
     std::cout << "Welcome\n";
 
     {
+        winapi::load_uuids();
+
         window::wrapper window {};
 
         state::control control_state {};
