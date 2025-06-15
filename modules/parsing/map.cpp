@@ -908,6 +908,19 @@ namespace parsers{
         }
     }
 
+    void register_pop_types(state::layer &layer, std::string path) {
+        std::cout << "registration of poptypes\n";
+        if (!std::filesystem::exists(path + "/poptypes")) {
+            return;
+        }
+        for (auto& entry : std::filesystem::directory_iterator  {path + "/poptypes"}) {
+            if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
+                auto name = entry.path().filename().string();
+                layer.poptypes.push_back(name.substr(0, name.size() - 4));
+            }
+        }
+    }
+
     void unload_province_defs(state::layer &layer, std::string path) {
         if (!layer.has_province_definitions) return;
         std::filesystem::create_directory(path + "/map");
@@ -1394,6 +1407,8 @@ border_cutoff = 1100.0
 
     void load_layer(state::layers_stack& state, state::layer &layer) {
         parsers::error_handler errors("parsing_errors.txt");
+
+        register_pop_types(layer, layer.path);
 
         load_province_defs(layer, layer.path);
         load_default_dot_map(layer, layer.path);

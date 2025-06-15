@@ -242,6 +242,8 @@ struct interface_dds_image {
 struct layer {
     std::string path = "./base-game";
 
+    std::vector<std::string> poptypes{};
+
     //is this layer visible
     bool visible = true;
 
@@ -768,6 +770,25 @@ struct layers_stack {
         for (auto const & [key, value] : last->tech) {
             if (value.folder == folder) {
                 techs.push_back(key);
+            }
+        }
+    }
+
+    void retrieve_poptypes(std::vector<std::string>& poptypes) {
+        for (auto& l: data) {
+            if(l.visible) {
+                for (auto& pt : l.poptypes) {
+                    bool already_added = false;
+                    for (auto& added_pt : poptypes) {
+                        if (added_pt.compare(pt)) {
+                            already_added = true;
+                            break;
+                        }
+                    }
+                    if (!already_added) {
+                        poptypes.push_back(pt);
+                    }
+                }
             }
         }
     }
