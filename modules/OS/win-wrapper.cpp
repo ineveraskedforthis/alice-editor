@@ -4,7 +4,9 @@
 #include <iostream>
 
 namespace winapi {
-
+UUID UUID_open_mod;
+UUID UUID_open_flags;
+UUID UUID_open_trade_goods_icon;
 void load_uuids() {
     auto file_exists = std::filesystem::exists("./editor-data.txt");
     bool uuid_loaded = true;

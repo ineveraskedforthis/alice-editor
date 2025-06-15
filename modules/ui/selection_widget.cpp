@@ -12,6 +12,7 @@
 #include <shobjidl_core.h>
 #include <shobjidl.h>
 #include <vector>
+#include <winnt.h>
 #include "win-wrapper.hpp"
 
 
@@ -136,7 +137,7 @@ namespace widgets {
             ImGui::EndDisabled();
     }
 
-    std::wstring open_image_selection_dialog(GUID dialog_id) {
+    std::wstring open_image_selection_dialog(GUID& dialog_id) {
         IFileOpenDialog* DIALOG;
         auto DIALOG_RESULT = CoCreateInstance(
             CLSID_FileOpenDialog,
@@ -149,7 +150,17 @@ namespace widgets {
             return L"";
         }
 
-        DIALOG->SetClientGuid(dialog_id);
+        auto hres = DIALOG->SetClientGuid(dialog_id);
+
+        if (hres != S_OK) {
+            MessageBoxW(
+                NULL,
+                L"Error during setting dialog guid.",
+                L"Something is wrong???",
+                MB_OK
+            );
+            return L"";
+        }
 
         DIALOG->SetDefaultExtension(L"tga");
 

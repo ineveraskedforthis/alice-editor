@@ -58,7 +58,18 @@ std::wstring open_path_selection_dialog() {
         return L"";
     }
 
-    DIALOG->SetClientGuid(winapi::UUID_open_mod);
+    auto hres = DIALOG->SetClientGuid(winapi::UUID_open_mod);
+
+    if (hres != S_OK) {
+        MessageBoxW(
+            NULL,
+            L"Error during setting dialog guid.",
+            L"Something is wrong???",
+            MB_OK
+        );
+        return L"";
+    }
+
     DIALOG->SetOptions(FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_NOCHANGEDIR | FOS_FORCEFILESYSTEM | FOS_PICKFOLDERS);
 
     DIALOG_RESULT = DIALOG->Show(NULL);
