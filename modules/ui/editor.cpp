@@ -70,7 +70,8 @@ namespace widgets {
             parsers::unload_data(
                 layers.data[layers.current_layer_index],
                 "./editor-output/" + std::to_string(layers.current_layer_index) + "/",
-                control.flags_export
+                control.flags_export,
+                layers.get_commodities_count()
             );
         }
 

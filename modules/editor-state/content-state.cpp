@@ -324,6 +324,41 @@ void interface_dds_image::save(std::string path) {
     }
 }
 
+void interface_dds_image::expand_image_right(int amount) {
+    if (!valid()) {
+        return;
+    }
+    if (amount < 0) {
+        return;
+    }
+
+    auto new_size_x = size_x + amount;
+
+    uint8_t* temp = new uint8_t[new_size_x * size_y * channels];
+
+    // copy data
+    // TODO: copy entire lines instead pixel by pixel
+    for (int i = 0; i < size_x; i++) {
+        for (int j = 0; j < size_y; j++) {
+            auto temp_pixel = i + j * new_size_x;
+            auto old_pixel =  i + j * size_x;
+            temp[temp_pixel * 4 + 0] = data[old_pixel * 4 + 0];
+            temp[temp_pixel * 4 + 1] = data[old_pixel * 4 + 1];
+            temp[temp_pixel * 4 + 2] = data[old_pixel * 4 + 2];
+            if (channels > 3) {
+                temp[temp_pixel * 4 + 3] = data[old_pixel * 4 + 3];
+            }
+        }
+    }
+
+    size_x = new_size_x;
+
+    delete [] data;
+    data = temp;
+
+    commit_to_gpu();
+}
+
 void interface_dds_image::upload_to_gpu() {
     glGenTextures(1, &texture_id);
     glBindTexture(GL_TEXTURE_2D, texture_id);

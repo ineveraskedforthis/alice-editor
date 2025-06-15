@@ -235,6 +235,7 @@ struct interface_dds_image {
     void upload_to_gpu();
     // update existing texture
     void commit_to_gpu();
+    void expand_image_right(int amount);
 };
 
 // represent specific mod folder which overwrites previous definitions

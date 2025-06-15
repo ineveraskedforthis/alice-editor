@@ -6,6 +6,7 @@
 #include "../editor-state/editor-state.hpp"
 #include "../assets-manager/assets.hpp"
 #include <array>
+#include <cctype>
 #include <cstddef>
 #include <string>
 
@@ -380,6 +381,10 @@ namespace widgets {
         }
     }
 
+    std::vector<std::string> trade_good_classes = {
+        "military_goods", "raw_material_goods", "industrial_goods", "consumer_goods"
+    };
+
     void explorer_goods(state::layers_stack& map, state::control& control) {
         static ImGuiTableFlags flags =
             ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti
@@ -387,6 +392,73 @@ namespace widgets {
             | ImGuiTableFlags_ScrollY;
         ImGuiStyle& style = ImGui::GetStyle();
         auto& active_layer = map.data[map.current_layer_index];
+
+        ImGui::Text("Add new good");
+        static std::string name_of_new_good;
+        ImGui::InputText("Name", &name_of_new_good);
+
+        // choose the type of trade good (hardcoded for now...)
+
+        ImGui::SameLine();
+
+        static int selected_class = 0;
+
+        if (ImGui::BeginCombo("Category", trade_good_classes[selected_class].c_str())) {
+            for (int n = 0; n < trade_good_classes.size(); n++) {
+                if (ImGui::Selectable(trade_good_classes[n].c_str(), selected_class == n)) {
+                    selected_class = n;
+                }
+            }
+            ImGui::EndCombo();
+        }
+
+        auto valid = true;
+        if (name_of_new_good.size() == 0) {
+            valid = false;
+        } else {
+            for(auto character : name_of_new_good) {
+                if (!isprint(character)) {
+                    valid = false;
+                    break;
+                }
+            }
+        }
+
+        if (!valid) {
+            ImGui::BeginDisabled();
+        }
+        if (ImGui::Button("Create")) {
+            map.copy_goods_to_current_layer();
+            map.copy_resources_to_current_layer();
+            auto count = active_layer.goods.size();
+            {
+                auto& image = active_layer.resources_small;
+                auto size = image.size_x / (count + 1);
+                image.expand_image_right(size);
+            }
+            {
+                auto& image = active_layer.resources_medium;
+                auto size = image.size_x / (count + 1);
+                image.expand_image_right(size);
+            }
+            {
+                auto& image = active_layer.resources_big;
+                auto size = image.size_x / (count + 1);
+                image.expand_image_right(size);
+            }
+
+            game_definition::commodity new_good {
+                .index = (int)active_layer.goods.size(),
+                .name = name_of_new_good,
+                .group = trade_good_classes[selected_class],
+
+            };
+            active_layer.goods[name_of_new_good] = new_good;
+        }
+
+        if (!valid) {
+            ImGui::EndDisabled();
+        }
 
         static std::vector<std::string> list_of_goods {};
         if (!active_layer.has_goods) {

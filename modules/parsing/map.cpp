@@ -1187,9 +1187,19 @@ border_cutoff = 1100.0
         parsers::parse_core_gfx_file(tk, errors, ctx_generic);
     }
 
-    void write_gfx(game_definition::sprite& item, std::ofstream& file) {
+    void write_gfx(game_definition::sprite& item, std::ofstream& file, int amount_of_commodities) {
         file << "\t\tname = " << item.name << "\n";
+        bool is_commodity = false;
         if (item.texturefile.size() > 0) {
+            if (item.texturefile.ends_with("resources.dds")) {
+                is_commodity = true;
+            }
+            if (item.texturefile.ends_with("resources_big.dds")) {
+                is_commodity = true;
+            }
+            if (item.texturefile.ends_with("resources_small.dds")) {
+                is_commodity = true;
+            }
             file << "\t\ttexturefile = \"" << item.texturefile << "\"\n";
         }
         if (item.texturefile1.size() > 0) {
@@ -1199,7 +1209,11 @@ border_cutoff = 1100.0
             file << "\t\ttextureFile2 = \"" << item.texturefile << "\"\n";
         }
         if (item.noofframes > 0) {
-            file << "\t\tnoOfFrames = " << item.noofframes << "\n";
+            if (!is_commodity)
+                file << "\t\tnoOfFrames = " << item.noofframes << "\n";
+            else {
+                file << "\t\tnoOfFrames = " << amount_of_commodities + 1 << "\n";
+            }
         }
         if (item.loadtype.size() > 0) {
             file << "\t\tloadType = \"" << item.loadtype << "\"\n";
@@ -1221,7 +1235,7 @@ border_cutoff = 1100.0
         }
     }
 
-    void unload_core_gfx(state::layer& layer, std::string path) {
+    void unload_core_gfx(state::layer& layer, std::string path, int amount_of_commodities) {
         std::cout << "Write core.gfx\n";
         if (!layer.has_core_gfx) {
             return;
@@ -1234,22 +1248,22 @@ border_cutoff = 1100.0
 
         for (auto & item : layer.sprites) {
             file << "\tspriteType = {\n";
-            write_gfx(item, file);
+            write_gfx(item, file, amount_of_commodities);
             file << "\t}\n";
         }
         for (auto & item : layer.text_sprites) {
             file << "\ttextSpriteType = {\n";
-            write_gfx(item, file);
+            write_gfx(item, file, amount_of_commodities);
             file << "\t}\n";
         }
         for (auto & item : layer.masked_shields) {
             file << "\tmaskedShieldType = {\n";
-            write_gfx(item, file);
+            write_gfx(item, file, amount_of_commodities);
             file << "\t}\n";
         }
         for (auto & item : layer.cornered_sprites) {
             file << "\tcorneredTileSpriteType = {\n";
-            write_gfx(item, file);
+            write_gfx(item, file, amount_of_commodities);
             file << "\t}\n";
         }
 
@@ -1401,7 +1415,7 @@ border_cutoff = 1100.0
         std::cout << errors.accumulated_errors;
     }
 
-    void unload_data(state::layer& layer, std::string path, state::FLAG_EXPORT_OPTIONS flag_option) {
+    void unload_data(state::layer& layer, std::string path, state::FLAG_EXPORT_OPTIONS flag_option, int amount_of_commodities) {
         std::cout << "Create directory: " << path << "\n";
         std::filesystem::create_directory(path);
 
@@ -1416,7 +1430,7 @@ border_cutoff = 1100.0
         unload_nation_history(layer, path);
         unload_province_history(layer, conversions::utf8_to_wstring(path));
         unload_flags(layer, path, flag_option);
-        unload_core_gfx(layer, path);
+        unload_core_gfx(layer, path, amount_of_commodities);
         unload_goods(layer, path);
         unload_resources_image(layer, path);
     }

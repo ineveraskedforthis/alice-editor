@@ -39,6 +39,6 @@ build/base-game*
 build/editor-input*
 build/*.pdb
 build/*.ilk
-build/*.ilk
+build/editor-data.txt
 .ninja_log
 cache
