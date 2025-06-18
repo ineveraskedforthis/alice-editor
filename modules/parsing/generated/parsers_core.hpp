@@ -57,6 +57,19 @@ struct context_with_file_label{
 	std::string file;
 };
 
+struct pop_history_context {
+	state::layer& map;
+	game_definition::pops_history_file& file;
+	int date;
+	uint32_t v2id;
+};
+
+struct pop_history_file_context {
+	state::layer& map;
+	game_definition::pops_history_file& file;
+	int date;
+};
+
 struct issues_group {
 	void finish(issue_group_context&) { }
 };
@@ -180,6 +193,29 @@ struct government_type {
 	void any_value(std::string_view text, association_type, bool value, error_handler& err, int32_t line, government_type_context& context);
 	void finish(government_type_context&) { }
 };
+
+struct pop_history_definition {
+	int size = 0;
+	float militancy = 0;
+	std::string _culture {};
+	std::string _religion {};
+	std::string _rebel_type {};
+	void finish(pop_history_context&) {};
+	void culture(association_type, std::string_view value, error_handler& err, int32_t line, pop_history_context& context);
+	void religion(association_type, std::string_view value, error_handler& err, int32_t line, pop_history_context& context);
+	void rebel_type(association_type, std::string_view value, error_handler& err, int32_t line, pop_history_context& context);
+};
+
+struct pop_province_list {
+	void finish(pop_history_context&);
+	void any_group(std::string_view key, pop_history_definition value, error_handler& err, int32_t line, pop_history_context context);
+};
+
+struct pop_history_file {
+	void finish(pop_history_file_context&){};
+};
+
+void make_pop_province_list(std::string_view name, token_generator& gen, error_handler& err, pop_history_file_context& context);
 
 //forward declaration for the correspording cpp file
 

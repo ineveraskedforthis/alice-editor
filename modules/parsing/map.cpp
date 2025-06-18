@@ -908,6 +908,68 @@ namespace parsers{
         }
     }
 
+    void load_province_population(state::layer &layer, std::string path, parsers::error_handler& errors) {
+        std::cout << "reading population history\n";
+        if (!std::filesystem::exists(path + "/history" + "/pops")) {
+            return;
+        }
+        for (auto& entry : std::filesystem::directory_iterator  {path + "/history" + "/pops"}) {
+            if (!entry.is_directory()) {
+                continue;
+            }
+
+            auto date = entry.path().filename().string();
+            auto first_dot = date.find_first_of('.');
+            auto year_s = date.substr(0, first_dot);
+            auto year = std::stoi(year_s);
+
+            date = date.substr(first_dot + 1, date.size() - first_dot - 1);
+            auto second_dot = date.find_first_of('.');
+            auto month_s = date.substr(0, second_dot);
+            auto month = std::stoi(month_s);
+
+            date = date.substr(second_dot + 1, date.size() - second_dot - 1);
+            auto day_s = date.substr(0, second_dot);
+            auto day = std::stoi(month_s);
+
+            auto date_i = year * 365 + month * 31 + day;
+
+            game_definition::pops_setups new_pop_data {};
+            new_pop_data.date = date_i;
+
+            for (auto& pops_lump : std::filesystem::directory_iterator(entry.path())) {
+                if (pops_lump.is_directory() || !pops_lump.path().filename().string().ends_with(".txt")) {
+                    continue;
+                }
+
+                auto filename = pops_lump.path().filename().string();
+                errors.file_name = filename;
+
+                std::ifstream file(pops_lump.path());
+
+                game_definition::pops_history_file file_content {};
+                file_content.filename = filename;
+
+                parsers::pop_history_file_context context {
+                    layer,
+                    file_content,
+                    date_i,
+                };
+
+                std::stringstream buffer;
+                buffer << file.rdbuf();
+                auto str = buffer.str();
+                parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+
+                parse_pop_history_file(tk, errors, context);
+
+                new_pop_data.data.push_back(file_content);
+            }
+
+            layer.province_population.push_back(new_pop_data);
+        }
+    }
+
     void register_pop_types(state::layer &layer, std::string path) {
         std::cout << "registration of poptypes\n";
         if (!std::filesystem::exists(path + "/poptypes")) {
@@ -1423,6 +1485,7 @@ border_cutoff = 1100.0
         load_nations_common(layer, layer.path, errors);
         load_nation_history(state, layer, layer.path, errors);
         load_province_history(layer, layer.path, errors);
+        load_province_population(layer, layer.path, errors);
         load_core_gfx(layer, layer.path, errors);
         load_goods(layer, layer.path, errors);
         load_resources_image(layer, layer.path);

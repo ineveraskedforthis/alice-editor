@@ -271,6 +271,25 @@ namespace game_definition {
         std::string is_slave{};
     };
 
+    struct pop_history {
+        std::string poptype{};
+        std::string culture{};
+        std::string religion{};
+        std::string rebel_type{};
+        int size = 0;
+        float militancy = 0;
+    };
+
+    struct pops_history_file {
+        std::string filename  {};
+        ankerl::unordered_dense::map<uint32_t, std::vector<pop_history>> data {};
+    };
+
+    struct pops_setups {
+        int date = 0;
+        std::vector<pops_history_file> data {};
+    };
+
     struct province {
         uint32_t v2id;
         std::string name;

@@ -318,6 +318,21 @@ void make_cornered_sprite(token_generator& gen, error_handler& err, generic_cont
     context.map.cornered_sprites.push_back(result);
 }
 
+void make_pop_province_list(
+    std::string_view name, token_generator& gen, error_handler& err, pop_history_file_context& context
+) {
+    std::string v2id_str {name};
+    auto v2id = std::stoul(v2id_str);
+
+    pop_history_context new_context {
+        .map = context.map,
+        .file = context.file,
+        .date = context.date,
+        .v2id = v2id,
+    };
+
+    parse_pop_province_list(gen, err, new_context);
+}
 
 void make_issue(std::string_view name, token_generator& gen, error_handler& err, issue_group_context& context) {
     std::string actual_string {name};
@@ -391,6 +406,49 @@ void make_goods_group(std::string_view name, token_generator& gen, error_handler
         context.map, actual_string
     };
     parse_goods_group(gen, err, new_context);
+}
+
+void pop_province_list::finish(pop_history_context&){
+
+}
+
+void pop_province_list::any_group(
+    std::string_view key,
+    pop_history_definition value,
+    error_handler& err,
+    int32_t line,
+    pop_history_context context
+) {
+    std::string poptype {key};
+    game_definition::pop_history result {
+        .poptype = poptype,
+        .culture = value._culture,
+        .religion = value._religion,
+        .rebel_type = value._rebel_type,
+        .size = value.size,
+        .militancy = value.militancy
+    };
+
+    context.file.data[context.v2id].push_back(result);
+}
+
+void pop_history_definition::culture(
+    association_type, std::string_view value, error_handler& err, int32_t line, pop_history_context& context
+) {
+    std::string value_reserved {value};
+    _culture = value_reserved;
+}
+void pop_history_definition::religion(
+    association_type, std::string_view value, error_handler& err, int32_t line, pop_history_context& context
+) {
+    std::string value_reserved {value};
+    _religion = value_reserved;
+}
+void pop_history_definition::rebel_type(
+    association_type, std::string_view value, error_handler& err, int32_t line, pop_history_context& context
+) {
+    std::string value_reserved {value};
+    _rebel_type = value_reserved;
 }
 
 }

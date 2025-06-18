@@ -523,7 +523,7 @@ namespace widgets {
         return flag_found;
     }
 
-    void selection_province(state::layers_stack& map, state::control& control, state::editor& editor) {
+    void selection_province_history(state::layers_stack& map, state::control& control, state::editor& editor) {
         auto can_edit = map.can_edit_province_history(control.selected_province_id);
 
         if (control.selected_province_id > 0) {
@@ -725,6 +725,55 @@ namespace widgets {
             if (!can_edit) {
                 ImGui::EndDisabled();
             }
+        }
+    }
+
+    void province_population_widget(state::layers_stack& layers, uint32_t v2id) {
+        ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+        auto dates = layers.get_available_dates();
+        if (ImGui::BeginTabBar("ProvincePopulationTabs", tab_bar_flags)) {
+            for (auto d : dates) {
+                auto year = d / 365;
+                auto year_s = std::to_string(year);
+                if (ImGui::BeginTabItem(year_s.c_str())) {
+                    auto pops = layers.get_pops(v2id, d);
+                    if (pops == nullptr) {
+                        ImGui::Text("No pops defined for this province");
+                    } else {
+                        std::vector<game_definition::pop_history> & pops_ref = *pops;
+                        for (int i = 0; i < pops_ref.size(); i++) {
+                            ImGui::PushID(i);
+                            auto& pop = pops_ref[i];
+                            std::string name = pop.religion + " " + pop.culture + " " + pop.poptype;
+                            ImGui::Text("%s", name.c_str());
+                            ImGui::InputInt("Size", &pop.size);
+                            ImGui::InputFloat("Militancy", &pop.militancy);
+                            ImGui::InputText("Religion", &pop.religion);
+                            ImGui::InputText("Culture", &pop.culture);
+                            ImGui::InputText("Poptype", &pop.poptype);
+                            ImGui::InputText("Rebel Type", &pop.rebel_type);
+                            ImGui::PopID();
+                        }
+                    }
+                    ImGui::EndTabItem();
+                }
+            }
+        }
+        ImGui::EndTabBar();
+    }
+
+    void province_widget(state::layers_stack& layers, state::control& control, state::editor& editor) {
+        ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
+        if (ImGui::BeginTabBar("ProvinceTabs", tab_bar_flags)) {
+            if (ImGui::BeginTabItem("Definition")) {
+                selection_province_history(layers, control, editor);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Population")) {
+                province_population_widget(layers, control.selected_province_id);
+                ImGui::EndTabItem();
+            }
+            ImGui::EndTabBar();
         }
     }
 
@@ -1065,7 +1114,7 @@ namespace widgets {
         ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
         if (ImGui::BeginTabBar("SelectionTabs", tab_bar_flags)) {
             if (ImGui::BeginTabItem("Province")) {
-                selection_province(map, control, editor);
+                province_widget(map, control, editor);
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Nation")) {

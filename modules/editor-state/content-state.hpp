@@ -275,6 +275,9 @@ struct layer {
     // history/provinces/*.txt
     ankerl::unordered_dense::map<uint32_t, game_definition::province_history> province_history {};
 
+    // history/pops/ DATE / *.txt
+    std::vector<game_definition::pops_setups> province_population {};
+
     // region.txt
 
     std::vector<game_definition::state> states {};
@@ -889,6 +892,40 @@ struct layers_stack {
                 auto iterator = l.goods.find(name);
                 if (iterator != l.goods.end())
                     result = &iterator->second;
+            }
+        }
+        return result;
+    }
+
+    std::vector<int> get_available_dates() {
+        std::vector<int> result;
+        for (auto& l: data) {
+            for (auto& folder: l.province_population) {
+                bool already_defined = false;
+                for (auto x: result) {
+                    if (x == folder.date) {
+                        already_defined = true;
+                    }
+                }
+                if (!already_defined)
+                    result.push_back(folder.date);
+            }
+        }
+        return result;
+    }
+
+    std::vector<game_definition::pop_history> * get_pops(uint32_t v2id, int date) {
+        std::vector<game_definition::pop_history> * result = nullptr;
+        for (auto& l : data) {
+            for (auto& folder: l.province_population) {
+                if (folder.date != date) {
+                    continue;
+                }
+                for (auto& file : folder.data) {
+                    auto iterator = file.data.find(v2id);
+                    if (iterator != file.data.end())
+                        result = &file.data[v2id];
+                }
             }
         }
         return result;
