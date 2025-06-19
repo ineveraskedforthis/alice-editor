@@ -932,7 +932,7 @@ namespace parsers{
             auto day_s = date.substr(0, second_dot);
             auto day = std::stoi(month_s);
 
-            auto date_i = year * 365 + month * 31 + day;
+            auto date_i = year * 31*12 + month * 31 + day;
 
             game_definition::pops_setups new_pop_data {};
             new_pop_data.date = date_i;
@@ -943,7 +943,7 @@ namespace parsers{
                 }
 
                 auto filename = pops_lump.path().filename().string();
-                errors.file_name = filename;
+                errors.file_name = pops_lump.path().filename().string();
 
                 std::ifstream file(pops_lump.path());
 
@@ -1126,6 +1126,46 @@ border_cutoff = 1100.0
 
             if (!adj.mark_for_delete) {
                 file << adj.from << ";" << adj.to << ";" << type << ";" << adj.through << ";" << adj.data << "#" << adj.comment << "\n";
+            }
+        }
+    }
+
+    void unload_province_population(state::layer& layer, std::string path) {
+        std::filesystem::create_directory(path + "/history");
+        std::filesystem::create_directory(path + "/history/pops");
+        for (auto & folder : layer.province_population) {
+            auto date = folder.date;
+            auto year = date / (31 * 12);
+            date -= year * 31 * 12;
+            auto month = date / 31;
+            date -= month * 31;
+            auto day = date;
+
+            std::string folder_name =
+                std::to_string(year) + "."
+                + std::to_string(month) + "."
+                + std::to_string(day);
+            auto dated_path = path + "/history/pops/" + folder_name;
+
+            std::filesystem::create_directory(dated_path);
+
+            for (auto& pops_file : folder.data) {
+                std::ofstream file(dated_path + "/" + pops_file.filename);
+                for (auto& [v2id, pops] : pops_file.data) {
+                    file << v2id << " = {\n";
+                    for (auto& pop : pops) {
+                        file << "\t" << pop.poptype << " = {\n";
+                        file << "\tculture = " << pop.culture << "\n";
+                        file << "\treligion = " << pop.religion << "\n";
+                        if (pop.militancy != 0.f)
+                            file << "\tmilitancy = " << pop.militancy << "\n";
+                        if (pop.rebel_type.size() > 0)
+                            file << "\trebel_type = " << pop.rebel_type << "\n";
+                        file << "\tsize = " << pop.size << "\n";
+                        file << "\t}\n";
+                    }
+                    file << "}\n";
+                }
             }
         }
     }
@@ -1507,6 +1547,7 @@ border_cutoff = 1100.0
         unload_nations_common(layer, path);
         unload_nation_history(layer, path);
         unload_province_history(layer, conversions::utf8_to_wstring(path));
+        unload_province_population(layer, path);
         unload_flags(layer, path, flag_option);
         unload_core_gfx(layer, path, amount_of_commodities);
         unload_goods(layer, path);

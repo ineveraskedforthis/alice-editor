@@ -1,5 +1,6 @@
 #include "explorer.hpp"
 #include "imgui.h"
+#include "misc/cpp/imgui_stdlib.h"
 #include "../editor-state/editor-state.hpp"
 #include "window-wrapper.hpp"
 #include "selection_widget.hpp"
@@ -386,12 +387,32 @@ namespace widgets {
             ));
             ImGui::Begin("context_new_prov", NULL, flags);
             if (ImGui::Button("New province")) {
-                auto prov = layers.new_province(control.context_pixel);
+                auto prov = layers.new_province(control.context_pixel, "");
                 control.r = prov.r;
                 control.g = prov.g;
                 control.b = prov.b;
             }
             ImGui::End();
+        }
+
+        {
+            shift_y += step_y;
+            ImGui::SetNextWindowSize(ImVec2(200, 50));
+            ImGui::SetNextWindowPos(ImVec2(
+                control.context_window_origin.x + shift_x,
+                control.context_window_origin.y + shift_y
+            ));
+            ImGui::Begin("context_new_prov_named", NULL, flags);
+            static std::string new_province_name = "";
+            ImGui::InputText("Name", &new_province_name);
+            if (ImGui::Button("New named province")) {
+                auto prov = layers.new_province(control.context_pixel, new_province_name);
+                control.r = prov.r;
+                control.g = prov.g;
+                control.b = prov.b;
+            }
+            ImGui::End();
+            shift_y += step_y;
         }
 
         {

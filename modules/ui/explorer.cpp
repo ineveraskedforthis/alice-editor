@@ -9,26 +9,9 @@
 #include <cctype>
 #include <cstddef>
 #include <string>
+#include "ui_enums.hpp"
 
 namespace widgets {
-
-    enum explorer_columns
-    {
-        province_v2id,
-        province_name,
-        province_size,
-        province_owner,
-        province_select,
-
-        nation_tag,
-        nation_name,
-        nation_civilized,
-        nation_select,
-
-        goods_icon,
-        goods_name,
-        goods_select,
-    };
 
     void explorer_provinces(state::layers_stack& map, state::control& control) {
 

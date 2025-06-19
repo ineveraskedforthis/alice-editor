@@ -15,6 +15,8 @@
 #include <winnt.h>
 #include "win-wrapper.hpp"
 
+#include "ui_enums.hpp"
+
 
 //we need only declarations here
 #include "SOIL2.h"
@@ -731,30 +733,217 @@ namespace widgets {
     void province_population_widget(state::layers_stack& layers, uint32_t v2id) {
         ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
         auto dates = layers.get_available_dates();
+        auto poptypes = layers.retrieve_poptypes();
+
         if (ImGui::BeginTabBar("ProvincePopulationTabs", tab_bar_flags)) {
             for (auto d : dates) {
-                auto year = d / 365;
+                auto year = d / (31*12);
                 auto year_s = std::to_string(year);
                 if (ImGui::BeginTabItem(year_s.c_str())) {
                     auto pops = layers.get_pops(v2id, d);
+
                     if (pops == nullptr) {
                         ImGui::Text("No pops defined for this province");
-                    } else {
-                        std::vector<game_definition::pop_history> & pops_ref = *pops;
-                        for (int i = 0; i < pops_ref.size(); i++) {
-                            ImGui::PushID(i);
-                            auto& pop = pops_ref[i];
-                            std::string name = pop.religion + " " + pop.culture + " " + pop.poptype;
-                            ImGui::Text("%s", name.c_str());
-                            ImGui::InputInt("Size", &pop.size);
-                            ImGui::InputFloat("Militancy", &pop.militancy);
-                            ImGui::InputText("Religion", &pop.religion);
-                            ImGui::InputText("Culture", &pop.culture);
-                            ImGui::InputText("Poptype", &pop.poptype);
-                            ImGui::InputText("Rebel Type", &pop.rebel_type);
-                            ImGui::PopID();
+
+                        if (ImGui::Button("Create pops table for the province")) {
+                            layers.create_new_population_list(v2id, d);
                         }
+
+                        ImGui::EndTabItem();
+                        continue;
                     }
+
+                    bool can_edit = layers.can_edit_pops(v2id, d);
+
+                    if (!can_edit) {
+                        ImGui::Text("Pops are defined on a layer below, so you can't edit them");
+                        if (ImGui::Button("Create empty pops table for the province")) {
+                            layers.create_new_population_list(v2id, d);
+                        }
+                        if (ImGui::Button("Copy pops table from the layer below")) {
+                            layers.copy_pops_data_to_current_layer(v2id, d);
+                        }
+                        ImGui::BeginDisabled();
+                    }
+
+                    static std::vector<size_t> pops_indices;
+                    static uint32_t selected_province = 0;
+
+                    if (ImGui::Button("Add pop")) {
+                        game_definition::pop_history item {};
+                        pops->push_back(item);
+                        selected_province = 0;
+                    }
+
+                    if (selected_province != v2id) {
+                        pops_indices.clear();
+                        for (auto i = 0; i < pops->size(); i++) {
+                            pops_indices.push_back(i);
+                        }
+                        selected_province = v2id;
+                    }
+
+                    static ImGuiTableFlags flags =
+                        ImGuiTableFlags_Reorderable
+                        | ImGuiTableFlags_Hideable
+                        | ImGuiTableFlags_Sortable
+                        | ImGuiTableFlags_SortMulti
+                        | ImGuiTableFlags_RowBg
+                        | ImGuiTableFlags_BordersOuter
+                        | ImGuiTableFlags_BordersV
+                        | ImGuiTableFlags_NoBordersInBody
+                        | ImGuiTableFlags_ScrollY;
+
+                    ImGuiStyle& style = ImGui::GetStyle();
+
+                    if (
+                        ImGui::BeginTable(
+                            "table_population",
+                            6,
+                            flags,
+                            ImVec2(0.0f, 500),
+                            0.0f
+                        )
+                    ) {
+                        ImGui::TableSetupColumn(
+                            "Religion",
+                            ImGuiTableColumnFlags_DefaultSort
+                            | ImGuiTableColumnFlags_WidthFixed,
+                            80.0f,
+                            province_population_religion
+                        );
+                        ImGui::TableSetupColumn(
+                            "Culture",
+                            ImGuiTableColumnFlags_DefaultSort
+                            | ImGuiTableColumnFlags_WidthFixed,
+                            80.0f,
+                            province_population_culture
+                        );
+                        ImGui::TableSetupColumn(
+                            "Poptype",
+                            ImGuiTableColumnFlags_DefaultSort
+                            | ImGuiTableColumnFlags_WidthFixed,
+                            80.0f,
+                            province_population_poptype
+                        );
+                        ImGui::TableSetupColumn(
+                            "Size",
+                            ImGuiTableColumnFlags_DefaultSort
+                            | ImGuiTableColumnFlags_WidthFixed,
+                            100.0f,
+                            province_population_size
+                        );
+                        ImGui::TableSetupColumn(
+                            "Militancy",
+                            ImGuiTableColumnFlags_DefaultSort
+                            | ImGuiTableColumnFlags_WidthFixed,
+                            60.0f,
+                            province_population_militancy
+                        );
+                        ImGui::TableSetupColumn(
+                            "Rebel",
+                            ImGuiTableColumnFlags_DefaultSort
+                            | ImGuiTableColumnFlags_WidthFixed,
+                            50.0f,
+                            province_population_rebel
+                        );
+
+                        ImGui::TableSetupScrollFreeze(0, 1); // Make row always visible
+                        ImGui::TableHeadersRow();
+
+                        // Sort our data if sort specs have been changed!
+                        if (ImGuiTableSortSpecs* sort_specs = ImGui::TableGetSortSpecs())
+                            if (sort_specs->SpecsDirty) {
+                                std::sort(pops_indices.begin(), pops_indices.end(), [&](size_t a, size_t b) {
+                                    auto& a_def = pops->data()[a];
+                                    auto& b_def = pops->data()[b];
+
+                                    for (int n = 0; n < sort_specs->SpecsCount; n++)
+                                    {
+                                        const ImGuiTableColumnSortSpecs* sort_spec = &sort_specs->Specs[n];
+                                        int order = 0;
+                                        switch (sort_spec->ColumnUserID)
+                                        {
+                                        case province_population_culture:
+                                            order = a_def.culture.compare(b_def.culture);
+                                            break;
+                                        case province_population_religion:
+                                            order = a_def.religion.compare(b_def.religion);
+                                            break;
+                                        case province_population_poptype:
+                                            order = a_def.poptype.compare(b_def.poptype);
+                                            break;
+                                        case province_population_rebel:
+                                            order = a_def.poptype.compare(b_def.poptype);
+                                            break;
+                                        case province_population_size:
+                                            order = a_def.size - b_def.size;
+                                            break;
+                                        case province_population_militancy:
+                                            order = a_def.militancy - b_def.militancy;
+                                            break;
+                                        default: IM_ASSERT(0); break;
+                                        }
+                                        if (order > 0)
+                                            return (sort_spec->SortDirection == ImGuiSortDirection_Ascending) ? true : false;
+                                        if (order < 0)
+                                            return (sort_spec->SortDirection == ImGuiSortDirection_Ascending) ? false : true;
+                                    }
+                                    return a > b;
+                                });
+                                sort_specs->SpecsDirty = false;
+                            }
+
+                        ImGuiListClipper clipper;
+                        clipper.Begin(pops_indices.size());
+                        while (clipper.Step())
+                            for (int row_n = clipper.DisplayStart; row_n < clipper.DisplayEnd; row_n++) {
+                                // Display a data item
+                                auto pop_index = pops_indices[row_n];
+                                auto& pop = pops->data()[pop_index];
+
+                                ImGui::PushID(row_n);
+                                ImGui::TableNextRow();
+
+                                ImGui::TableNextColumn();
+                                ImGui::SetNextItemWidth(80.f);
+                                ImGui::InputText("##religion", &pop.religion);
+
+                                ImGui::TableNextColumn();
+                                ImGui::SetNextItemWidth(80.f);
+                                ImGui::InputText("##culture", &pop.culture);
+
+                                ImGui::TableNextColumn();
+                                ImGui::SetNextItemWidth(80.f);
+                                if (ImGui::BeginCombo("", pop.poptype.c_str())) {
+                                    for (int n = 0; n < poptypes.size(); n++) {
+                                        if (ImGui::Selectable(poptypes[n].c_str(), poptypes[n] == pop.poptype)) {
+                                            pop.poptype = poptypes[n];
+                                        }
+                                    }
+                                    ImGui::EndCombo();
+                                }
+
+                                ImGui::TableNextColumn();
+                                ImGui::SetNextItemWidth(100.f);
+                                ImGui::InputInt("##size", &pop.size, 0);
+
+                                ImGui::TableNextColumn();
+                                ImGui::SetNextItemWidth(60.f);
+                                ImGui::InputFloat("##militancy", &pop.militancy);
+
+                                ImGui::TableNextColumn();
+                                ImGui::Text("%s", pop.rebel_type.c_str());
+
+                                ImGui::PopID();
+                            }
+                        ImGui::EndTable();
+                    }
+
+                    if (!can_edit) {
+                        ImGui::EndDisabled();
+                    }
+
                     ImGui::EndTabItem();
                 }
             }

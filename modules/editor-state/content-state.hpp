@@ -6,9 +6,6 @@
 #include <iostream>
 #include <optional>
 #include <vector>
-#include <filesystem>
-
-#include "SOIL2.h"
 
 #include "../glm/fwd.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
@@ -93,8 +90,8 @@ struct province_texture {
     };
     province_texture& operator=(province_texture& source);
     int coord_to_pixel(glm::ivec2 coord);
-    int coord_to_pixel(glm::vec2 coord);
     void load_province_texture_to_gpu();
+    int coord_to_pixel(glm::vec2 coord);
     void commit_province_texture_changes_to_gpu();
 };
 
@@ -777,13 +774,14 @@ struct layers_stack {
         }
     }
 
-    void retrieve_poptypes(std::vector<std::string>& poptypes) {
+    std::vector<std::string> retrieve_poptypes() {
+        std::vector<std::string> poptypes;
         for (auto& l: data) {
             if(l.visible) {
                 for (auto& pt : l.poptypes) {
                     bool already_added = false;
                     for (auto& added_pt : poptypes) {
-                        if (added_pt.compare(pt)) {
+                        if (added_pt.compare(pt) == 0) {
                             already_added = true;
                             break;
                         }
@@ -794,6 +792,7 @@ struct layers_stack {
                 }
             }
         }
+        return poptypes;
     }
 
     void retrieve_inventions(std::vector<std::string>& inventions, std::wstring folder) {
@@ -912,6 +911,100 @@ struct layers_stack {
             }
         }
         return result;
+    }
+
+    bool can_edit_pops(uint32_t v2id, int date) {
+        auto& active_layer = data[current_layer_index];
+        for (auto& folder : active_layer.province_population) {
+            if (folder.date != date) {
+                continue;
+            }
+
+            for (auto& file : folder.data) {
+                auto iterator = file.data.find(v2id);
+                if (iterator != file.data.end())
+                    return true;
+            }
+        }
+        return false;
+    }
+
+    void copy_pops_data_to_current_layer(uint32_t v2id, int date) {
+        if (can_edit_pops(v2id, date)) {
+            return;
+        }
+        auto pops = get_pops(v2id, date);
+        auto& active_layer = data[current_layer_index];
+        bool date_exists = false;
+        for (auto& folder : active_layer.province_population) {
+            if (folder.date == date) {
+                date_exists = true;
+                bool editor_generated_population_exists = false;
+                for (auto& file : folder.data) {
+                    if (file.filename == "editor-pops.txt") {
+                        editor_generated_population_exists = true;
+                        file.data[v2id] = {};
+                        for (auto& pop : *pops) {
+                            file.data[v2id].push_back(pop);
+                        }
+                    }
+                }
+
+                if (!editor_generated_population_exists) {
+                    game_definition::pops_history_file file {
+                        "editor-pops.txt", {}
+                    };
+                    for (auto& pop : *pops) {
+                        file.data[v2id].push_back(pop);
+                    }
+                    folder.data.push_back(file);
+                }
+            }
+        }
+
+        if (!date_exists) {
+            game_definition::pops_setups folder {
+                date, {}
+            };
+            game_definition::pops_history_file file {
+                "editor-pops.txt", {}
+            };
+            for (auto& pop : *pops) {
+                file.data[v2id].push_back(pop);
+            }
+            folder.data.push_back(file);
+            active_layer.province_population.push_back(folder);
+        }
+    }
+
+    void create_new_population_list(uint32_t v2id, int date) {
+        if (can_edit_pops(v2id, date)) {
+            return;
+        }
+        auto& active_layer = data[current_layer_index];
+        auto editor_pops_already_exist = false;
+        // find existing editor-pops.txt:
+        for (auto& folder : active_layer.province_population) {
+            if (folder.date == date) {
+                for (auto& file : folder.data) {
+                    if (file.filename == "editor-pops.txt") {
+                        editor_pops_already_exist = true;
+                        file.data[v2id] = {};
+                    }
+                }
+            }
+        }
+        if (!editor_pops_already_exist) {
+            game_definition::pops_setups folder {
+                date, {}
+            };
+            game_definition::pops_history_file file {
+                "editor-pops.txt", {}
+            };
+            file.data[v2id] = {};
+            folder.data.push_back(file);
+            active_layer.province_population.push_back(folder);
+        }
     }
 
     std::vector<game_definition::pop_history> * get_pops(uint32_t v2id, int date) {
@@ -1121,7 +1214,7 @@ struct layers_stack {
         active_layer.filename_to_nation_common[filename] = c;
     };
 
-    game_definition::province& new_province(uint32_t pixel) {
+    game_definition::province& new_province(uint32_t pixel, std::string name) {
 
         // when we create a new province, we have to:
         // 1) update the rgb province map and available rgb
@@ -1205,9 +1298,13 @@ struct layers_stack {
 
         // create new definition and upload it into arrays:
 
+        if (name.size() == 0) {
+            name = "UnknownProv" + std::to_string(active_layer.available_id);
+        }
+
         game_definition::province def_template = {
             active_layer.available_id,
-            "UnknownProv" + std::to_string(active_layer.available_id),
+            name,
             active_layer.provinces_image->available_r,
             active_layer.provinces_image->available_g,
             active_layer.provinces_image->available_b
@@ -1269,6 +1366,8 @@ struct layers_stack {
 
         return def;
     }
+
+    void save_population_texture();
 
     void update_adj_buffers(GLuint buffer, int& counter) {
         layer* adj_source = nullptr;

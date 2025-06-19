@@ -1,4 +1,12 @@
+#include "SOIL2.h"
 #include "content-state.hpp"
+#include <algorithm>
+#include <array>
+#include <cstdint>
+#include <cstdlib>
+#include <filesystem>
+#include <string>
+#include <vector>
 
 namespace state {
 
@@ -398,6 +406,73 @@ void interface_dds_image::commit_to_gpu() {
         GL_UNSIGNED_BYTE,
         data
     );
+}
+
+// TODO
+void layers_stack::save_population_texture() {
+    auto size_x = get_provinces_image_x();
+    auto size_y = get_provinces_image_y();
+    auto image_data = new uint8_t[size_x * size_y];
+
+    auto density = std::vector<float> {};
+    density.resize(256 * 256);
+
+    // get latest history
+    layer * result = &data[0];
+
+    for (size_t i = 0; i < data.size(); i++) {
+        if(data[i].visible && data[i].has_province_definitions) {
+            result = &data[i];
+        }
+    }
+
+    for (auto date : get_available_dates()){
+        for (auto prov: result->province_definitions) {
+            auto v2id = prov.v2id;
+            auto province_size = indices.v2id_to_size[v2id];
+            auto population = get_pops(v2id, date);
+            if (population == nullptr) {
+                continue;
+            }
+            auto total = 0;
+            for (auto& pop: *population) {
+                if (pop.culture == "north_german" && pop.religion == "protestant" && pop.poptype == "artisans") {
+                    total += pop.size;
+                }
+            }
+
+            density[v2id] = std::clamp((float)total / (float)province_size, 0.f, 255.f);
+        }
+
+        for (int i = 0; i < size_x; i++) {
+            for(int j = 0; j < size_y; j++) {
+                auto v2id = sample_province_index(i + j * size_x);
+                auto local_density = (uint8_t) density[v2id];
+                image_data[i + j * size_x] = local_density;
+            }
+        }
+        break;
+    }
+
+    auto image_png_name = "protestant-north_german-artisans.png";
+    auto image_jxl_name = "protestant-north_german-artisans.jxl";
+
+    SOIL_save_image(
+        "./editor-output/1/protestant-north_german-artisans.png",
+        SOIL_SAVE_TYPE_PNG,
+        size_x,
+        size_y,
+        1,
+        image_data
+    );
+
+    // std::string command = "cjxl.exe";
+    // std::string path = "./editor-output/1/";
+    // command += " " + path + image_png_name;
+    // command += " " + path + image_jxl_name;
+    // command += " --effort=10";
+
+    // system(command.c_str());
 }
 
 }
