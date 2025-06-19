@@ -23,5 +23,6 @@ enum explorer_columns {
     province_population_size,
     province_population_militancy,
     province_population_rebel,
+    province_population_copy,
 };
 };

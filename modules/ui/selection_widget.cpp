@@ -552,8 +552,16 @@ namespace widgets {
                 }
             }
 
-            if (history == nullptr || def == nullptr) {
-                ImGui::Text("Sea province or area without definition");
+            if (def == nullptr) {
+                ImGui::Text("Province without definition");
+                return;
+            }
+
+            if (history == nullptr) {
+                ImGui::Text("Province without history");
+                if (ImGui::Button("Set up history")) {
+                    map.copy_province_history_to_current_layer(v2id);
+                }
                 return;
             }
 
@@ -730,7 +738,7 @@ namespace widgets {
         }
     }
 
-    void province_population_widget(state::layers_stack& layers, uint32_t v2id) {
+    void province_population_widget(state::layers_stack& layers, state::control& control, uint32_t v2id) {
         ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
         auto dates = layers.get_available_dates();
         auto poptypes = layers.retrieve_poptypes();
@@ -774,6 +782,11 @@ namespace widgets {
                         pops->push_back(item);
                         selected_province = 0;
                     }
+                    ImGui::SameLine();
+                    if (ImGui::Button("Paste copied pop")) {
+                        pops->push_back(control.pop_buffer);
+                        selected_province = 0;
+                    }
 
                     if (selected_province != v2id) {
                         pops_indices.clear();
@@ -799,7 +812,7 @@ namespace widgets {
                     if (
                         ImGui::BeginTable(
                             "table_population",
-                            6,
+                            7,
                             flags,
                             ImVec2(0.0f, 500),
                             0.0f
@@ -846,6 +859,13 @@ namespace widgets {
                             | ImGuiTableColumnFlags_WidthFixed,
                             50.0f,
                             province_population_rebel
+                        );
+                        ImGui::TableSetupColumn(
+                            "CopyProv",
+                            ImGuiTableColumnFlags_NoSort
+                            | ImGuiTableColumnFlags_WidthFixed,
+                            50.0f,
+                            province_population_copy
                         );
 
                         ImGui::TableSetupScrollFreeze(0, 1); // Make row always visible
@@ -935,6 +955,17 @@ namespace widgets {
                                 ImGui::TableNextColumn();
                                 ImGui::Text("%s", pop.rebel_type.c_str());
 
+                                ImGui::TableNextColumn();
+                                if (ImGui::Button("Copy")) {
+                                    control.pop_buffer.culture = pop.culture;
+                                    control.pop_buffer.militancy = pop.militancy;
+                                    control.pop_buffer.poptype = pop.poptype;
+                                    control.pop_buffer.rebel_type = pop.rebel_type;
+                                    control.pop_buffer.religion = pop.religion;
+                                    control.pop_buffer.size = pop.size;
+                                }
+                                ImGui::Text("%s", pop.rebel_type.c_str());
+
                                 ImGui::PopID();
                             }
                         ImGui::EndTable();
@@ -959,7 +990,7 @@ namespace widgets {
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Population")) {
-                province_population_widget(layers, control.selected_province_id);
+                province_population_widget(layers, control, control.selected_province_id);
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();

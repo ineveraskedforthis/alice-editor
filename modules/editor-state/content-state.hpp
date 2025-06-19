@@ -1039,6 +1039,10 @@ struct layers_stack {
         data[current_layer_index].province_history[v2id] = *available_history;
     }
 
+    void set_province_history(int v2id) {
+        data[current_layer_index].province_history = {};
+    }
+
     void copy_nation_history_to_current_layer(int tag) {
         auto available_history = get_nation_history(tag);
         data[current_layer_index].tag_to_nation_history[tag] = *available_history;

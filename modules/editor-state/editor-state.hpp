@@ -33,6 +33,9 @@ std::string fill_mode_string(FILL_MODE MODE);
 struct control {
     FLAG_EXPORT_OPTIONS flags_export = FLAG_EXPORT_OPTIONS::TGA;
     uint32_t selected_pixel = 0;
+
+    game_definition::pop_history pop_buffer {};
+
     // glm::vec2 selected_province;
     uint32_t selected_province_id = 0;
     std::string selected_commodity {};
