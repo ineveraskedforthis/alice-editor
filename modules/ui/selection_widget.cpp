@@ -742,6 +742,7 @@ namespace widgets {
         ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
         auto dates = layers.get_available_dates();
         auto poptypes = layers.retrieve_poptypes();
+        auto cultures = layers.retrieve_cultures();
 
         if (ImGui::BeginTabBar("ProvincePopulationTabs", tab_bar_flags)) {
             for (auto d : dates) {
@@ -931,7 +932,23 @@ namespace widgets {
 
                                 ImGui::TableNextColumn();
                                 ImGui::SetNextItemWidth(80.f);
-                                ImGui::InputText("##culture", &pop.culture);
+
+                                if (ImGui::BeginCombo("##culture", pop.culture.c_str())) {
+                                    static ImGuiTextFilter filter;
+                                    ImGui::SetNextItemShortcut(ImGuiMod_Ctrl | ImGuiKey_F);
+                                    filter.Draw("##Filter", -FLT_MIN);
+                                    if (ImGui::IsWindowAppearing())
+                                        ImGui::SetKeyboardFocusHere(-1);
+
+                                    for (int n = 0; n < cultures.size(); n++)
+                                    {
+                                        const bool is_selected = (pop.culture == cultures[n]);
+                                        if (filter.PassFilter(cultures[n].c_str()))
+                                            if (ImGui::Selectable(cultures[n].c_str(), is_selected))
+                                                pop.culture = cultures[n];
+                                    }
+                                    ImGui::EndCombo();
+                                }
 
                                 ImGui::TableNextColumn();
                                 ImGui::SetNextItemWidth(80.f);

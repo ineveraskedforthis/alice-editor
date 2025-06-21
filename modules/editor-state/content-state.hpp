@@ -308,6 +308,10 @@ struct layer {
     ankerl::unordered_dense::map<std::string, game_definition::commodity> goods{};
     bool has_goods = false;
 
+    // cultures
+    std::vector<std::string> cultures;
+    bool has_cultures;
+
     // interface description
     std::vector<game_definition::sprite> sprites{};
     std::vector<game_definition::sprite> text_sprites{};
@@ -772,6 +776,22 @@ struct layers_stack {
                 techs.push_back(key);
             }
         }
+    }
+
+    std::vector<std::string> retrieve_cultures() {
+        std::vector<std::string> cultures;
+        layer* last = nullptr;
+        for (auto& l: data) {
+            if(l.visible && l.has_cultures) {
+                last = &l;
+            }
+        }
+        if (last!=nullptr) {
+            for (auto c : last->cultures) {
+                cultures.push_back(c);
+            }
+        }
+        return cultures;
     }
 
     std::vector<std::string> retrieve_poptypes() {

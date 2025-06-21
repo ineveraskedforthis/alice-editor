@@ -145,3 +145,15 @@ pop_province_list
 pop_history_file
 #pop_history_file_context
 	#any               extern        make_pop_province_list             discard
+
+culture_group
+#culture_group_context
+	#any           extern     make_culture     discard
+	unit           value      none             discard
+	leader         value      text             member_fn
+	is_overseas    value      bool             member_fn
+	union          value      tag              member_fn  (union_tag)
+
+culture_file
+#culture_file_context
+	#any           extern     make_culture_group    discard

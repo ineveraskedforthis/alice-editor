@@ -983,6 +983,30 @@ namespace parsers{
         }
     }
 
+    void register_cultures(state::layer &layer, std::string path, parsers::error_handler& errors) {
+        std::cout << "registration of cultures\n";
+        if (!std::filesystem::exists(path + "/common/cultures.txt")) {
+            std::cout << "no cultures found\n";
+            return;
+        }
+
+        errors.file_name = "/common/cultures.txt";
+
+        layer.has_cultures = true;
+
+        std::ifstream file(path + "/common/cultures.txt");
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        auto str = buffer.str();
+        parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+
+        culture_file_context ctx {
+            layer
+        };
+
+        parsers::parse_culture_file(tk, errors, ctx);
+    }
+
     void unload_province_defs(state::layer &layer, std::string path) {
         if (!layer.has_province_definitions) return;
         std::filesystem::create_directory(path + "/map");
@@ -1511,6 +1535,7 @@ border_cutoff = 1100.0
         parsers::error_handler errors("parsing_errors.txt");
 
         register_pop_types(layer, layer.path);
+        register_cultures(layer, layer.path, errors);
 
         load_province_defs(layer, layer.path);
         load_default_dot_map(layer, layer.path);

@@ -408,6 +408,21 @@ void make_goods_group(std::string_view name, token_generator& gen, error_handler
     parse_goods_group(gen, err, new_context);
 }
 
+void make_culture_group(std::string_view name, token_generator& gen, error_handler& err, culture_file_context& context) {
+    std::string actual_string {name};
+    culture_group_context next_context {
+        context.map, actual_string
+    };
+    parse_culture_group(gen, err, next_context);
+}
+
+void make_culture(std::string_view name, token_generator& gen, error_handler& err, culture_group_context& context) {
+    std::string actual_string {name};
+    context.map.cultures.push_back(actual_string);
+    std::cout << "culture " << actual_string << "was detected\n";
+    gen.discard_group();
+}
+
 void pop_province_list::finish(pop_history_context&){
 
 }

@@ -21,6 +21,24 @@ struct commodity_group_context {
 	std::string group;
 };
 
+struct culture_file_context{
+	state::layer& map;
+};
+
+struct culture_file {
+	void finish(culture_file_context&) {}
+};
+struct culture_group_context {
+	state::layer& map;
+	std::string name;
+};
+
+struct culture_group {
+	void finish(culture_group_context&) {}
+	void union_tag(association_type, std::string_view value, error_handler& err, int32_t line, culture_group_context& context) {};
+	void leader(association_type, std::string_view value, error_handler& err, int32_t line, culture_group_context& context) {};
+	void is_overseas(association_type, bool value, error_handler& err, int32_t line, culture_group_context& context) {};
+};
 
 struct commodity_context {
 	state::layer& map;
@@ -139,6 +157,9 @@ struct good {
 
 void make_good(std::string_view name, token_generator& gen, error_handler& err, commodity_group_context& context);
 void make_goods_group(std::string_view name, token_generator& gen, error_handler& err, generic_context& context);
+
+void make_culture_group(std::string_view name, token_generator& gen, error_handler& err, culture_file_context& context);
+void make_culture(std::string_view name, token_generator& gen, error_handler& err, culture_group_context& context);
 
 struct sprite {
 	void finish(gfx_sprite_context&) {}
