@@ -1007,6 +1007,30 @@ namespace parsers{
         parsers::parse_culture_file(tk, errors, ctx);
     }
 
+    void register_religions(state::layer &layer, std::string path, parsers::error_handler& errors) {
+        std::cout << "registration of religions\n";
+        if (!std::filesystem::exists(path + "/common/religion.txt")) {
+            std::cout << "no religions found\n";
+            return;
+        }
+
+        errors.file_name = "/common/religion.txt";
+
+        layer.has_religions = true;
+
+        std::ifstream file(path + "/common/religion.txt");
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        auto str = buffer.str();
+        parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+
+        generic_context ctx {
+            layer
+        };
+
+        parsers::parse_religion_file(tk, errors, ctx);
+    }
+
     void unload_province_defs(state::layer &layer, std::string path) {
         if (!layer.has_province_definitions) return;
         std::filesystem::create_directory(path + "/map");
@@ -1536,6 +1560,7 @@ border_cutoff = 1100.0
 
         register_pop_types(layer, layer.path);
         register_cultures(layer, layer.path, errors);
+        register_religions(layer, layer.path, errors);
 
         load_province_defs(layer, layer.path);
         load_default_dot_map(layer, layer.path);

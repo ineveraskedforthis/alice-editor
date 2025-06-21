@@ -439,6 +439,8 @@ int main(int argc, char* argv[]) {
             ImGui_ImplSDL2_NewFrame();
             ImGui::NewFrame();
 
+            // ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0.f, 0.f));
+
             if (layers.data.size()>0){
                 widgets::main_scene(
                     window, io, layers, control_state, storage, editor,
@@ -513,6 +515,8 @@ int main(int argc, char* argv[]) {
                 }
                 ImGui::End();
             }
+
+            // ImGui::PopStyleVar();
 
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

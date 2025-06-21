@@ -743,6 +743,7 @@ namespace widgets {
         auto dates = layers.get_available_dates();
         auto poptypes = layers.retrieve_poptypes();
         auto cultures = layers.retrieve_cultures();
+        auto religions = layers.retrieve_religions();
 
         if (ImGui::BeginTabBar("ProvincePopulationTabs", tab_bar_flags)) {
             for (auto d : dates) {
@@ -819,6 +820,8 @@ namespace widgets {
                             0.0f
                         )
                     ) {
+                        // ImGui::PushStyleVar(ImGuiStyleVar_FramePadding, ImVec2(0.f, 0.f));
+
                         ImGui::TableSetupColumn(
                             "Religion",
                             ImGuiTableColumnFlags_DefaultSort
@@ -923,12 +926,28 @@ namespace widgets {
                                 auto pop_index = pops_indices[row_n];
                                 auto& pop = pops->data()[pop_index];
 
+
+
                                 ImGui::PushID(row_n);
                                 ImGui::TableNextRow();
 
                                 ImGui::TableNextColumn();
                                 ImGui::SetNextItemWidth(80.f);
-                                ImGui::InputText("##religion", &pop.religion);
+                                if (ImGui::BeginCombo("##religion", pop.religion.c_str())) {
+                                    static ImGuiTextFilter filter;
+                                    ImGui::SetNextItemShortcut(ImGuiMod_Ctrl | ImGuiKey_F);
+                                    filter.Draw("##Filter", -FLT_MIN);
+                                    if (ImGui::IsWindowAppearing())
+                                        ImGui::SetKeyboardFocusHere(-1);
+                                    for (int n = 0; n < religions.size(); n++)
+                                    {
+                                        const bool is_selected = (pop.religion == religions[n]);
+                                        if (filter.PassFilter(religions[n].c_str()))
+                                            if (ImGui::Selectable(religions[n].c_str(), is_selected))
+                                                pop.religion = religions[n];
+                                    }
+                                    ImGui::EndCombo();
+                                }
 
                                 ImGui::TableNextColumn();
                                 ImGui::SetNextItemWidth(80.f);
@@ -981,10 +1000,12 @@ namespace widgets {
                                     control.pop_buffer.religion = pop.religion;
                                     control.pop_buffer.size = pop.size;
                                 }
-                                ImGui::Text("%s", pop.rebel_type.c_str());
+
 
                                 ImGui::PopID();
                             }
+
+                        // ImGui::PopStyleVar();
                         ImGui::EndTable();
                     }
 

@@ -419,7 +419,22 @@ void make_culture_group(std::string_view name, token_generator& gen, error_handl
 void make_culture(std::string_view name, token_generator& gen, error_handler& err, culture_group_context& context) {
     std::string actual_string {name};
     context.map.cultures.push_back(actual_string);
-    std::cout << "culture " << actual_string << "was detected\n";
+    std::cout << "culture " << actual_string << " was detected\n";
+    gen.discard_group();
+}
+
+void make_religion_group(std::string_view name, token_generator& gen, error_handler& err, generic_context& context) {
+    std::string actual_string {name};
+    religion_group_context next_context {
+        context.map, actual_string
+    };
+    parse_religion_group(gen, err, next_context);
+}
+
+void make_religion(std::string_view name, token_generator& gen, error_handler& err, religion_group_context& context) {
+    std::string actual_string {name};
+    context.map.religions.push_back(actual_string);
+    std::cout << "religion " << actual_string << " was detected\n";
     gen.discard_group();
 }
 

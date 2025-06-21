@@ -322,13 +322,15 @@ namespace widgets {
         step = -2.f * std::numbers::pi / 10;
 
         auto shift_x = 50;
-        auto step_y = 25;
+        auto step_y = 35;
 
         auto shift_y = -125;
 
+        auto button_size_y = 30;
+
         {
             shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
             ImGui::SetNextWindowPos(ImVec2(
                 control.context_window_origin.x + shift_x,
                 control.context_window_origin.y + shift_y
@@ -340,7 +342,7 @@ namespace widgets {
 
         {
             shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
             ImGui::SetNextWindowPos(ImVec2(
                 control.context_window_origin.x + shift_x,
                 control.context_window_origin.y + shift_y
@@ -352,7 +354,7 @@ namespace widgets {
 
         {
             shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
             ImGui::SetNextWindowPos(ImVec2(
                 control.context_window_origin.x + shift_x,
                 control.context_window_origin.y + shift_y
@@ -364,7 +366,7 @@ namespace widgets {
 
         {
             shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
             ImGui::SetNextWindowPos(ImVec2(
                 control.context_window_origin.x + shift_x,
                 control.context_window_origin.y + shift_y
@@ -380,7 +382,7 @@ namespace widgets {
 
         {
             shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
             ImGui::SetNextWindowPos(ImVec2(
                 control.context_window_origin.x + shift_x,
                 control.context_window_origin.y + shift_y
@@ -397,7 +399,7 @@ namespace widgets {
 
         {
             shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, 50));
+            ImGui::SetNextWindowSize(ImVec2(200, button_size_y * 2.1));
             ImGui::SetNextWindowPos(ImVec2(
                 control.context_window_origin.x + shift_x,
                 control.context_window_origin.y + shift_y
@@ -417,7 +419,7 @@ namespace widgets {
 
         {
             shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
             ImGui::SetNextWindowPos(ImVec2(
                 control.context_window_origin.x + shift_x,
                 control.context_window_origin.y + shift_y
@@ -432,7 +434,7 @@ namespace widgets {
 
         {
             shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
             ImGui::SetNextWindowPos(ImVec2(
                 control.context_window_origin.x + shift_x,
                 control.context_window_origin.y + shift_y
@@ -450,7 +452,7 @@ namespace widgets {
 
         {
             shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
             ImGui::SetNextWindowPos(ImVec2(
                 control.context_window_origin.x + shift_x,
                 control.context_window_origin.y + shift_y
@@ -473,7 +475,7 @@ namespace widgets {
 
         {
             shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
             ImGui::SetNextWindowPos(ImVec2(
                 control.context_window_origin.x + shift_x,
                 control.context_window_origin.y + shift_y
@@ -487,7 +489,7 @@ namespace widgets {
 
         {
             shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, 20));
+            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
             ImGui::SetNextWindowPos(ImVec2(
                 control.context_window_origin.x + shift_x,
                 control.context_window_origin.y + shift_y

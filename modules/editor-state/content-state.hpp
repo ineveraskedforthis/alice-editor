@@ -309,8 +309,12 @@ struct layer {
     bool has_goods = false;
 
     // cultures
-    std::vector<std::string> cultures;
-    bool has_cultures;
+    std::vector<std::string> cultures {};
+    bool has_cultures = false;
+
+    // religions
+    std::vector<std::string> religions {};
+    bool has_religions = false;
 
     // interface description
     std::vector<game_definition::sprite> sprites{};
@@ -792,6 +796,22 @@ struct layers_stack {
             }
         }
         return cultures;
+    }
+
+    std::vector<std::string> retrieve_religions() {
+        std::vector<std::string> result;
+        layer* last = nullptr;
+        for (auto& l: data) {
+            if(l.visible && l.has_religions) {
+                last = &l;
+            }
+        }
+        if (last!=nullptr) {
+            for (auto c : last->religions) {
+                result.push_back(c);
+            }
+        }
+        return result;
     }
 
     std::vector<std::string> retrieve_poptypes() {

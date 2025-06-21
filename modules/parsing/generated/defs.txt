@@ -157,3 +157,12 @@ culture_group
 culture_file
 #culture_file_context
 	#any           extern     make_culture_group    discard
+
+
+religion_group
+#religion_group_context
+	#any           extern     make_religion    discard
+
+religion_file
+#generic_context
+	#any           extern      make_religion_group   discard
