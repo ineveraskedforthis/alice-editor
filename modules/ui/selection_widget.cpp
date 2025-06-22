@@ -692,6 +692,8 @@ namespace widgets {
             ImGui::InputInt("Colonial: ", &history->colonial);
             ImGui::InputInt("Colony: ", &history->colony);
 
+            ImGui::InputText("Terrain", &history->terrain);
+
             bool remove_flag = false;
             int remove_index = 0;
             for (int i = 0; i < history->buildings.size(); i++) {
