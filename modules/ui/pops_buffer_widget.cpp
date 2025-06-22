@@ -2,7 +2,6 @@
 #include "ui_enums.hpp"
 #include "pops_buffer_widget.hpp"
 #include "../editor-state/editor-state.hpp"
-#include <vector>
 
 namespace widgets {
 
@@ -291,25 +290,55 @@ void pops_buffer_widget(state::layers_stack& layers, state::control& control) {
             auto year = date / (31*12);
             auto year_s = std::to_string(year);
             if (ImGui::BeginTabItem(year_s.c_str())) {
+                bool all_zero = true;
+                for (auto& item : control.province_targets_for_pop_splitting) {
+                    if (item.priority != 0.f) {
+                        all_zero = false;
+                    }
+                }
                 if (ImGui::Button("Split pops among the target provinces")) {
                     for (auto& pop : control.pop_buffer) {
                         for (auto& target : control.province_targets_for_pop_splitting) {
-                            auto split_pop = game_definition::pop_history {};
-                            split_pop.culture = pop.culture;
-                            split_pop.militancy = pop.militancy;
-                            split_pop.poptype = pop.poptype;
-                            split_pop.rebel_type = pop.rebel_type;
-                            split_pop.religion = pop.religion;
-                            split_pop.size = (int) (pop.size * target.priority);
-                            if (split_pop.size == 0 && pop.size > 0) {
-                                split_pop.size = 1;
+
+                            auto priority = target.priority;
+                            if (all_zero) {
+                                priority = 1.f / control.province_targets_for_pop_splitting.size();
                             }
+
+                            bool pop_already_exists = false;
 
                             if (!layers.can_edit_pops(target.v2id, date)) {
                                 layers.copy_pops_data_to_current_layer(target.v2id, date);
                             }
                             auto pops = layers.get_pops(target.v2id, date);
-                            pops->push_back(split_pop);
+
+                            for (auto & candidate : *pops) {
+                                if (
+                                    candidate.culture == pop.culture
+                                    && candidate.poptype == pop.poptype
+                                    && candidate.religion == pop.religion
+                                    && pop.militancy == 0.f
+                                    && pop.rebel_type.size() == 0
+                                ) {
+                                    pop_already_exists = true;
+                                    candidate.size += (int) (pop.size * priority);
+                                    break;
+                                }
+                            }
+
+                            if (!pop_already_exists) {
+                                auto split_pop = game_definition::pop_history {};
+                                split_pop.culture = pop.culture;
+                                split_pop.militancy = pop.militancy;
+                                split_pop.poptype = pop.poptype;
+                                split_pop.rebel_type = pop.rebel_type;
+                                split_pop.religion = pop.religion;
+                                split_pop.size = (int) (pop.size * priority);
+                                if (split_pop.size == 0 && pop.size > 0) {
+                                    split_pop.size = 1;
+                                }
+                                pops->push_back(split_pop);
+                            }
                         }
                     }
 
@@ -362,13 +391,6 @@ void pops_buffer_widget(state::layers_stack& layers, state::control& control) {
                             ImGui::PopID();
                         }
                     ImGui::EndTable();
-                }
-
-                bool all_zero = true;
-                for (auto& item : control.province_targets_for_pop_splitting) {
-                    if (item.priority != 0.f) {
-                        all_zero = false;
-                    }
                 }
 
                 if (ImGui::Button("Set priorities according to province size")) {

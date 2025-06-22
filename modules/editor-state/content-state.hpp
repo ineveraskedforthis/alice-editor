@@ -984,9 +984,10 @@ struct layers_stack {
                     if (file.filename == "editor-pops.txt") {
                         editor_generated_population_exists = true;
                         file.data[v2id] = {};
-                        for (auto& pop : *pops) {
-                            file.data[v2id].push_back(pop);
-                        }
+                        if (pops != nullptr)
+                            for (auto& pop : *pops) {
+                                file.data[v2id].push_back(pop);
+                            }
                     }
                 }
 
@@ -994,9 +995,10 @@ struct layers_stack {
                     game_definition::pops_history_file file {
                         "editor-pops.txt", {}
                     };
-                    for (auto& pop : *pops) {
-                        file.data[v2id].push_back(pop);
-                    }
+                    if (pops != nullptr)
+                        for (auto& pop : *pops) {
+                            file.data[v2id].push_back(pop);
+                        }
                     folder.data.push_back(file);
                 }
             }
@@ -1009,9 +1011,10 @@ struct layers_stack {
             game_definition::pops_history_file file {
                 "editor-pops.txt", {}
             };
-            for (auto& pop : *pops) {
-                file.data[v2id].push_back(pop);
-            }
+            if (pops != nullptr)
+                for (auto& pop : *pops) {
+                    file.data[v2id].push_back(pop);
+                }
             folder.data.push_back(file);
             active_layer.province_population.push_back(folder);
         }
