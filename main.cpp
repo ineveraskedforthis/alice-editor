@@ -1,3 +1,4 @@
+#include "modules/OS/win-wrapper.hpp"
 #include "modules/misc.hpp"
 #include <shobjidl_core.h>
 #undef max
@@ -45,7 +46,7 @@ std::string to_string(std::string_view str) {
 }
 
 
-std::wstring open_path_selection_dialog() {
+std::wstring open_path_selection_dialog(bool base_game) {
     IFileOpenDialog* DIALOG;
     auto DIALOG_RESULT = CoCreateInstance(
         CLSID_FileOpenDialog,
@@ -58,16 +59,10 @@ std::wstring open_path_selection_dialog() {
         return L"";
     }
 
-    auto hres = DIALOG->SetClientGuid(winapi::UUID_open_mod);
-
-    if (hres != S_OK) {
-        MessageBoxW(
-            NULL,
-            L"Error during setting dialog guid.",
-            L"Something is wrong???",
-            MB_OK
-        );
-        return L"";
+    if (base_game) {
+        DIALOG->SetClientGuid(winapi::UUID_open_base_game);
+    } else {
+        DIALOG->SetClientGuid(winapi::UUID_open_mod);
     }
 
     DIALOG->SetOptions(FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_NOCHANGEDIR | FOS_FORCEFILESYSTEM | FOS_PICKFOLDERS);
@@ -459,13 +454,13 @@ int main(int argc, char* argv[]) {
                 ImGui::Text("Current path to base game");
                 ImGui::Text("%ls", path_basegame.c_str());
                 if (ImGui::Button("Select path to base game")) {
-                    path_basegame = open_path_selection_dialog();
+                    path_basegame = open_path_selection_dialog(true);
                 }
 
                 ImGui::Text("Current path to mod");
                 ImGui::Text("%ls", path_mod.c_str());
                 if (ImGui::Button("Select path to mod folder")) {
-                    path_mod = open_path_selection_dialog();
+                    path_mod = open_path_selection_dialog(false);
                 }
 
                 if(ImGui::Button("Load")){

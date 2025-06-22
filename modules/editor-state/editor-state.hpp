@@ -1,4 +1,5 @@
 #pragma once
+#include <cstdint>
 #include <vector>
 #undef max
 #undef min
@@ -34,12 +35,21 @@ struct selected_pop {
     size_t index;
 };
 
+struct split_target_province {
+    uint32_t v2id;
+    float priority;
+};
+
 struct control {
     FLAG_EXPORT_OPTIONS flags_export = FLAG_EXPORT_OPTIONS::TGA;
     uint32_t selected_pixel = 0;
 
     std::vector<game_definition::pop_history> pop_buffer {};
-    std::vector<game_definition::pop_history> pop_splitter_buffer {};
+    std::vector<int> pop_buffer_indices {};
+
+    std::vector<split_target_province> province_targets_for_pop_splitting {};
+    std::vector<uint32_t> province_targets_for_pop_splitting_indices {};
+
     std::vector<selected_pop> selected_pops{};
 
     // glm::vec2 selected_province;

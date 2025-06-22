@@ -4,6 +4,7 @@
 #include <rpcdce.h>
 
 namespace winapi {
+extern UUID UUID_open_base_game;
 extern UUID UUID_open_mod;
 extern UUID UUID_open_flags;
 extern UUID UUID_open_trade_goods_icon;

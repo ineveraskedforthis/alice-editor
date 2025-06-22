@@ -1203,13 +1203,13 @@ border_cutoff = 1100.0
                     file << v2id << " = {\n";
                     for (auto& pop : pops) {
                         file << "\t" << pop.poptype << " = {\n";
-                        file << "\tculture = " << pop.culture << "\n";
-                        file << "\treligion = " << pop.religion << "\n";
+                        file << "\t\tculture = " << pop.culture << "\n";
+                        file << "\t\treligion = " << pop.religion << "\n";
                         if (pop.militancy != 0.f)
-                            file << "\tmilitancy = " << pop.militancy << "\n";
+                            file << "\t\tmilitancy = " << pop.militancy << "\n";
                         if (pop.rebel_type.size() > 0)
-                            file << "\trebel_type = " << pop.rebel_type << "\n";
-                        file << "\tsize = " << pop.size << "\n";
+                            file << "\t\trebel_type = " << pop.rebel_type << "\n";
+                        file << "\t\tsize = " << pop.size << "\n";
                         file << "\t}\n";
                     }
                     file << "}\n";

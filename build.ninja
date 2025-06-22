@@ -53,10 +53,13 @@ build cache/state.o: cc modules/editor-state/editor-state.cpp
 build cache/content_state.o: cc modules/editor-state/content-state.cpp
 build cache/main.o: cc main.cpp
 build cache/loading-test.o: cc loading-test.cpp
+
 build cache/ui_editor.o: cc modules/ui/editor.cpp
 build cache/ui_explorer.o: cc modules/ui/explorer.cpp
 build cache/window-wrapper.o: cc modules/ui/window-wrapper.cpp
 build cache/selection_widget.o: cc modules/ui/selection_widget.cpp
+build cache/pops_buffer_widget.o: cc modules/ui/pops_buffer_widget.cpp
+
 build cache/parsing_map.o: cc modules/parsing/map.cpp
 build cache/parser.o: cc modules/parsing/parser.cpp
 build cache/parsing_countries.o: cc modules/parsing/countries.cpp
@@ -84,5 +87,5 @@ build cache/soil2_image.o: cc SOIL2/src/SOIL2/image_DXT.c
 build cache/soil2_helper.o: cc SOIL2/src/SOIL2/image_helper.c
 build cache/soil2_wfETC.o: cc SOIL2/src/SOIL2/wfETC.c
 
-build build/editor.exe: link cache/ui_explorer.o cache/selection_widget.o cache/window-wrapper.o cache/main.o cache/state.o cache/content_state.o cache/ui_editor.o cache/parsing_map.o cache/parsing_core.o cache/parsing_parsers.o cache/parsing_floats.o cache/parser.o cache/parsing_state_building.o cache/parsing_secondary_rgo.o cache/parsing_templates.o cache/parsing_adjacency.o cache/parsing_countries.o cache/imgui.o cache/imgui_draw.o cache/imgui_demo.o cache/imgui_tables.o cache/imgui_widgets.o cache/imgui_backend_sdl.o cache/imgui_backend_opengl.o cache/imgui_stdlib.o cache/soil2.o cache/soil2_image.o cache/soil2_helper.o cache/soil2_wfETC.o cache/generated_parser.o cache/win-wrapper.o
-build build/loading-test.exe: link cache/ui_explorer.o cache/selection_widget.o cache/window-wrapper.o cache/loading-test.o cache/state.o cache/content_state.o cache/ui_editor.o cache/parsing_map.o cache/parsing_core.o cache/parsing_parsers.o cache/parsing_floats.o cache/parser.o cache/parsing_state_building.o cache/parsing_secondary_rgo.o cache/parsing_templates.o cache/parsing_adjacency.o cache/parsing_countries.o cache/imgui.o cache/imgui_draw.o cache/imgui_demo.o cache/imgui_tables.o cache/imgui_widgets.o cache/imgui_backend_sdl.o cache/imgui_backend_opengl.o cache/imgui_stdlib.o cache/soil2.o cache/soil2_image.o cache/soil2_helper.o cache/soil2_wfETC.o cache/generated_parser.o cache/win-wrapper.o
+build build/editor.exe: link cache/ui_explorer.o cache/selection_widget.o cache/window-wrapper.o cache/main.o cache/state.o cache/content_state.o cache/ui_editor.o cache/parsing_map.o cache/parsing_core.o cache/parsing_parsers.o cache/parsing_floats.o cache/parser.o cache/parsing_state_building.o cache/parsing_secondary_rgo.o cache/parsing_templates.o cache/parsing_adjacency.o cache/parsing_countries.o cache/imgui.o cache/imgui_draw.o cache/imgui_demo.o cache/imgui_tables.o cache/imgui_widgets.o cache/imgui_backend_sdl.o cache/imgui_backend_opengl.o cache/imgui_stdlib.o cache/soil2.o cache/soil2_image.o cache/soil2_helper.o cache/soil2_wfETC.o cache/generated_parser.o cache/win-wrapper.o cache/pops_buffer_widget.o
+build build/loading-test.exe: link cache/ui_explorer.o cache/selection_widget.o cache/window-wrapper.o cache/loading-test.o cache/state.o cache/content_state.o cache/ui_editor.o cache/parsing_map.o cache/parsing_core.o cache/parsing_parsers.o cache/parsing_floats.o cache/parser.o cache/parsing_state_building.o cache/parsing_secondary_rgo.o cache/parsing_templates.o cache/parsing_adjacency.o cache/parsing_countries.o cache/imgui.o cache/imgui_draw.o cache/imgui_demo.o cache/imgui_tables.o cache/imgui_widgets.o cache/imgui_backend_sdl.o cache/imgui_backend_opengl.o cache/imgui_stdlib.o cache/soil2.o cache/soil2_image.o cache/soil2_helper.o cache/soil2_wfETC.o cache/generated_parser.o cache/win-wrapper.o cache/pops_buffer_widget.o

@@ -1,5 +1,6 @@
 #include "imgui.h"
 #include "misc/cpp/imgui_stdlib.h"
+#include <algorithm>
 #include <array>
 #include <cassert>
 #include <cstddef>
@@ -16,6 +17,7 @@
 #include "win-wrapper.hpp"
 
 #include "ui_enums.hpp"
+#include "pops_buffer_widget.hpp"
 
 
 //we need only declarations here
@@ -740,12 +742,33 @@ namespace widgets {
         }
     }
 
+    void pops_buffer_widget(state::layers_stack& layers, state::control& control);
+
     void province_population_widget(state::layers_stack& layers, state::control& control, uint32_t v2id) {
         ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
         auto dates = layers.get_available_dates();
         auto poptypes = layers.retrieve_poptypes();
         auto cultures = layers.retrieve_cultures();
         auto religions = layers.retrieve_religions();
+
+        if (ImGui::Button("Add province to split buffer")) {
+            // check if it is already there:
+            bool already_there = false;
+            for (auto& target : control.province_targets_for_pop_splitting) {
+                if (target.v2id == v2id) {
+                    already_there = true;
+                }
+            }
+            if (!already_there) {
+                state::split_target_province target {
+                    v2id, 0.f
+                };
+                control.province_targets_for_pop_splitting_indices.push_back(
+                    control.province_targets_for_pop_splitting.size()
+                );
+                control.province_targets_for_pop_splitting.push_back(target);
+            }
+        }
 
         if (ImGui::BeginTabBar("ProvincePopulationTabs", tab_bar_flags)) {
             for (auto d : dates) {
@@ -800,11 +823,10 @@ namespace widgets {
                     }
 
                     ImGui::SameLine();
-                    if (ImGui::Button("Rewrite copy buffer with selection")) {
+                    if (ImGui::Button("Copy selected to the buffer")) {
                         control.pop_buffer.clear();
                         for (size_t i = 0; i < control.selected_pops.size(); i++) {
                             auto& selection = control.selected_pops[i];
-
                             auto pops = layers.get_pops(selection.v2id, d);
                             if (pops == nullptr) {
                                 continue;
@@ -812,28 +834,18 @@ namespace widgets {
                             if (pops->size() <= selection.index) {
                                 continue;
                             }
-
-                            auto& pop = pops->data()[i];
-
-                            game_definition::pop_history new_pop_buffer_entry {};
-                            new_pop_buffer_entry.culture = pop.culture;
-                            new_pop_buffer_entry.militancy = pop.militancy;
-                            new_pop_buffer_entry.poptype = pop.poptype;
-                            new_pop_buffer_entry.rebel_type = pop.rebel_type;
-                            new_pop_buffer_entry.religion = pop.religion;
-                            new_pop_buffer_entry.size = pop.size;
-
-                            control.pop_buffer.push_back(new_pop_buffer_entry);
+                            auto& pop = pops->data()[selection.index];
+                            control.pop_buffer_indices.push_back(control.pop_buffer.size());
+                            control.pop_buffer.push_back(pop);
                         }
                     }
 
-                    ImGui::SameLine();
-                    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 0, 0, 255));
-                    if (ImGui::Button("Delete selected pops")) {
+                    // ImGui::SameLine();
+                    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(125, 0, 125, 255));
+                    if (ImGui::Button("Move selected to the buffer (!CAUTION!)")) {
                         control.pop_buffer.clear();
-                        for (int i = control.selected_pops.size() - 1; i >= 0; i--) {
+                        for (size_t i = 0; i < control.selected_pops.size(); i++) {
                             auto& selection = control.selected_pops[i];
-
                             auto pops = layers.get_pops(selection.v2id, d);
                             if (pops == nullptr) {
                                 continue;
@@ -841,7 +853,46 @@ namespace widgets {
                             if (pops->size() <= selection.index) {
                                 continue;
                             }
+                            auto& pop = pops->data()[selection.index];
+                            control.pop_buffer_indices.push_back(control.pop_buffer.size());
+                            control.pop_buffer.push_back(pop);
+                        }
 
+                        std::stable_sort(control.selected_pops.begin(), control.selected_pops.end(), [&](auto& a, auto& b) {
+                            return a.index < b.index;
+                        });
+                        for (int i = control.selected_pops.size() - 1; i >= 0; i--) {
+                            auto& selection = control.selected_pops[i];
+                            auto pops = layers.get_pops(selection.v2id, d);
+                            if (pops == nullptr) {
+                                continue;
+                            }
+                            if (pops->size() <= selection.index) {
+                                continue;
+                            }
+                            pops->erase(pops->begin() + selection.index);
+                        }
+                        control.selected_pops.clear();
+                        selected_province = 0;
+                    }
+                    ImGui::PopStyleColor();
+
+                    ImGui::SameLine();
+                    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(125, 0, 0, 255));
+                    if (ImGui::Button("Delete selected (!CAUTION!)")) {
+                        control.pop_buffer.clear();
+                        std::stable_sort(control.selected_pops.begin(), control.selected_pops.end(), [&](auto& a, auto& b) {
+                            return a.index < b.index;
+                        });
+                        for (int i = control.selected_pops.size() - 1; i >= 0; i--) {
+                            auto& selection = control.selected_pops[i];
+                            auto pops = layers.get_pops(selection.v2id, d);
+                            if (pops == nullptr) {
+                                continue;
+                            }
+                            if (pops->size() <= selection.index) {
+                                continue;
+                            }
                             pops->erase(pops->begin() + selection.index);
                         }
                         control.selected_pops.clear();
@@ -1052,10 +1103,12 @@ namespace widgets {
 
                                 ImGui::SameLine();
                                 auto ratio = (float) pop.size / (float) total_pop;
+                                if (total_pop == 0) {
+                                    ratio = 0.f;
+                                }
                                 auto old_ratio = ratio;
                                 ImGui::SetNextItemWidth(100.f);
                                 ImGui::SliderFloat("##size_drag", &ratio, 0.f, 1.f);
-                                ratio = std::clamp(ratio, 0.f, 1.f);
 
                                 if (ratio != old_ratio) {
                                     auto new_size = (int) (total_pop * ratio);
@@ -1481,6 +1534,10 @@ namespace widgets {
         if (ImGui::BeginTabBar("SelectionTabs", tab_bar_flags)) {
             if (ImGui::BeginTabItem("Province")) {
                 province_widget(map, control, editor);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Pops splitter")) {
+                pops_buffer_widget(map, control);
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Nation")) {
