@@ -752,6 +752,7 @@ namespace widgets {
                 if (ImGui::BeginTabItem(year_s.c_str())) {
                     auto pops = layers.get_pops(v2id, d);
 
+
                     if (pops == nullptr) {
                         ImGui::Text("No pops defined for this province");
 
@@ -761,6 +762,11 @@ namespace widgets {
 
                         ImGui::EndTabItem();
                         continue;
+                    }
+
+                    int total_pop = 0;
+                    for (auto& pop : *pops) {
+                        total_pop += pop.size;
                     }
 
                     bool can_edit = layers.can_edit_pops(v2id, d);
@@ -779,14 +785,72 @@ namespace widgets {
                     static std::vector<size_t> pops_indices;
                     static uint32_t selected_province = 0;
 
-                    if (ImGui::Button("Add pop")) {
+                    if (ImGui::Button("Add empty pop")) {
                         game_definition::pop_history item {};
                         pops->push_back(item);
                         selected_province = 0;
                     }
+
+                    ImGui::Text("%zu pops are selected", control.selected_pops.size());
+
+                    if (ImGui::Button("Deselect all pops")) {
+                        control.selected_pops.clear();
+                    }
+
                     ImGui::SameLine();
-                    if (ImGui::Button("Paste copied pop")) {
-                        pops->push_back(control.pop_buffer);
+                    if (ImGui::Button("Rewrite copy buffer with selection")) {
+                        control.pop_buffer.clear();
+                        for (size_t i = 0; i < control.selected_pops.size(); i++) {
+                            auto& selection = control.selected_pops[i];
+
+                            auto pops = layers.get_pops(selection.v2id, d);
+                            if (pops == nullptr) {
+                                continue;
+                            }
+                            if (pops->size() <= selection.index) {
+                                continue;
+                            }
+
+                            auto& pop = pops->data()[i];
+
+                            game_definition::pop_history new_pop_buffer_entry {};
+                            new_pop_buffer_entry.culture = pop.culture;
+                            new_pop_buffer_entry.militancy = pop.militancy;
+                            new_pop_buffer_entry.poptype = pop.poptype;
+                            new_pop_buffer_entry.rebel_type = pop.rebel_type;
+                            new_pop_buffer_entry.religion = pop.religion;
+                            new_pop_buffer_entry.size = pop.size;
+
+                            control.pop_buffer.push_back(new_pop_buffer_entry);
+                        }
+                    }
+
+                    ImGui::SameLine();
+                    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 0, 0, 255));
+                    if (ImGui::Button("Delete selected pops")) {
+                        control.pop_buffer.clear();
+                        for (int i = control.selected_pops.size() - 1; i >= 0; i--) {
+                            auto& selection = control.selected_pops[i];
+
+                            auto pops = layers.get_pops(selection.v2id, d);
+                            if (pops == nullptr) {
+                                continue;
+                            }
+                            if (pops->size() <= selection.index) {
+                                continue;
+                            }
+
+                            pops->erase(pops->begin() + selection.index);
+                        }
+                        control.selected_pops.clear();
+                        selected_province = 0;
+                    }
+                    ImGui::PopStyleColor();
+
+                    if (ImGui::Button("Paste copied pops")) {
+                        for (size_t i = 0; i < control.pop_buffer.size(); i++) {
+                            pops->push_back(control.pop_buffer[i]);
+                        }
                         selected_province = 0;
                     }
 
@@ -847,7 +911,7 @@ namespace widgets {
                             "Size",
                             ImGuiTableColumnFlags_DefaultSort
                             | ImGuiTableColumnFlags_WidthFixed,
-                            100.0f,
+                            200.0f,
                             province_population_size
                         );
                         ImGui::TableSetupColumn(
@@ -865,7 +929,7 @@ namespace widgets {
                             province_population_rebel
                         );
                         ImGui::TableSetupColumn(
-                            "CopyProv",
+                            "Select##province_selection_header",
                             ImGuiTableColumnFlags_NoSort
                             | ImGuiTableColumnFlags_WidthFixed,
                             50.0f,
@@ -984,6 +1048,32 @@ namespace widgets {
                                 ImGui::SetNextItemWidth(100.f);
                                 ImGui::InputInt("##size", &pop.size, 0);
 
+                                ImGui::SameLine();
+                                auto ratio = (float) pop.size / (float) total_pop;
+                                auto old_ratio = ratio;
+                                ImGui::SetNextItemWidth(100.f);
+                                ImGui::SliderFloat("##size_drag", &ratio, 0.f, 1.f);
+                                ratio = std::clamp(ratio, 0.f, 1.f);
+
+                                if (ratio != old_ratio) {
+                                    auto new_size = (int) (total_pop * ratio);
+                                    auto remainder = total_pop - new_size;
+                                    auto old_remainder = total_pop - pop.size;
+                                    auto scaler = (float)remainder / (float)old_remainder;
+
+                                    pop.size = new_size;
+
+                                    // scale everything else down:
+                                    for (size_t index = 0; index < pops->size(); index++) {
+                                        if (index == pops_indices[row_n]) {
+
+                                            continue;
+                                        }
+                                        auto& target_pop = pops->data()[index];
+                                        target_pop.size *= scaler;
+                                    }
+                                }
+
                                 ImGui::TableNextColumn();
                                 ImGui::SetNextItemWidth(60.f);
                                 ImGui::InputFloat("##militancy", &pop.militancy);
@@ -992,16 +1082,31 @@ namespace widgets {
                                 ImGui::Text("%s", pop.rebel_type.c_str());
 
                                 ImGui::TableNextColumn();
-                                if (ImGui::Button("Copy")) {
-                                    control.pop_buffer.culture = pop.culture;
-                                    control.pop_buffer.militancy = pop.militancy;
-                                    control.pop_buffer.poptype = pop.poptype;
-                                    control.pop_buffer.rebel_type = pop.rebel_type;
-                                    control.pop_buffer.religion = pop.religion;
-                                    control.pop_buffer.size = pop.size;
+
+                                bool selected_pop = false;
+                                size_t selection_index = 0;
+
+                                for (auto i = 0; i < control.selected_pops.size(); i++) {
+                                    auto& candidate = control.selected_pops[i];
+                                    if (
+                                        candidate.v2id == selected_province
+                                        && candidate.index == pops_indices[row_n]
+                                    ) {
+                                        selected_pop = true;
+                                        selection_index = i;
+                                        break;
+                                    }
                                 }
-
-
+                                if (ImGui::RadioButton("##selected_pop", selected_pop)) {
+                                    if (!selected_pop) {
+                                        state::selected_pop new_selection {
+                                            selected_province, pops_indices[row_n]
+                                        };
+                                        control.selected_pops.push_back(new_selection);
+                                    } else {
+                                        control.selected_pops.erase(control.selected_pops.begin() + selection_index);
+                                    }
+                                }
                                 ImGui::PopID();
                             }
 
@@ -1021,6 +1126,7 @@ namespace widgets {
     }
 
     void province_widget(state::layers_stack& layers, state::control& control, state::editor& editor) {
+        ImGui::Text("v2id: %s", std::to_string(control.selected_province_id).c_str());
         ImGuiTabBarFlags tab_bar_flags = ImGuiTabBarFlags_None;
         if (ImGui::BeginTabBar("ProvinceTabs", tab_bar_flags)) {
             if (ImGui::BeginTabItem("Definition")) {

@@ -29,12 +29,18 @@ enum class FILL_MODE {
 
 std::string fill_mode_string(FILL_MODE MODE);
 
+struct selected_pop {
+    uint32_t v2id;
+    size_t index;
+};
 
 struct control {
     FLAG_EXPORT_OPTIONS flags_export = FLAG_EXPORT_OPTIONS::TGA;
     uint32_t selected_pixel = 0;
 
-    game_definition::pop_history pop_buffer {};
+    std::vector<game_definition::pop_history> pop_buffer {};
+    std::vector<game_definition::pop_history> pop_splitter_buffer {};
+    std::vector<selected_pop> selected_pops{};
 
     // glm::vec2 selected_province;
     uint32_t selected_province_id = 0;
