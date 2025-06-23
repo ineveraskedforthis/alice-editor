@@ -32,6 +32,7 @@ std::string fill_mode_string(FILL_MODE MODE);
 
 struct selected_pop {
     uint32_t v2id;
+    int32_t date;
     size_t index;
 };
 

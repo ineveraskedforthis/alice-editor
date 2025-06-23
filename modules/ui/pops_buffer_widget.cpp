@@ -172,9 +172,9 @@ void sort_table_provinces(state::layers_stack& layers, state::control& control) 
 
 void display_pop_table_row(
     game_definition::pop_history& pop,
-    std::vector<std::string> poptypes,
-    std::vector<std::string> cultures,
-    std::vector<std::string> religions
+    std::vector<std::string>& poptypes,
+    std::vector<std::string>& cultures,
+    std::vector<std::string>& religions
 ) {
     ImGui::TableNextColumn();
     ImGui::SetNextItemWidth(80.f);
@@ -282,6 +282,11 @@ void display_province_table_row(
 }
 
 void pops_buffer_widget(state::layers_stack& layers, state::control& control) {
+
+    if (ImGui::Button("Clear buffer")) {
+        control.pop_buffer.clear();
+        control.pop_buffer_indices.clear();
+    }
 
     auto dates = layers.get_available_dates();
 

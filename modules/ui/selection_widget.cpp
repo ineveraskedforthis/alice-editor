@@ -823,11 +823,43 @@ namespace widgets {
                     }
 
                     ImGui::SameLine();
-                    if (ImGui::Button("Copy selected to the buffer")) {
+                    if (ImGui::Button("Select all pops")) {
+                        auto pops = layers.get_pops(v2id, d);
+                        if (pops != nullptr) {
+                            for (size_t pop_index = 0; pop_index < pops->size(); pop_index++) {
+                                bool already_selected = false;
+                                for (auto i = 0; i < control.selected_pops.size(); i++) {
+                                    auto& candidate = control.selected_pops[i];
+                                    if (
+                                        candidate.v2id == selected_province
+                                        && candidate.index == pop_index
+                                        && candidate.date == d
+                                    ) {
+                                        already_selected = true;
+                                        break;
+                                    }
+                                }
+                                if (!already_selected) {
+                                    state::selected_pop new_selection {
+                                        selected_province, d, pop_index
+                                    };
+                                    control.selected_pops.push_back(new_selection);
+                                }
+                            }
+                        }
+                    }
+
+                    ImGui::SameLine();
+                    if (ImGui::Button("Clear buffer")) {
                         control.pop_buffer.clear();
+                        control.pop_buffer_indices.clear();
+                    }
+
+                    ImGui::SameLine();
+                    if (ImGui::Button("Copy selected to the buffer")) {
                         for (size_t i = 0; i < control.selected_pops.size(); i++) {
                             auto& selection = control.selected_pops[i];
-                            auto pops = layers.get_pops(selection.v2id, d);
+                            auto pops = layers.get_pops(selection.v2id, selection.date);
                             if (pops == nullptr) {
                                 continue;
                             }
@@ -843,10 +875,10 @@ namespace widgets {
                     // ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(125, 0, 125, 255));
                     if (ImGui::Button("Move selected to the buffer (!CAUTION!)")) {
-                        control.pop_buffer.clear();
+                        // control.pop_buffer.clear();
                         for (size_t i = 0; i < control.selected_pops.size(); i++) {
                             auto& selection = control.selected_pops[i];
-                            auto pops = layers.get_pops(selection.v2id, d);
+                            auto pops = layers.get_pops(selection.v2id, selection.date);
                             if (pops == nullptr) {
                                 continue;
                             }
@@ -863,7 +895,7 @@ namespace widgets {
                         });
                         for (int i = control.selected_pops.size() - 1; i >= 0; i--) {
                             auto& selection = control.selected_pops[i];
-                            auto pops = layers.get_pops(selection.v2id, d);
+                            auto pops = layers.get_pops(selection.v2id, selection.date);
                             if (pops == nullptr) {
                                 continue;
                             }
@@ -880,13 +912,12 @@ namespace widgets {
                     ImGui::SameLine();
                     ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(125, 0, 0, 255));
                     if (ImGui::Button("Delete selected (!CAUTION!)")) {
-                        control.pop_buffer.clear();
                         std::stable_sort(control.selected_pops.begin(), control.selected_pops.end(), [&](auto& a, auto& b) {
                             return a.index < b.index;
                         });
                         for (int i = control.selected_pops.size() - 1; i >= 0; i--) {
                             auto& selection = control.selected_pops[i];
-                            auto pops = layers.get_pops(selection.v2id, d);
+                            auto pops = layers.get_pops(selection.v2id, selection.date);
                             if (pops == nullptr) {
                                 continue;
                             }
@@ -1146,6 +1177,7 @@ namespace widgets {
                                     if (
                                         candidate.v2id == selected_province
                                         && candidate.index == pops_indices[row_n]
+                                        && candidate.date == d
                                     ) {
                                         selected_pop = true;
                                         selection_index = i;
@@ -1155,7 +1187,7 @@ namespace widgets {
                                 if (ImGui::RadioButton("##selected_pop", selected_pop)) {
                                     if (!selected_pop) {
                                         state::selected_pop new_selection {
-                                            selected_province, pops_indices[row_n]
+                                            selected_province, d, pops_indices[row_n]
                                         };
                                         control.selected_pops.push_back(new_selection);
                                     } else {
