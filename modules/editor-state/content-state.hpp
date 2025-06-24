@@ -1067,6 +1067,16 @@ struct layers_stack {
         return result;
     }
 
+    std::vector<game_definition::province> * get_provinces() {
+        std::vector<game_definition::province> * result = nullptr;
+        for (auto& l : data) {
+            if (l.has_province_definitions) {
+                result = &l.province_definitions;
+            }
+        }
+        return result;
+    }
+
     int get_commodities_count() {
         int result = 1;
         for (auto& l: data) {
@@ -1195,6 +1205,16 @@ struct layers_stack {
         province_owner[3 * province + 0] = owner_tag[0];
         province_owner[3 * province + 1] = owner_tag[1];
         province_owner[3 * province + 2] = owner_tag[2];
+    }
+
+    int32_t get_owner_int(int v2id) {
+        return game_definition::tag_to_int(
+            {
+                (char)province_owner[3 * v2id + 0],
+                (char)province_owner[3 * v2id + 1],
+                (char)province_owner[3 * v2id + 2]
+            }
+        );
     }
 
     int inline coord_to_pixel(glm::ivec2 coord) {

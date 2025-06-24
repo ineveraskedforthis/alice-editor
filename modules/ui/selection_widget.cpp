@@ -1551,6 +1551,97 @@ namespace widgets {
                 }
                 ImGui::EndTabItem();
             }
+
+            if (ImGui::BeginTabItem("Population")) {
+                static ankerl::unordered_dense::map<std::string, int32_t> population_per_culture {};
+                static std::vector<std::string> cultures {};
+                static int selected_tag = 0;
+                static int selected_date = 0;
+                static int total_population = 0;
+
+                static bool update_required = true;
+
+                if (selected_tag != tag) {
+                    update_required = true;
+                    selected_tag = tag;
+                }
+
+                if (ImGui::Button("Update")) {
+                    update_required = true;
+                }
+
+                auto dates = map.get_available_dates();
+
+                if (ImGui::BeginTabBar("NationalPopulation")) {
+
+                    for (auto d : dates) {
+                        auto year = (d / 12 / 31);
+                        auto year_string = std::to_string(year);
+                        if (ImGui::BeginTabItem(year_string.c_str())) {
+                            if (selected_date != d) {
+                                update_required = true;
+                                selected_date = d;
+                            }
+
+                            if (update_required) {
+                                update_required = false;
+                                population_per_culture.clear();
+                                total_population = 0;
+                                cultures.clear();
+                                for (auto& prov : *map.get_provinces()){
+                                    auto pops = map.get_pops(prov.v2id, d);
+                                    if (pops == nullptr) {
+                                        continue;
+                                    }
+                                    auto owner = map.get_owner_int(prov.v2id);
+                                    if (owner != selected_tag) {
+                                        continue;
+                                    }
+                                    for (auto& pop: *pops) {
+                                        auto find_result = population_per_culture.find(pop.culture);
+                                        if (find_result == population_per_culture.end()) {
+                                            cultures.push_back(pop.culture);
+                                            population_per_culture[pop.culture] = 0;
+                                        }
+                                        population_per_culture[pop.culture] += pop.size;
+                                        total_population += pop.size;
+                                    }
+                                }
+
+                                std::stable_sort(
+                                    cultures.begin(),
+                                    cultures.end(),
+                                    [&](auto & a, auto& b)
+                                    {
+                                        auto val_a = population_per_culture[a];
+                                        auto val_b = population_per_culture[b];
+                                        return val_a > val_b;
+                                    }
+                                );
+                            }
+
+                            ImGui::Text("Total population: %d", total_population);
+
+                            for (auto& culture : cultures) {
+                                auto val = population_per_culture[culture];
+                                ImGui::Text(
+                                    "%s : %d (%.2f%%)",
+                                    culture.c_str(),
+                                    val,
+                                    (float)val / (float)total_population * 100.f
+                                );
+                            }
+
+                            ImGui::EndTabItem();
+                        }
+                    }
+
+                    ImGui::EndTabBar();
+                }
+
+                ImGui::EndTabItem();
+            }
+
             ImGui::EndTabBar();
         }
     }
