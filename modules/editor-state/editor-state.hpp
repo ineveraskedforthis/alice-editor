@@ -53,6 +53,9 @@ struct control {
 
     std::vector<selected_pop> selected_pops{};
 
+    bool moving_the_map = false;
+    glm::vec2 camera_shift {};
+
     // glm::vec2 selected_province;
     uint32_t selected_province_id = 0;
     std::string selected_commodity {};

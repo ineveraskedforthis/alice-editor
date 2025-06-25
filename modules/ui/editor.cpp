@@ -632,7 +632,6 @@ namespace widgets {
         int& adj_vertices_count,
         float& update_texture_timer,
         float frame_time,
-        glm::vec2 camera,
         float zoom,
         glm::vec3 shift
     ) {
@@ -736,7 +735,7 @@ namespace widgets {
 
         auto view = glm::identity<glm::mat4>();
         view = glm::scale(view, glm::vec3{1.f / zoom, (float)window.width / (float)window.height / zoom, 1.f});
-        view = glm::translate(view, glm::vec3(camera, 0.f));
+        view = glm::translate(view, glm::vec3(control.camera_shift, 0.f));
 
         glm::mat4 model = glm::identity<glm::mat4>();
         model = glm::translate(model, shift);

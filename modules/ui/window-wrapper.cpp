@@ -4,6 +4,7 @@
 #include "SDL_events.h"
 #include "SDL_keycode.h"
 #include "../editor-state/editor-state.hpp"
+#include "SDL_mouse.h"
 #include "imgui.h"
 #include "misc/cpp/imgui_stdlib.h"
 #include "backends/imgui_impl_sdl2.h"
@@ -100,7 +101,7 @@ wrapper::~wrapper() {
     SDL_Quit();
 }
 
-void wrapper::update(state::layers_stack& layers, state::control& control_state, ImGuiIO& io, glm::vec2& camera_shift, float & zoom) {
+void wrapper::update(state::layers_stack& layers, state::control& control_state, ImGuiIO& io, float & zoom) {
     for (SDL_Event event; SDL_PollEvent(&event);) {
         ImGui_ImplSDL2_ProcessEvent(&event);
 
@@ -123,23 +124,44 @@ void wrapper::update(state::layers_stack& layers, state::control& control_state,
                 mouse_x = event.motion.x;
                 mouse_y = event.motion.y;
                 if(layers.data.size() > 0) {
-                    state::update_mouse_move(control_state, layers, state::screen_to_texture(
+                    auto map_width = layers.get_provinces_image_x();
+                    auto map_height = layers.get_provinces_image_y();
+                    auto new_mouse_position = state::screen_to_texture(
                         mouse_x, mouse_y,
-                        layers.get_provinces_image_x(), layers.get_provinces_image_y(),
+                        map_width, map_height,
                         width, height,
-                        zoom, camera_shift
-                    ));
+                        zoom, control_state.camera_shift
+                    );
+                    if (control_state.moving_the_map) {
+                        auto shift = new_mouse_position - control_state.mouse_map_coord;
+                        control_state.camera_shift += shift / glm::vec2((float)map_height, (float)map_height) * 3.f;
+                    }
+
+                    // we shifted the map, which imvalidated already calculated mouse position:
+                    new_mouse_position = state::screen_to_texture(
+                        mouse_x, mouse_y,
+                        map_width, map_height,
+                        width, height,
+                        zoom, control_state.camera_shift
+                    );
+                    state::update_mouse_move(control_state, layers, new_mouse_position);
                 }
             }
             break;
         case SDL_MOUSEBUTTONUP:
+            if (event.button.button == SDL_BUTTON_MIDDLE) {
+                control_state.moving_the_map = false;
+            }
             if (event.button.button == SDL_BUTTON_LEFT) {
                 control_state.lmb_pressed = false;
                 if (io.WantCaptureMouse) break;
             }
             break;
         case SDL_MOUSEBUTTONDOWN:
-            if (event.button.button == SDL_BUTTON_LEFT)
+            if (event.button.button == SDL_BUTTON_MIDDLE) {
+                control_state.moving_the_map = true;
+            }
+            else if (event.button.button == SDL_BUTTON_LEFT)
             {
                 if (io.WantCaptureMouse) break;
                 if(layers.data.size() > 0) {
@@ -147,7 +169,7 @@ void wrapper::update(state::layers_stack& layers, state::control& control_state,
                         event.button.x, event.button.y,
                         layers.get_provinces_image_x(), layers.get_provinces_image_y(),
                         width, height,
-                        zoom, camera_shift
+                        zoom, control_state.camera_shift
                     );
 
                     control_state.mouse_map_coord.y = std::clamp(control_state.mouse_map_coord.y, 0.f, (float)layers.get_provinces_image_y() - 1.f);
@@ -175,17 +197,17 @@ void wrapper::update(state::layers_stack& layers, state::control& control_state,
             control_state.context_province = -1;
             if (event.key.keysym.sym == SDLK_a)
             {
-                camera_shift.x += 0.1f * zoom;
+                control_state.camera_shift.x += 0.1f * zoom;
             }
             else if (event.key.keysym.sym == SDLK_d)
             {
-                camera_shift.x -= 0.1f * zoom;
+                control_state.camera_shift.x -= 0.1f * zoom;
             } else if (event.key.keysym.sym == SDLK_w)
             {
-                camera_shift.y -= 0.1f * zoom;
+                control_state.camera_shift.y -= 0.1f * zoom;
             } else if (event.key.keysym.sym == SDLK_s)
             {
-                camera_shift.y += 0.1f * zoom;
+                control_state.camera_shift.y += 0.1f * zoom;
             } else if (event.key.keysym.sym == SDLK_q)
             {
                 zoom *= 0.5;

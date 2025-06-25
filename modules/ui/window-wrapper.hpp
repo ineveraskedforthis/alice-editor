@@ -30,6 +30,6 @@ struct wrapper {
 
     wrapper();
     ~wrapper();
-    void update(state::layers_stack& layers, state::control& control_state, ImGuiIO& io, glm::vec2& camera_shift, float & zoom);
+    void update(state::layers_stack& layers, state::control& control_state, ImGuiIO& io, float & zoom);
 };
 }

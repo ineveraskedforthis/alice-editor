@@ -37,7 +37,6 @@ namespace widgets {
         int& adj_vertices_count,
         float& update_texture_timer,
         float frame_time,
-        glm::vec2 camera,
         float zoom,
         glm::vec3 shift
     );

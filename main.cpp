@@ -346,7 +346,6 @@ int main(int argc, char* argv[]) {
         state::check_gl_error("Vertex array");
 
         glm::vec3 shift {0, 0, 0.5};
-        glm::vec2 camera {0, 0};
         float zoom = 1.f;
         // glm::vec3 scale {1.f, (float)map_state.size_y / (float)map_state.size_x, 1.f};
 
@@ -423,7 +422,7 @@ int main(int argc, char* argv[]) {
                 update_timer -= frame_time;
             }
 
-            window.update(layers, control_state, io, camera, zoom);
+            window.update(layers, control_state, io, zoom);
             if (!window.running)
                 break;
             if (window.delayed) {
@@ -441,7 +440,7 @@ int main(int argc, char* argv[]) {
                     window, io, layers, control_state, storage, editor,
                     centers_buffer, rivers_buffer, center_vertex_array,
                     TO_LOCATION, adj_vertices_count,
-                    update_texture_timer, frame_time, camera, zoom, shift
+                    update_texture_timer, frame_time, zoom, shift
                 );
             } else {
                 ImGui::SetNextWindowSize(ImVec2(400, 400));
