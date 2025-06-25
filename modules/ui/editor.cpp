@@ -333,16 +333,34 @@ namespace widgets {
             control.context_window_origin.y + shift_y
         ));
 
+        ImGui::SetNextWindowSize(ImVec2(
+            200,
+            250
+        ));
+
         ImGui::Begin("ContextMenuMap", NULL, flags);
 
         ImGui::Text("%s", ("selected TAG: " + control.selected_tag).c_str());
         ImGui::Text("%s", ("selected v2id: " + std::to_string(control.selected_province_id)).c_str());
+        auto state_instance = layers.get_state(control.selected_province_id);
+        if (state_instance != nullptr) {
+            ImGui::Text("%s", ("selected state: " + state_instance->name).c_str());
+        } else {
+            ImGui::Text("selected state: INVALID");
+        }
+
         ImGui::Separator();
         ImGui::Text("%s", ("context TAG: " + control.context_tag).c_str());
         if (control.context_province == 0) {
-            ImGui::Text("INVALID PROVINCE");
+            ImGui::Text("context v2id: INVALID");
         } else {
             ImGui::Text("%s", ("context v2id: " + std::to_string(control.context_province)).c_str());
+        }
+        state_instance = layers.get_state(control.context_province);
+        if (state_instance != nullptr) {
+            ImGui::Text("%s", ("context state: " + state_instance->name).c_str());
+        } else {
+            ImGui::Text("context state: INVALID");
         }
         ImGui::Separator();
 
@@ -365,23 +383,26 @@ namespace widgets {
         }
 
         if (ImGui::BeginMenu("New")) {
-            if (ImGui::MenuItem("Province")) {
-                auto prov = layers.new_province(control.context_pixel, "");
-                control.r = prov.r;
-                control.g = prov.g;
-                control.b = prov.b;
-            }
-
             static std::string new_province_name = "";
-            ImGui::InputText("Name", &new_province_name);
+            ImGui::InputText("Province Name", &new_province_name);
 
-            if (ImGui::MenuItem("Named Province")) {
+            if (ImGui::MenuItem("Province")) {
                 auto prov = layers.new_province(
                     control.context_pixel, new_province_name
                 );
                 control.r = prov.r;
                 control.g = prov.g;
                 control.b = prov.b;
+            }
+
+            static std::string new_state_name = "";
+            ImGui::InputText("State Name", &new_state_name);
+
+            if (ImGui::MenuItem("State")) {
+                layers.new_state_at_province(
+                    control.context_province, new_state_name
+                );
+                layers.commit_state_texture();
             }
             ImGui::EndMenu();
         }

@@ -603,7 +603,7 @@ struct layers_stack {
         return data[current_layer_index].has_region_txt;
     }
 
-    void copy_state_from_province_to_province(int source, int target) {
+    void copy_state_data_to_active_layer() {
         if (current_layer_index == -1) return;
         auto& active_layer = data[current_layer_index];
         if (!active_layer.has_region_txt) {
@@ -614,15 +614,58 @@ struct layers_stack {
                     source_layer = &l;
                 }
             }
-
             if (source_layer != nullptr) {
                 std::memcpy(active_layer.province_state, source_layer->province_state, 256 * 256 * 2);
+                active_layer.states = source_layer->states;
+                active_layer.has_region_txt = true;
+                active_layer.load_state_texture_to_gpu();
             } else {
                 return;
             }
         };
+    }
+
+    void new_state_at_province(int v2id, std::string name) {
+        copy_state_data_to_active_layer();
+        auto& active_layer = data[current_layer_index];
+
+        auto new_state = game_definition::state {};
+        if (name.size() == 0) {
+            new_state.name = "EDITOR_" + std::to_string(active_layer.states.size());
+        } else {
+            new_state.name = name;
+        }
+        auto new_state_id = active_layer.states.size();
+        auto state_x = new_state_id % 256;
+        auto state_y = new_state_id / 256;
+        active_layer.states.push_back(new_state);
+        active_layer.province_state[2 * v2id] = state_x;
+        active_layer.province_state[2 * v2id + 1] = state_y;
+    }
+
+    void copy_state_from_province_to_province(int source, int target) {
+        copy_state_data_to_active_layer();
+        auto& active_layer = data[current_layer_index];
         active_layer.province_state[2 * target] = active_layer.province_state[2 * source];
         active_layer.province_state[2 * target + 1] = active_layer.province_state[2 * source + 1];
+    }
+
+    game_definition::state* get_state(int v2id) {
+        if (v2id == 0) {
+            return nullptr;
+        }
+        layer* source_layer = nullptr;
+        for (auto& l: data) {
+            if(l.visible && l.has_region_txt) {
+                source_layer = &l;
+            }
+        }
+        if (source_layer != nullptr) {
+            auto index_x = source_layer->province_state[2 * v2id];
+            auto index_y = source_layer->province_state[2 * v2id + 1];
+            return &source_layer->states[index_x + index_y * 256];
+        }
+        return nullptr;
     }
 
     bool can_edit_province_history(int province_index) {
