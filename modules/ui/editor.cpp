@@ -324,182 +324,92 @@ namespace widgets {
         auto shift_x = 50;
         auto step_y = 35;
 
-        auto shift_y = -125;
+        auto shift_y = 25;
 
         auto button_size_y = 30;
 
-        {
-            shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
-            ImGui::SetNextWindowPos(ImVec2(
-                control.context_window_origin.x + shift_x,
-                control.context_window_origin.y + shift_y
-            ));
-            ImGui::Begin("tooltip_tag", NULL, flags);
-            ImGui::Text("%s", ("selected TAG: " + control.selected_tag).c_str());
-            ImGui::End();
+        ImGui::SetNextWindowPos(ImVec2(
+            control.context_window_origin.x + shift_x,
+            control.context_window_origin.y + shift_y
+        ));
+
+        ImGui::Begin("ContextMenuMap", NULL, flags);
+
+        ImGui::Text("%s", ("selected TAG: " + control.selected_tag).c_str());
+        ImGui::Text("%s", ("selected v2id: " + std::to_string(control.selected_province_id)).c_str());
+        ImGui::Separator();
+        ImGui::Text("%s", ("context TAG: " + control.context_tag).c_str());
+        if (control.context_province == 0) {
+            ImGui::Text("INVALID PROVINCE");
+        } else {
+            ImGui::Text("%s", ("context v2id: " + std::to_string(control.context_province)).c_str());
+        }
+        ImGui::Separator();
+
+        if (ImGui::MenuItem("Pick color")) {
+            state::pick_color_from_pixel(control, layers, control.context_pixel);
         }
 
-        {
-            shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
-            ImGui::SetNextWindowPos(ImVec2(
-                control.context_window_origin.x + shift_x,
-                control.context_window_origin.y + shift_y
-            ));
-            ImGui::Begin("tooltip_province", NULL, flags);
-            ImGui::Text("%s", ("selected v2id: " + std::to_string(control.selected_province_id)).c_str());
-            ImGui::End();
-        }
-
-        {
-            shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
-            ImGui::SetNextWindowPos(ImVec2(
-                control.context_window_origin.x + shift_x,
-                control.context_window_origin.y + shift_y
-            ));
-            ImGui::Begin("tooltip_tag", NULL, flags);
-            ImGui::Text("%s", ("context TAG: " + control.selected_tag).c_str());
-            ImGui::End();
-        }
-
-        {
-            shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
-            ImGui::SetNextWindowPos(ImVec2(
-                control.context_window_origin.x + shift_x,
-                control.context_window_origin.y + shift_y
-            ));
-            ImGui::Begin("tooltip_province", NULL, flags);
-            if (control.context_province == 0) {
-                ImGui::Text("INVALID PROVINCE");
-            } else {
-                ImGui::Text("%s", ("context v2id: " + std::to_string(control.context_province)).c_str());
-            }
-            ImGui::End();
-        }
-
-        {
-            shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
-            ImGui::SetNextWindowPos(ImVec2(
-                control.context_window_origin.x + shift_x,
-                control.context_window_origin.y + shift_y
-            ));
-            ImGui::Begin("context_new_prov", NULL, flags);
-            if (ImGui::Button("New province")) {
-                auto prov = layers.new_province(control.context_pixel, "");
-                control.r = prov.r;
-                control.g = prov.g;
-                control.b = prov.b;
-            }
-            ImGui::End();
-        }
-
-        {
-            shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, button_size_y * 2.1));
-            ImGui::SetNextWindowPos(ImVec2(
-                control.context_window_origin.x + shift_x,
-                control.context_window_origin.y + shift_y
-            ));
-            ImGui::Begin("context_new_prov_named", NULL, flags);
-            static std::string new_province_name = "";
-            ImGui::InputText("Name", &new_province_name);
-            if (ImGui::Button("New named province")) {
-                auto prov = layers.new_province(control.context_pixel, new_province_name);
-                control.r = prov.r;
-                control.g = prov.g;
-                control.b = prov.b;
-            }
-            ImGui::End();
-            shift_y += step_y;
-        }
-
-        {
-            shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
-            ImGui::SetNextWindowPos(ImVec2(
-                control.context_window_origin.x + shift_x,
-                control.context_window_origin.y + shift_y
-            ));
-            ImGui::Begin("context_set_state", NULL, flags);
-            if (ImGui::Button("Copy state from the selected province")) {
-                state::paint_state(control, layers, control.context_pixel, control.selected_pixel);
-                layers.commit_state_texture();
-            }
-            ImGui::End();
-        }
-
-        {
-            shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
-            ImGui::SetNextWindowPos(ImVec2(
-                control.context_window_origin.x + shift_x,
-                control.context_window_origin.y + shift_y
-            ));
-            ImGui::Begin("context_set_owner_controller", NULL, flags);
-            if (ImGui::Button(("Set " + control.selected_tag + " as owner and controller").c_str())) {
+        if (control.selected_tag.size() > 0) {
+            if (ImGui::MenuItem(("Set " + control.selected_tag + " as owner").c_str())) {
                 state::paint_controler_and_owner_safe(
                     control,
                     layers,
                     control.context_pixel
                 );
             }
-            ImGui::End();
         }
 
-        {
-            shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
-            ImGui::SetNextWindowPos(ImVec2(
-                control.context_window_origin.x + shift_x,
-                control.context_window_origin.y + shift_y
-            ));
-            ImGui::Begin("context_set_capital", NULL, flags);
-            if (ImGui::Button(("Set capital of" + control.selected_tag).c_str())) {
-                auto tag_int = game_definition::string_to_int(control.selected_tag);
-                auto history = layers.get_nation_history(tag_int);
-                if (history != nullptr) {
-                    if (!layers.can_edit_nation_history(tag_int)) {
-                        layers.copy_nation_history_to_current_layer(tag_int);
-                        layers.get_nation_history(tag_int)->capital = control.context_province;
-                    } else {
-                        history->capital = control.context_province;
+        if (ImGui::MenuItem("Select")) {
+            state::select_pixel(control, layers, control.context_pixel);
+        }
+
+        if (ImGui::BeginMenu("New")) {
+            if (ImGui::MenuItem("Province")) {
+                auto prov = layers.new_province(control.context_pixel, "");
+                control.r = prov.r;
+                control.g = prov.g;
+                control.b = prov.b;
+            }
+
+            static std::string new_province_name = "";
+            ImGui::InputText("Name", &new_province_name);
+
+            if (ImGui::MenuItem("Named Province")) {
+                auto prov = layers.new_province(
+                    control.context_pixel, new_province_name
+                );
+                control.r = prov.r;
+                control.g = prov.g;
+                control.b = prov.b;
+            }
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("Set")) {
+            if (control.selected_tag.size() == 0) {
+                ImGui::Text("Select province to show entries");
+            } else {
+                if (ImGui::MenuItem("State")) {
+                    state::paint_state(control, layers, control.context_pixel, control.selected_pixel);
+                    layers.commit_state_texture();
+                }
+                if (ImGui::MenuItem(("Capital of " + control.selected_tag).c_str())) {
+                    auto tag_int = game_definition::string_to_int(control.selected_tag);
+                    auto history = layers.get_nation_history(tag_int);
+                    if (history != nullptr) {
+                        if (!layers.can_edit_nation_history(tag_int)) {
+                            layers.copy_nation_history_to_current_layer(tag_int);
+                            layers.get_nation_history(tag_int)->capital = control.context_province;
+                        } else {
+                            history->capital = control.context_province;
+                        }
                     }
                 }
             }
-            ImGui::End();
+            ImGui::EndMenu();
         }
-
-        {
-            shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
-            ImGui::SetNextWindowPos(ImVec2(
-                control.context_window_origin.x + shift_x,
-                control.context_window_origin.y + shift_y
-            ));
-            ImGui::Begin("context_select", NULL, flags);
-            if (ImGui::Button("Select")) {
-                state::select_pixel(control, layers, control.context_pixel);
-            }
-            ImGui::End();
-        }
-
-        {
-            shift_y += step_y;
-            ImGui::SetNextWindowSize(ImVec2(200, button_size_y));
-            ImGui::SetNextWindowPos(ImVec2(
-                control.context_window_origin.x + shift_x,
-                control.context_window_origin.y + shift_y
-            ));
-            ImGui::Begin("context_pick_color", NULL, flags);
-            if (ImGui::Button("Pick color")) {
-                state::pick_color_from_pixel(control, layers, control.context_pixel);
-            }
-            ImGui::End();
-        }
+        ImGui::End();
 
         if (control.selected_adjacency) {
             // auto& adj = map_state.adjacencies[control.selected_adjacency];
