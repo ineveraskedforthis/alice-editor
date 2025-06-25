@@ -572,7 +572,9 @@ struct layers_stack {
         auto x = active_layer.provinces_image->size_x;
         auto y = active_layer.provinces_image->size_y;
 
-        auto index = rgb_to_v2id(r, g, b);
+        auto v2id = rgb_to_v2id(r, g, b);
+        auto old_v2id = sample_province_index(pixel);
+
         active_layer.provinces_image->provinces_image_data[pixel * 4] = r;
         active_layer.provinces_image->provinces_image_data[pixel * 4 + 1] = g;
         active_layer.provinces_image->provinces_image_data[pixel * 4 + 2] = b;
@@ -584,10 +586,13 @@ struct layers_stack {
         indices.update_texture_x_top = std::max(coord_x, indices.update_texture_x_top);
         indices.update_texture_y_top = std::max(coord_y, indices.update_texture_y_top);
 
-        if (index != std::nullopt) {
-            indices.data[4 * pixel + 0] = index.value() % 256;
-            indices.data[4 * pixel + 1] = index.value() / 256;
+        if (v2id != std::nullopt) {
+            indices.v2id_to_size[old_v2id] -= 1;
+            indices.v2id_to_size[v2id.value()] += 1;
+            indices.data[4 * pixel + 0] = v2id.value() % 256;
+            indices.data[4 * pixel + 1] = v2id.value() / 256;
         } else {
+            indices.v2id_to_size[old_v2id] -= 1;
             indices.data[4 * pixel + 0] = 0;
             indices.data[4 * pixel + 1] = 0;
         }
