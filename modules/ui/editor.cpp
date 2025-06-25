@@ -810,9 +810,9 @@ namespace widgets {
             glUniformMatrix4fv(uniform_locations[SHADER_UNIFORMS::TRIANGLE_VIEW], 1, false, reinterpret_cast<float*>(&view));
 
             glm::vec2 size = glm::vec2{size_x, size_y};
-            glm::vec2 fill_center = glm::vec2(control.fill_center) / size;
-            glm::vec2 currently_painted = glm::vec2(control.delayed_map_coord) / size;
-            glm::vec2 mouse_position = glm::vec2(control.mouse_map_coord) / size;
+            glm::vec2 fill_center = (glm::vec2(control.fill_center) + 0.5f) / size;
+            glm::vec2 currently_painted = (glm::vec2(control.delayed_map_coord) + 0.5f) / size;
+            glm::vec2 mouse_position = (glm::vec2(control.mouse_map_coord)) / size;
 
             glUniform2f(uniform_locations[SHADER_UNIFORMS::TRIANGLE_POINT_0], fill_center.x, fill_center.y);
             glUniform2f(uniform_locations[SHADER_UNIFORMS::TRIANGLE_POINT_1], currently_painted.x, currently_painted.y);

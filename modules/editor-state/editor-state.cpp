@@ -189,7 +189,12 @@ void paint_line(control& control_state, layers_stack& map, bool respect_coasts) 
     auto x = start.x;
     auto y = start.y;
 
-    while (x != end.x || y != end.y) {
+    auto max_steps = 100000;
+    auto step = 0;
+
+    while ((x != end.x || y != end.y) && step < (max_steps)) {
+        step++;
+
         {
             auto pixel_index = map.coord_to_pixel(glm::ivec2{x, y});
             if (respect_coasts) {
