@@ -288,6 +288,13 @@ void pops_buffer_widget(state::layers_stack& layers, state::control& control) {
         control.pop_buffer_indices.clear();
     }
 
+    ImGui::SameLine();
+
+    if (ImGui::Button("Clear provinces")) {
+        control.province_targets_for_pop_splitting.clear();
+        control.province_targets_for_pop_splitting_indices.clear();
+    }
+
     auto dates = layers.get_available_dates();
 
     if (ImGui::BeginTabBar("PopulationSplitterTabs", ImGuiTabBarFlags_None)) {
