@@ -1,5 +1,7 @@
+#include "imgui_internal.h"
 #include "modules/OS/win-wrapper.hpp"
 #include "modules/misc.hpp"
+#include <filesystem>
 #include <shobjidl_core.h>
 #undef max
 #undef min
@@ -402,6 +404,25 @@ int main(int argc, char* argv[]) {
         ImGuiIO& io = ImGui::GetIO(); (void)io;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
+        ImFont* main_font = io.Fonts->AddFontFromFileTTF(
+            "./assets/Montserrat/static/Montserrat-Regular.ttf",
+            18.0f,
+            NULL,
+            io.Fonts->GetGlyphRangesDefault()
+        );
+
+        ImGuiStyle& style = ImGui::GetStyle();
+        style.WindowRounding = 6.f;
+        style.ChildRounding = 6.f;
+        style.FrameRounding = 6.f;
+        style.PopupRounding = 6.f;
+        style.ScrollbarRounding = 6.f;
+        style.GrabRounding = 2.f;
+        style.TabRounding = 6.f;
+        style.SeparatorTextBorderSize = 5.f;
+        style.FrameBorderSize = 1.f;
+        style.TabBorderSize = 1.f;
+
         control_state.reset_focus = true;
 
         std::cout << "Start the main loop";
@@ -433,6 +454,30 @@ int main(int argc, char* argv[]) {
             ImGui_ImplSDL2_NewFrame();
             ImGui::NewFrame();
 
+            ImGui::PushFont(main_font);
+            ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 0, 0, 255));
+            ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(200, 200, 200, 230));
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(220, 220, 220, 200));
+            ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(240, 240, 240, 255));
+            ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(250, 250, 250, 255));
+            ImGui::PushStyleColor(ImGuiCol_MenuBarBg, IM_COL32(250, 250, 250, 255));
+            ImGui::PushStyleColor(ImGuiCol_TitleBg, IM_COL32(200, 200, 200, 255));
+            ImGui::PushStyleColor(ImGuiCol_TitleBgActive, IM_COL32(250, 250, 250, 255));
+            ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, IM_COL32(150, 150, 150, 255));
+            ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, IM_COL32(220, 220, 220, 255));
+            ImGui::PushStyleColor(ImGuiCol_TableRowBg, IM_COL32(240, 240, 240, 255));
+            ImGui::PushStyleColor(ImGuiCol_PopupBg, IM_COL32(240, 240, 240, 255));
+            ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, IM_COL32(70, 70, 70, 255));
+            ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, IM_COL32(0, 0, 0, 255));
+            ImGui::PushStyleColor(ImGuiCol_Tab, IM_COL32(190, 190, 190, 255));
+            ImGui::PushStyleColor(ImGuiCol_TabActive, IM_COL32(255, 255, 255, 255));
+            ImGui::PushStyleColor(ImGuiCol_TabSelected, IM_COL32(240, 240, 240, 255));
+            ImGui::PushStyleColor(ImGuiCol_TabSelectedOverline, IM_COL32(0, 0, 0, 255));
+            ImGui::PushStyleColor(ImGuiCol_TabHovered, IM_COL32(220, 220, 220, 255));
+            ImGui::PushStyleColor(ImGuiCol_TabDimmed, IM_COL32(190, 190, 190, 255));
+            ImGui::PushStyleColor(ImGuiCol_TabDimmedSelected, IM_COL32(200, 200, 200, 255));
+            ImGui::PushStyleColor(ImGuiCol_TabDimmedSelectedOverline, IM_COL32(0, 0, 0, 255));
+
             // ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0.f, 0.f));
 
             if (layers.data.size()>0){
@@ -455,6 +500,14 @@ int main(int argc, char* argv[]) {
                 if (ImGui::Button("Select path to base game")) {
                     path_basegame = open_path_selection_dialog(true);
                 }
+
+                ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(150, 10, 10, 255));
+                if (!std::filesystem::exists(path_basegame)) {
+                    ImGui::Text("BASE GAME FOLDER DOES NOT EXIST!");
+                } else if (std::filesystem::is_empty(path_basegame)) {
+                    ImGui::Text("BASE GAME FOLDER IS EMPTY!");
+                }
+                ImGui::PopStyleColor();
 
                 ImGui::Text("Current path to mod");
                 ImGui::Text("%ls", path_mod.c_str());
@@ -511,6 +564,9 @@ int main(int argc, char* argv[]) {
             }
 
             // ImGui::PopStyleVar();
+
+            ImGui::PopFont();
+            ImGui::PopStyleColor(22);
 
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

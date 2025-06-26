@@ -873,7 +873,7 @@ namespace widgets {
                     }
 
                     // ImGui::SameLine();
-                    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(125, 0, 125, 255));
+                    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 125, 255, 255));
                     if (ImGui::Button("Move selected to the buffer (!CAUTION!)")) {
                         // control.pop_buffer.clear();
                         for (size_t i = 0; i < control.selected_pops.size(); i++) {
@@ -910,7 +910,7 @@ namespace widgets {
                     ImGui::PopStyleColor();
 
                     ImGui::SameLine();
-                    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(125, 0, 0, 255));
+                    ImGui::PushStyleColor(ImGuiCol_Button, IM_COL32(255, 125, 125, 255));
                     if (ImGui::Button("Delete selected (!CAUTION!)")) {
                         std::stable_sort(control.selected_pops.begin(), control.selected_pops.end(), [&](auto& a, auto& b) {
                             return a.index < b.index;
@@ -954,7 +954,6 @@ namespace widgets {
                         | ImGuiTableFlags_RowBg
                         | ImGuiTableFlags_BordersOuter
                         | ImGuiTableFlags_BordersV
-                        | ImGuiTableFlags_NoBordersInBody
                         | ImGuiTableFlags_ScrollY;
 
                     ImGuiStyle& style = ImGui::GetStyle();
@@ -995,7 +994,7 @@ namespace widgets {
                             "Size",
                             ImGuiTableColumnFlags_DefaultSort
                             | ImGuiTableColumnFlags_WidthFixed,
-                            200.0f,
+                            220.0f,
                             province_population_size
                         );
                         ImGui::TableSetupColumn(
@@ -1016,7 +1015,7 @@ namespace widgets {
                             "Select##province_selection_header",
                             ImGuiTableColumnFlags_NoSort
                             | ImGuiTableColumnFlags_WidthFixed,
-                            50.0f,
+                            25.0f,
                             province_population_copy
                         );
 

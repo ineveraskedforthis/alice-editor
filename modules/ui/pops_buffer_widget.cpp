@@ -372,7 +372,6 @@ void pops_buffer_widget(state::layers_stack& layers, state::control& control) {
                     | ImGuiTableFlags_RowBg
                     | ImGuiTableFlags_BordersOuter
                     | ImGuiTableFlags_BordersV
-                    | ImGuiTableFlags_NoBordersInBody
                     | ImGuiTableFlags_ScrollY;
 
                 ImGui::Text("These pops would be split");

@@ -30,7 +30,7 @@ namespace widgets {
         // Options
         static ImGuiTableFlags flags =
             ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti
-            | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_NoBordersInBody
+            | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
             | ImGuiTableFlags_ScrollY;
         ImGuiStyle& style = ImGui::GetStyle();
 
@@ -225,7 +225,7 @@ namespace widgets {
         // Options
         static ImGuiTableFlags flags =
             ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti
-            | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_NoBordersInBody
+            | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
             | ImGuiTableFlags_ScrollY;
         ImGuiStyle& style = ImGui::GetStyle();
 
@@ -371,7 +371,7 @@ namespace widgets {
     void explorer_goods(state::layers_stack& map, state::control& control) {
         static ImGuiTableFlags flags =
             ImGuiTableFlags_Reorderable | ImGuiTableFlags_Hideable | ImGuiTableFlags_Sortable | ImGuiTableFlags_SortMulti
-            | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV | ImGuiTableFlags_NoBordersInBody
+            | ImGuiTableFlags_RowBg | ImGuiTableFlags_BordersOuter | ImGuiTableFlags_BordersV
             | ImGuiTableFlags_ScrollY;
         ImGuiStyle& style = ImGui::GetStyle();
         auto& active_layer = map.data[map.current_layer_index];
@@ -381,8 +381,7 @@ namespace widgets {
         ImGui::InputText("Name", &name_of_new_good);
 
         // choose the type of trade good (hardcoded for now...)
-
-        ImGui::SameLine();
+        // ImGui::SameLine();
 
         static int selected_class = 0;
 
@@ -465,12 +464,12 @@ namespace widgets {
             }
         }
 
-        if (ImGui::BeginTable("table_sorting", 4, flags, ImVec2(0.0f, 500), 0.0f)) {
+        if (ImGui::BeginTable("table_sorting", 2, flags, ImVec2(0.0f, 500), 0.0f)) {
             ImGui::TableSetupColumn(
                 "Icon",
                 ImGuiTableColumnFlags_NoSort
                 | ImGuiTableColumnFlags_WidthFixed,
-                80.0f,
+                40.0f,
                 goods_icon
             );
             ImGui::TableSetupColumn(
@@ -480,13 +479,13 @@ namespace widgets {
                 100.0f,
                 goods_name
             );
-            ImGui::TableSetupColumn(
-                "Select",
-                ImGuiTableColumnFlags_NoSort
-                | ImGuiTableColumnFlags_WidthFixed,
-                40.0f,
-                goods_select
-            );
+            // ImGui::TableSetupColumn(
+            //     "Select",
+            //     ImGuiTableColumnFlags_NoSort
+            //     | ImGuiTableColumnFlags_WidthFixed,
+            //     40.0f,
+            //     goods_select
+            // );
             ImGui::TableSetupScrollFreeze(0, 1); // Make row always visible
             ImGui::TableHeadersRow();
 
@@ -539,12 +538,15 @@ namespace widgets {
                         auto count = (float)active_layer.goods.size() + 1;
                         auto width = 1.f / count;
                         auto start = width * (def.index + 1);
-                        ImGui::Image(
+                        if (ImGui::ImageButton(
+                            name.c_str(),
                             (ImTextureID)(intptr_t)texture_index,
                             ImVec2(24, 24),
                             ImVec2(start, 0.0f),
                             ImVec2(start + width, 1.0f)
-                        );
+                        )) {
+                            control.selected_commodity = name;
+                        };
                     } else {
                         ImGui::Text("%d", def.index);
                     }
@@ -555,10 +557,10 @@ namespace widgets {
                     ImGui::Text("%s", name.c_str());
 
                     // SELECT
-                    ImGui::TableNextColumn();
-                    if (ImGui::SmallButton(">>")) {
-                        control.selected_commodity = name;
-                    }
+                    // ImGui::TableNextColumn();
+                    // if (ImGui::SmallButton(">>")) {
+                    //     control.selected_commodity = name;
+                    // }
                     ImGui::PopID();
                 }
             ImGui::EndTable();
