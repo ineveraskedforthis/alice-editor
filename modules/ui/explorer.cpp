@@ -10,6 +10,7 @@
 #include <cstddef>
 #include <string>
 #include "ui_enums.hpp"
+#include "cultures-explore.hpp"
 
 namespace widgets {
 
@@ -590,6 +591,10 @@ namespace widgets {
             }
             if (ImGui::BeginTabItem("Goods")) {
                 explorer_goods(map, control);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Cultures")) {
+                cultures_list(map, control);
                 ImGui::EndTabItem();
             }
             // if (ImGui::BeginTabItem("Adjacencies")) {

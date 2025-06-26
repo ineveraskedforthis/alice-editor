@@ -25,6 +25,10 @@ enum explorer_columns {
     province_population_rebel,
     province_population_copy,
 
+    culture_name,
+    culture_group,
+    culture_union_tag,
+
     province_split_target_v2id,
     province_split_target_name,
     province_split_target_priority,

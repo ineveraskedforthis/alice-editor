@@ -309,7 +309,11 @@ struct layer {
     bool has_goods = false;
 
     // cultures
+    ankerl::unordered_dense::map<std::string, game_definition::culture> culture_defs {};
     std::vector<std::string> cultures {};
+    ankerl::unordered_dense::map<std::string, game_definition::culture_group> culture_group_defs {};
+    std::vector<std::string> culture_groups {};
+    ankerl::unordered_dense::map<std::string, std::string> culture_to_group {};
     bool has_cultures = false;
 
     // religions
@@ -1133,6 +1137,53 @@ struct layers_stack {
             }
         }
         return result;
+    }
+
+    game_definition::culture* get_culture(std::string culture) {
+        layer* source = nullptr;
+        for (auto& l: data) {
+            if (l.visible && l.has_cultures) {
+                source = &l;
+            }
+        }
+
+        if (source == nullptr) {
+            return nullptr;
+        }
+
+        auto find = source->culture_defs.find(culture);
+        if (find == source->culture_defs.end()) {
+            return nullptr;
+        }
+
+        return &source->culture_defs[culture];
+    }
+
+    game_definition::culture_group* get_culture_group_from_culture(std::string culture) {
+        layer* source = nullptr;
+        for (auto& l: data) {
+            if (l.visible && l.has_cultures) {
+                source = &l;
+            }
+        }
+
+        if (source == nullptr) {
+            return nullptr;
+        }
+
+        auto group_string_iterator = source->culture_to_group.find(culture);
+        if (group_string_iterator == source->culture_to_group.end()) {
+            return nullptr;
+        }
+
+        auto& group = group_string_iterator->second;
+
+        auto find = source->culture_group_defs.find(group);
+        if (find == source->culture_group_defs.end()) {
+            return nullptr;
+        }
+
+        return &source->culture_group_defs[group];
     }
 
     void copy_province_history_to_current_layer(int v2id) {

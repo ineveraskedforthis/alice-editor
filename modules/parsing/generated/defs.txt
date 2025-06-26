@@ -152,10 +152,19 @@ pop_history_file
 #pop_history_file_context
 	#any               extern        make_pop_province_list             discard
 
+group_of_strings
+	#free value text member_fn
+
+culture
+#culture_context
+	color			group      	color_from_3i    	member_fn
+	first_names		group		group_of_strings	member_fn
+	last_names		group		group_of_strings	member_fn
+
 culture_group
 #culture_group_context
 	#any           extern     make_culture     discard
-	unit           value      none             discard
+	unit           value      text             member_fn
 	leader         value      text             member_fn
 	is_overseas    value      bool             member_fn
 	union          value      tag              member_fn  (union_tag)

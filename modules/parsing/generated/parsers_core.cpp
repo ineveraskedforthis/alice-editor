@@ -410,17 +410,34 @@ void make_goods_group(std::string_view name, token_generator& gen, error_handler
 
 void make_culture_group(std::string_view name, token_generator& gen, error_handler& err, culture_file_context& context) {
     std::string actual_string {name};
+    game_definition::culture_group new_group {};
+    new_group.name = name;
+
+    context.map.culture_group_defs[actual_string] = new_group;
+    context.map.culture_groups.push_back(actual_string);
+
     culture_group_context next_context {
-        context.map, actual_string
+        context.map, context.map.culture_group_defs[actual_string]
     };
     parse_culture_group(gen, err, next_context);
 }
 
 void make_culture(std::string_view name, token_generator& gen, error_handler& err, culture_group_context& context) {
     std::string actual_string {name};
+    game_definition::culture new_culture {};
+    new_culture.name = actual_string;
+
+    context.map.culture_defs[actual_string] = new_culture;
+    context.map.culture_to_group[actual_string] = context.culture_group.name;
     context.map.cultures.push_back(actual_string);
+    context.culture_group.cultures.push_back(actual_string);
+
+    culture_context next_context {
+        context.map, context.map.culture_defs[actual_string]
+    };
+
     std::cout << "culture " << actual_string << " was detected\n";
-    gen.discard_group();
+    parse_culture(gen, err, next_context);
 }
 
 void make_religion_group(std::string_view name, token_generator& gen, error_handler& err, generic_context& context) {

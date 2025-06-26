@@ -983,7 +983,7 @@ namespace parsers{
         }
     }
 
-    void register_cultures(state::layer &layer, std::string path, parsers::error_handler& errors) {
+    void load_cultures(state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "registration of cultures\n";
         if (!std::filesystem::exists(path + "/common/cultures.txt")) {
             std::cout << "no cultures found\n";
@@ -1005,6 +1005,57 @@ namespace parsers{
         };
 
         parsers::parse_culture_file(tk, errors, ctx);
+    }
+
+    void unload_cultures(state::layer &layer, std::string path) {
+        if (!layer.has_cultures) return;
+        std::filesystem::create_directory(path + "/common");
+        std::ofstream file(path + "/common/cultures.txt");
+        for (auto& group: layer.culture_groups) {
+            auto& def = layer.culture_group_defs[group];
+            file << group << " = {\n";
+            if (def.leader.size() > 0) {
+                file << "\tleader = " << def.leader << "\n";
+            }
+            if (def.unit.size() > 0) {
+                file << "\tunit = " << def.unit << "\n";
+            }
+            if (def.union_tag.size() > 0) {
+                file << "\tunion = " << def.union_tag << "\n";
+            }
+            if (!def.is_overseas) {
+                file << "\tis_overseas = no\n";
+            }
+            for (auto& culture : def.cultures) {
+                auto& culture_def = layer.culture_defs[culture];
+                file << "\t" << culture << " = {\n";
+
+                file << "\t\tcolor = { " << culture_def.r << " " << culture_def.g << " " << culture_def.b << " }\n";
+
+                file << "\t\tfirst_names = {";
+                for (int i = 0; i < culture_def.first_names.size(); i++) {
+                    if (i % 5 == 0) {
+                        file << "\n\t\t\t";
+                    }
+                    file << culture_def.first_names[i] << " ";
+                }
+                file << "\n";
+                file << "\t\t}\n";
+
+                file << "\t\tlast_names = {";
+                for (int i = 0; i < culture_def.last_names.size(); i++) {
+                    if (i % 5 == 0) {
+                        file << "\n\t\t\t";
+                    }
+                    file << culture_def.last_names[i] << " ";
+                }
+                file << "\n";
+                file << "\t\t}\n";
+
+                file << "\t}\n";
+            }
+            file << group << "}\n";
+        }
     }
 
     void register_religions(state::layer &layer, std::string path, parsers::error_handler& errors) {
@@ -1565,7 +1616,7 @@ border_cutoff = 1100.0
         parsers::error_handler errors("parsing_errors.txt");
 
         register_pop_types(layer, layer.path);
-        register_cultures(layer, layer.path, errors);
+        load_cultures(layer, layer.path, errors);
         register_religions(layer, layer.path, errors);
 
         load_province_defs(layer, layer.path);
@@ -1592,6 +1643,8 @@ border_cutoff = 1100.0
     void unload_data(state::layer& layer, std::string path, state::FLAG_EXPORT_OPTIONS flag_option, int amount_of_commodities) {
         std::cout << "Create directory: " << path << "\n";
         std::filesystem::create_directory(path);
+
+        unload_cultures(layer, path);
 
         unload_province_defs(layer, path);
         unload_default_dot_map(layer, path);

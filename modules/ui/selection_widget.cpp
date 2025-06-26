@@ -18,6 +18,7 @@
 
 #include "ui_enums.hpp"
 #include "pops_buffer_widget.hpp"
+#include "cultures-select.hpp"
 
 
 //we need only declarations here
@@ -1678,6 +1679,12 @@ namespace widgets {
             if (control.selected_commodity.size() != 0) {
                 if (ImGui::BeginTabItem("Commodity")) {
                     widgets::commodity_widget(map, control.selected_commodity);
+                    ImGui::EndTabItem();
+                }
+            }
+            if (control.selected_culture.size() != 0) {
+                if (ImGui::BeginTabItem("Culture")) {
+                    widgets::culture_select(map, control);
                     ImGui::EndTabItem();
                 }
             }

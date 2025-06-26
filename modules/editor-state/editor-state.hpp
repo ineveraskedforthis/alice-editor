@@ -53,6 +53,8 @@ struct control {
 
     std::vector<selected_pop> selected_pops{};
 
+    std::string selected_culture {};
+
     bool moving_the_map = false;
     glm::vec2 camera_shift {};
 

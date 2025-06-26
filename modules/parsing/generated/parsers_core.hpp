@@ -2,6 +2,7 @@
 #include <array>
 #include <cstdint>
 #include <string>
+#include <vector>
 #include "parsers.hpp"
 #include "../definitions.hpp"
 
@@ -11,6 +12,23 @@ namespace state {
 };
 
 namespace parsers {
+
+struct color_from_3i {
+	int index = 0;
+	std::array<uint8_t, 3> colors;
+	template<typename C>
+	void finish(C& context) {
+		if (index == 1) {
+			colors[1] = colors[0];
+			colors[2] = colors[0];
+		}
+	}
+	template<typename C>
+	void free_value(int32_t v, error_handler& err, int32_t line, C& context) {
+		colors[index] = (uint8_t)v;
+		index++;
+	}
+};
 
 struct generic_context{
 	state::layer& map;
@@ -33,18 +51,67 @@ struct religion_file {
 };
 struct culture_group_context {
 	state::layer& map;
-	std::string name;
+	game_definition::culture_group& culture_group;
 };
 struct religion_group_context {
 	state::layer& map;
 	std::string name;
 };
 
+struct culture_context {
+	state::layer& map;
+	game_definition::culture& culture;
+};
+
+struct group_of_strings {
+	std::vector<std::string> data;
+
+	template<typename C>
+	void finish(C&) {}
+
+	template<typename C>
+	void free_value(std::string_view value, error_handler& err, int32_t line, C& context) {
+		std::string actual_value {value};
+		data.push_back(actual_value);
+	}
+};
+
+struct culture {
+	void finish(culture_context&) {}
+	void color(color_from_3i value, error_handler& err, int32_t line, culture_context& context) {
+		context.culture.r = value.colors[0];
+		context.culture.g = value.colors[1];
+		context.culture.b = value.colors[2];
+	};
+	void first_names(group_of_strings value, error_handler& err, int32_t line, culture_context& context) {
+		for (auto& s: value.data) {
+			context.culture.first_names.push_back(s);
+		}
+	};
+	void last_names(group_of_strings value, error_handler& err, int32_t line, culture_context& context) {
+		for (auto& s: value.data) {
+			context.culture.last_names.push_back(s);
+		}
+	};
+};
+
 struct culture_group {
 	void finish(culture_group_context&) {}
-	void union_tag(association_type, std::string_view value, error_handler& err, int32_t line, culture_group_context& context) {};
-	void leader(association_type, std::string_view value, error_handler& err, int32_t line, culture_group_context& context) {};
-	void is_overseas(association_type, bool value, error_handler& err, int32_t line, culture_group_context& context) {};
+	void union_tag(association_type, std::string_view value, error_handler& err, int32_t line, culture_group_context& context) {
+		std::string actual_value {value};
+		context.culture_group.union_tag = actual_value;
+	};
+	void leader(association_type, std::string_view value, error_handler& err, int32_t line, culture_group_context& context) {
+		std::string actual_value {value};
+		context.culture_group.leader = actual_value;
+	};
+	void unit(association_type, std::string_view value, error_handler& err, int32_t line, culture_group_context& context) {
+		std::string actual_value {value};
+		context.culture_group.unit = actual_value;
+	};
+	void is_overseas(association_type, bool value, error_handler& err, int32_t line, culture_group_context& context) {
+		context.culture_group.is_overseas = value;
+	};
 };
 struct religion_group {
 	void finish(religion_group_context&) {}
@@ -142,23 +209,6 @@ struct goods_file {
 
 struct goods_group {
 	void finish(commodity_group_context&) {}
-};
-
-struct color_from_3i {
-	int index = 0;
-	std::array<uint8_t, 3> colors;
-	template<typename C>
-	void finish(C& context) {
-		if (index == 1) {
-			colors[1] = colors[0];
-			colors[2] = colors[0];
-		}
-	}
-	template<typename C>
-	void free_value(int32_t v, error_handler& err, int32_t line, C& context) {
-		colors[index] = (uint8_t)v;
-		index++;
-	}
 };
 
 struct good {

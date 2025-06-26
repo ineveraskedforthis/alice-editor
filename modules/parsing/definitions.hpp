@@ -154,6 +154,22 @@ namespace game_definition {
         ankerl::unordered_dense::map<std::string, std::string> issues{};
     };
 
+    struct culture {
+        std::string name{};
+        std::vector<std::string> first_names{};
+        std::vector<std::string> last_names{};
+        int r; int g; int b;
+    };
+
+    struct culture_group {
+        std::string name{};
+        std::string leader{};
+        std::string unit{};
+        std::string union_tag{};
+        std::vector<std::string> cultures{};
+        bool is_overseas = true;
+    };
+
     inline void define_nation_common(nation_common& n) {
         n.R = 0;
         n.G = 0;
