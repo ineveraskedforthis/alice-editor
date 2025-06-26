@@ -105,6 +105,14 @@ namespace game_definition {
         std::string loadtype{};
         std::string clicksound{};
 
+        int size_x = 0;
+        int size_y = 0;
+        bool has_size = false;
+
+        int border_size_x = 0;
+        int border_size_y = 0;
+        bool has_border_size = false;
+
         int noofframes=0;
 
         bool transparencecheck = false;

@@ -85,6 +85,14 @@ struct context_with_file_label{
 	std::string file;
 };
 
+struct pair_of_x_and_y {
+	bool exists = true;
+	int x;
+	int y;
+	template<typename C>
+	void finish(C& context) {}
+};
+
 struct pop_history_context {
 	state::layer& map;
 	game_definition::pops_history_file& file;
@@ -175,7 +183,20 @@ void make_religion_group(std::string_view name, token_generator& gen, error_hand
 void make_religion(std::string_view name, token_generator& gen, error_handler& err, religion_group_context& context);
 
 struct sprite {
-	void finish(gfx_sprite_context&) {}
+	pair_of_x_and_y size {false};
+	pair_of_x_and_y bordersize {false};
+	void finish(gfx_sprite_context& context) {
+		if (size.exists) {
+			context.sprite.size_x = size.x;
+			context.sprite.size_y = size.y;
+			context.sprite.has_size = true;
+		}
+		if (bordersize.exists) {
+			context.sprite.border_size_x = size.x;
+			context.sprite.border_size_y = size.y;
+			context.sprite.has_border_size = true;
+		}
+	}
 	void name(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
 	void effectfile(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
 	void clicksound(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);

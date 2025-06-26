@@ -1396,6 +1396,12 @@ border_cutoff = 1100.0
         if (item.allwaystransparent) {
             file << "\t\tallwaystransparent = yes\n";
         }
+        if (item.has_size) {
+            file << "\t\tsize = { x = " << item.size_x << " y = " << item.size_y <<  " }\n";
+        }
+        if (item.has_border_size) {
+            file << "\t\tborderSize = { x = " << item.border_size_x << " y = " << item.border_size_y <<  " }\n";
+        }
     }
 
     void unload_core_gfx(state::layer& layer, std::string path, int amount_of_commodities) {
@@ -1541,7 +1547,7 @@ border_cutoff = 1100.0
     }
 
     void load_resources_image(state::layer &layer, std::string path) {
-        std::cout << "loading resources images";
+        std::cout << "loading resources images\n";
         layer.resources_big.load(path + "/gfx/interface/resources_big.dds");
         layer.resources_medium.load(path + "/gfx/interface/resources.dds");
         layer.resources_small.load(path + "/gfx/interface/resources_small.dds");

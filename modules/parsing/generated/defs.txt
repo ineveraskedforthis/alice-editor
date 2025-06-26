@@ -4,19 +4,25 @@ issue
 	administrative value     bool                   member_fn
 	#any           extern    register_issue_option        discard
 
+pair_of_x_and_y
+	x						value		int			member
+	y						value		int			member
+
 sprite
 #gfx_sprite_context
-	name					value		text		member_fn
-	texturefile				value		text		member_fn
-	texturefile1			value		text		member_fn
-	texturefile2			value		text		member_fn
-	noofframes				value		int			member_fn
-	effectfile				value		text		member_fn
-	clicksound				value		text		member_fn
-	transparencecheck		value		bool		member_fn
-	allwaystransparent		value		bool		member_fn
-	norefcount 				value		bool		member_fn
-	loadtype				value		text		member_fn
+	name					value		text				member_fn
+	texturefile				value		text				member_fn
+	texturefile1			value		text				member_fn
+	texturefile2			value		text				member_fn
+	noofframes				value		int					member_fn
+	effectfile				value		text				member_fn
+	clicksound				value		text				member_fn
+	transparencecheck		value		bool				member_fn
+	allwaystransparent		value		bool				member_fn
+	norefcount 				value		bool				member_fn
+	loadtype				value		text				member_fn
+	bordersize				group		pair_of_x_and_y		member
+	size 					group		pair_of_x_and_y		member
 
 sprites_group
 #generic_context

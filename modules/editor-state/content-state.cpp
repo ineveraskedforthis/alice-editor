@@ -302,7 +302,7 @@ bool interface_dds_image::valid() {
 }
 
 bool interface_dds_image::load(std::string path) {
-    std::cout << "loading image:" << path;
+    std::cout << "loading image:" << path << "\n";
     auto image_exists = std::filesystem::exists(path);
     if (!image_exists) {
         return false;
