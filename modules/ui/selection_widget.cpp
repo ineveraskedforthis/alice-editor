@@ -562,7 +562,7 @@ namespace widgets {
             if (history == nullptr) {
                 ImGui::Text("Province without history");
                 if (ImGui::Button("Set up history")) {
-                    map.copy_province_history_to_current_layer(v2id);
+                    map.set_province_history(v2id);
                 }
                 return;
             }

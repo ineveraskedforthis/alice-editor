@@ -1141,7 +1141,7 @@ struct layers_stack {
     }
 
     void set_province_history(int v2id) {
-        data[current_layer_index].province_history = {};
+        data[current_layer_index].province_history[v2id] = {};
     }
 
     void copy_nation_history_to_current_layer(int tag) {
