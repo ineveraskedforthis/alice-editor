@@ -5,6 +5,8 @@
 #include "window-wrapper.hpp"
 #include "selection_widget.hpp"
 
+#include "object-creation-modal.hpp"
+
 #include "misc.hpp"
 #include <cstddef>
 #include <filesystem>

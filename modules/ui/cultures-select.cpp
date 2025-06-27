@@ -1,16 +1,25 @@
 #include "imgui.h"
 #include "misc/cpp/imgui_stdlib.h"
-#include "ui_enums.hpp"
 #include "cultures-explore.hpp"
 #include "../editor-state/editor-state.hpp"
-#include <algorithm>
-#include <cstddef>
 #include <string>
 #include <vector>
 #include "ui_flags.hpp"
 
 namespace widgets {
 void culture_select(state::layers_stack& layers, state::control& control) {
+
+
+    bool can_edit = layers.can_edit_cultures();
+
+    if (!can_edit) {
+        ImGui::Text("Can't edit cultures: the selected layer doesn't have culture files");
+        if (ImGui::Button("Copy cultures data to current layer"))
+            layers.copy_cultures_to_active_layer();
+
+        ImGui::BeginDisabled();
+    }
+
     ImGui::SeparatorText("Culture group");
     auto group_def = layers.get_culture_group_from_culture(control.selected_culture);
     ImGui::Text("%s", group_def->name.c_str());
@@ -36,8 +45,13 @@ void culture_select(state::layers_stack& layers, state::control& control) {
     }
     ImGui::PopItemWidth();
 
+    if (!can_edit) {
+        ImGui::EndDisabled();
+    }
+
     ImGui::SeparatorText("Cultural names (DISABLED)");
     ImGui::Text("Disabled until integration of a unicode conversions library");
+
 
     ImGui::BeginDisabled();
     ImGui::Text("First names:");
@@ -47,7 +61,7 @@ void culture_select(state::layers_stack& layers, state::control& control) {
         ImGui::PopID();
     }
 
-    if (ImGui::Button("Add")) {
+    if (ImGui::Button("Add first name")) {
         culture_def->first_names.push_back({});
     }
 
@@ -57,7 +71,7 @@ void culture_select(state::layers_stack& layers, state::control& control) {
         ImGui::InputText("##last_name", &culture_def->last_names[i]);
         ImGui::PopID();
     }
-    if (ImGui::Button("Add")) {
+    if (ImGui::Button("Add second name")) {
         culture_def->last_names.push_back({});
     }
     ImGui::EndDisabled();

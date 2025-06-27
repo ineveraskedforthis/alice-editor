@@ -606,6 +606,10 @@ struct layers_stack {
         if (current_layer_index == -1) return false;
         return data[current_layer_index].has_region_txt;
     }
+    bool can_edit_cultures() {
+        if (current_layer_index == -1) return false;
+        return data[current_layer_index].has_cultures;
+    }
 
     void copy_state_data_to_active_layer() {
         if (current_layer_index == -1) return;
@@ -848,6 +852,22 @@ struct layers_stack {
             }
         }
         return cultures;
+    }
+
+    std::vector<std::string> retrieve_culture_groups() {
+        std::vector<std::string> result;
+        layer* last = nullptr;
+        for (auto& l: data) {
+            if(l.visible && l.has_cultures) {
+                last = &l;
+            }
+        }
+        if (last!=nullptr) {
+            for (auto c : last->culture_groups) {
+                result.push_back(c);
+            }
+        }
+        return result;
     }
 
     std::vector<std::string> retrieve_religions() {
@@ -1342,6 +1362,43 @@ struct layers_stack {
         } else {
             return false;
         }
+    }
+
+    void copy_cultures_to_active_layer() {
+        auto& active_layer = data[current_layer_index];
+        if (active_layer.has_cultures) {
+            return;
+        }
+
+        layer* source = nullptr;
+        for (auto& l: data) {
+            if (l.visible && l.has_nations_list) {
+                source = &l;
+            }
+        }
+
+        active_layer.culture_defs = source->culture_defs;
+        active_layer.culture_group_defs = source->culture_group_defs;
+        active_layer.culture_to_group = source->culture_to_group;
+        active_layer.cultures = source->cultures;
+        active_layer.culture_groups = source->culture_groups;
+        active_layer.has_cultures = true;
+    }
+
+    void new_culture(std::string name, std::string culture_group, int r, int g, int b) {
+        auto& active_layer = data[current_layer_index];
+        copy_cultures_to_active_layer();
+
+        active_layer.cultures.push_back(name);
+        active_layer.culture_to_group[name] = culture_group;
+        active_layer.culture_group_defs[culture_group].cultures.push_back(name);
+
+        game_definition::culture result {};
+        result.name = name;
+        result.r = r;
+        result.g = g;
+        result.b = b;
+        active_layer.culture_defs[name] = result;
     }
 
     void new_nation(int32_t source_tag, int32_t tag, std::string filename) {

@@ -7,6 +7,7 @@
 #include <string>
 #include <vector>
 #include "ui_flags.hpp"
+#include "object-creation-modal.hpp"
 
 namespace widgets {
 void define_culture_table_columns() {
@@ -95,15 +96,18 @@ void display_culture_row(
 void cultures_list(state::layers_stack& layers, state::control& control) {
     static auto cultures = layers.retrieve_cultures();
     static std::vector<size_t> indices {};
-
     bool update_required = false;
-
     if (indices.size() != cultures.size()){
         update_required = true;
     }
     if (ImGui::Button("Update")) {
         update_required = true;
     }
+    ImGui::SameLine();
+    if (ImGui::Button("Create new culture"))
+        ImGui::OpenPopup("Create new culture");
+
+    modal::create_culture(layers, update_required);
 
     if (update_required) {
         cultures.clear();

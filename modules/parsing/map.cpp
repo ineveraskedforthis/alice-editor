@@ -1054,7 +1054,7 @@ namespace parsers{
 
                 file << "\t}\n";
             }
-            file << group << "}\n";
+            file << "}\n";
         }
     }
 
