@@ -1647,7 +1647,7 @@ border_cutoff = 1100.0
                     file << "\t\tuses_potentials = yes\n";
                 }
 
-                file << "\t\tcolor = {" << (int)commodity.r << " " << (int)commodity.g << " " << (int)commodity.b << "}\n";
+                file << "\t\tcolor = { " << (int)commodity.r << " " << (int)commodity.g << " " << (int)commodity.b << " }\n";
 
                 file << "\t}\n";
             }
