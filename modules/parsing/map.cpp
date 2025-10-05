@@ -444,22 +444,30 @@ namespace parsers{
         std::ofstream file(path + "/map/continent.txt");
 
         for (auto& [key, modifiers] : layer.continent_modifiers) {
-            file << key << "{\n";
+            file << key << " = {\n";
             int counter = 0;
+            bool last_is_line_break;
+            file << "\tprovinces = {\n";
             for (auto& [v2id, continent] : layer.v2id_to_continent) {
                 if (continent == key) {
                     if (counter == 15) {
                         counter = 0;
                         file << v2id << "\n";
+                        last_is_line_break = true;
                     } else {
                         if (counter == 0) {
-                            file << "\t";
+                            file << "\t\t";
                         }
                         counter++;
                         file << v2id << " ";
+                        last_is_line_break = false;
                     }
                 }
             }
+            if (!last_is_line_break)
+                file << "\n\t}\n";
+            else
+                file << "\t}\n";
             for (auto mod : modifiers) {
                 file << "\t" << mod.name << " = " << mod.value << "\n";
             }
