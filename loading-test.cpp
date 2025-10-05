@@ -25,7 +25,7 @@ int main(int argc, char* argv[]) {
         state::control control_state {};
         assets::storage storage {};
         state::layers_stack layers {};
-        layers.load_owner_texture_to_gpu();
+        layers.load_province_colors_texture_to_gpu();
         state::editor editor {};
         {
             state::layer l {};
@@ -36,8 +36,7 @@ int main(int argc, char* argv[]) {
             layers.data.push_back(l);
             layers.current_layer_index = 0;
             layers.generate_indices();
-            layers.update_owner_texture();
-            layers.commit_owner_texture_to_gpu();
+            layers.request_map_update = true;
             layers.indices.load_province_texture_to_gpu();
         }
         {
@@ -49,8 +48,7 @@ int main(int argc, char* argv[]) {
             layers.data.push_back(l);
             layers.current_layer_index = 1;
             layers.generate_indices();
-            layers.update_owner_texture();
-            layers.commit_owner_texture_to_gpu();
+            layers.request_map_update = true;
             layers.indices.load_province_texture_to_gpu();
         }
     }

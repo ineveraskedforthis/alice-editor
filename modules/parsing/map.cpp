@@ -410,6 +410,63 @@ namespace parsers{
         }
     }
 
+    void load_continents(state::layer &layer, std::string path, parsers::error_handler& errors) {
+        std::cout << "reading continent.txt\n";
+
+        if(!std::filesystem::exists(path + "/map/continent.txt")){
+            std::cout << "file was not found, skip\n";
+            return;
+        }
+
+        layer.has_continent_txt = true;
+
+        std::ifstream file(path + "/map/continent.txt");
+        parsers::generic_context ctx_generic {
+            layer
+        };
+
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        auto str = buffer.str();
+        parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+        parsers::parse_continent_file(tk, errors, ctx_generic);
+    }
+
+    void unload_continents(state::layer &layer, std::string path) {
+        if (!layer.has_continent_txt) {
+            return;
+        }
+
+        std::cout << "writing continent.txt\n";
+
+        std::filesystem::create_directory(path + "/map/");
+
+        std::ofstream file(path + "/map/continent.txt");
+
+        for (auto& [key, modifiers] : layer.continent_modifiers) {
+            file << key << "{\n";
+            int counter = 0;
+            for (auto& [v2id, continent] : layer.v2id_to_continent) {
+                if (continent == key) {
+                    if (counter == 15) {
+                        counter = 0;
+                        file << v2id << "\n";
+                    } else {
+                        if (counter == 0) {
+                            file << "\t";
+                        }
+                        counter++;
+                        file << v2id << " ";
+                    }
+                }
+            }
+            for (auto mod : modifiers) {
+                file << "\t" << mod.name << " = " << mod.value << "\n";
+            }
+            file << "}\n";
+        }
+    }
+
     void load_default_dot_map(state::layer &layer, std::string path) {
         std::cout << "reading /map/default.map\n";
         if(!std::filesystem::exists(path + "/map/default.map")){
@@ -1031,6 +1088,8 @@ namespace parsers{
                 file << "\t" << culture << " = {\n";
 
                 file << "\t\tcolor = { " << culture_def.r << " " << culture_def.g << " " << culture_def.b << " }\n";
+                file << "\t\tradicalism = " << culture_def.radicalism << "\n";
+                file << "\t\tprimary = " << culture_def.primary << "\n";
 
                 file << "\t\tfirst_names = {";
                 for (int i = 0; i < culture_def.first_names.size(); i++) {
@@ -1588,7 +1647,7 @@ border_cutoff = 1100.0
                     file << "\t\tuses_potentials = yes\n";
                 }
 
-                file << "\t\tcolor = {" << (int)commodity.r << (int)commodity.g << (int)commodity.b << "}\n";
+                file << "\t\tcolor = {" << (int)commodity.r << " " << (int)commodity.g << " " << (int)commodity.b << "}\n";
 
                 file << "\t}\n";
             }
@@ -1615,10 +1674,10 @@ border_cutoff = 1100.0
     void load_layer(state::layers_stack& state, state::layer &layer) {
         parsers::error_handler errors("parsing_errors.txt");
 
+        load_continents(layer, layer.path, errors);
         register_pop_types(layer, layer.path);
         load_cultures(layer, layer.path, errors);
         register_religions(layer, layer.path, errors);
-
         load_province_defs(layer, layer.path);
         load_default_dot_map(layer, layer.path);
         load_provinces_map(layer, layer.path);
@@ -1645,7 +1704,7 @@ border_cutoff = 1100.0
         std::filesystem::create_directory(path);
 
         unload_cultures(layer, path);
-
+        unload_continents(layer, path);
         unload_province_defs(layer, path);
         unload_default_dot_map(layer, path);
         unload_province_map(layer, path);

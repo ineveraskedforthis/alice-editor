@@ -6,6 +6,7 @@ in vec2 texcoord;
 flat in vec2 chunk;
 
 uniform float zoom;
+uniform float have_color_border;
 uniform float pixel_x;
 uniform float pixel_y;
 uniform vec2 hovered_province;
@@ -86,7 +87,7 @@ void main()
     vec2 owner_right = texture(owner_data, prov_right + half_of_province_pixel).xy;
 
 
-    if (distance(prov_top, prov_local)> 0.00001f) {
+    if (distance(prov_top, prov_local) > 0.00001f) {
         border_top = true;
         if (distance(state_top, state_local)> 0.00001f) {
             is_state_border = true;
@@ -140,7 +141,7 @@ void main()
         is_border = false;
     }
 
-    if (is_border) {
+    if (is_border && have_color_border > 0.5f) {
         out_color = border_color;
         return;
     }
@@ -170,12 +171,12 @@ void main()
 
     float is_sea = texture(is_sea_texture, prov_local + half_of_province_pixel).r;
 
-    vec3 owner = (texture(owner_data, prov_local + half_of_province_pixel).rgb + 1.f) * 0.5f;
+    vec3 owner = (texture(owner_data, prov_local + half_of_province_pixel).rgb);
 
-    vec3 neutral_vector = vec3(1.f, 1.f, 1.f);
-    neutral_vector /= length(neutral_vector);
-    vec3 chroma = owner - dot(owner, neutral_vector) * neutral_vector;
-    owner += chroma * 0.6f / (length(chroma) + 0.1f);
+    // vec3 neutral_vector = vec3(1.f, 1.f, 1.f);
+    // neutral_vector /= length(neutral_vector);
+    // vec3 chroma = owner - dot(owner, neutral_vector) * neutral_vector;
+    // owner -= chroma * 0.6f / (length(chroma) + 0.1f);
 
     vec4 sea_color = vec4(owner, 1.f);
     if (is_sea > 0.8f) {

@@ -103,6 +103,75 @@ namespace widgets {
             ImGui::EndCombo();
         }
 
+        std::string mapmode_preview = "Political";
+        if (control.map_mode == state::MAP_MODE::CONTINENT) {
+            mapmode_preview = "Continent";
+        } else if (control.map_mode == state::MAP_MODE::POP_DENSITY) {
+            mapmode_preview = "Pop. density";
+        } else if (control.map_mode == state::MAP_MODE::CULTURE) {
+            mapmode_preview = "Culture";
+        }
+
+
+        if (ImGui::BeginCombo("Map mode", mapmode_preview.c_str())) {
+            {
+                const bool is_selected = (control.map_mode == state::MAP_MODE::OWNER);
+                if (ImGui::Selectable("Political", is_selected)) {
+                    control.map_mode = state::MAP_MODE::OWNER;
+                    layers.request_map_update = true;
+                }
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            {
+                const bool is_selected = (control.map_mode == state::MAP_MODE::CONTINENT);
+                if (ImGui::Selectable("Continent", is_selected)) {
+                    control.map_mode = state::MAP_MODE::CONTINENT;
+                    layers.request_map_update = true;
+                }
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            {
+                const bool is_selected = (control.map_mode == state::MAP_MODE::POP_DENSITY);
+                if (ImGui::Selectable("Pop density", is_selected)) {
+                    control.map_mode = state::MAP_MODE::POP_DENSITY;
+                    layers.request_map_update = true;
+                }
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            {
+                const bool is_selected = (control.map_mode == state::MAP_MODE::CULTURE);
+                if (ImGui::Selectable("Culture", is_selected)) {
+                    control.map_mode = state::MAP_MODE::CULTURE;
+                    layers.request_map_update = true;
+                }
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            ImGui::EndCombo();
+        }
+
+        if (
+            control.map_mode == state::MAP_MODE::CULTURE
+            || control.map_mode == state::MAP_MODE::POP_DENSITY
+        ) {
+            if (ImGui::BeginCombo("Date", std::to_string(control.map_date / 31 / 12).c_str())) {
+                auto dates = layers.get_available_dates();
+                for (auto date : dates) {
+                    const bool is_selected = (control.map_date == date);
+                    if (ImGui::Selectable(std::to_string(date / 31 / 12).c_str(), is_selected)) {
+                        control.map_date = date;
+                        layers.request_map_update = true;
+                    }
+                    if (is_selected)
+                        ImGui::SetItemDefaultFocus();
+                }
+                ImGui::EndCombo();
+            }
+        }
+
         ImGui::Text("Layers:");
 
         for (int i = 0; i < layers.data.size(); i++) {
@@ -120,8 +189,7 @@ namespace widgets {
                         layers.data[i].visible = false;
                     }
                     layers.current_layer_index = i - 1;
-                    layers.update_owner_texture();
-                    layers.commit_owner_texture_to_gpu();
+                    layers.request_map_update = true;
                     layers.generate_indices();
                     layers.indices.commit_province_texture_changes_to_gpu();
                 } else {
@@ -129,8 +197,7 @@ namespace widgets {
                         layers.data[i].visible = true;
                     }
                     layers.current_layer_index = i;
-                    layers.update_owner_texture();
-                    layers.commit_owner_texture_to_gpu();
+                    layers.request_map_update = true;
                     layers.generate_indices();
                     layers.indices.commit_province_texture_changes_to_gpu();
                 }
@@ -568,6 +635,7 @@ namespace widgets {
         float zoom,
         glm::vec3 shift
     ) {
+
         int status_bar_height = 25;
 
         {
@@ -717,9 +785,23 @@ namespace widgets {
         glBindTexture(GL_TEXTURE_2D, state_texture);
         glUniform1i(uniform_locations[SHADER_UNIFORMS::STATES_DATA], 2);
 
+        if (
+            control.map_mode == state::MAP_MODE::POP_DENSITY
+            || control.map_mode == state::MAP_MODE::CULTURE
+        ) {
+            glUniform1f(uniform_locations[SHADER_UNIFORMS::HAVE_BORDERS], 0.f);
+        } else {
+            glUniform1f(uniform_locations[SHADER_UNIFORMS::HAVE_BORDERS], 1.f);
+        }
+
+        if (layers.request_map_update) {
+            layers.update_province_colors(control.map_mode, control.map_date, control.selected_culture);
+            layers.commit_province_colors_texture_to_gpu();
+        }
+
         glActiveTexture(GL_TEXTURE3);
         GLuint owners_texture;
-        layers.get_owners_texture(owners_texture);
+        layers.get_province_colors_texture(owners_texture);
         glBindTexture(GL_TEXTURE_2D, owners_texture);
         glUniform1i(uniform_locations[SHADER_UNIFORMS::OWNER_DATA], 3);
 

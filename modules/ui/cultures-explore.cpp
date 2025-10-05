@@ -84,6 +84,7 @@ void display_culture_row(
     ImGui::TableNextColumn();
     if (ImGui::Button(culture.c_str(), ImVec2(190, 0))) {
         control.selected_culture = culture;
+        layers.request_map_update = true;
     }
 
     ImGui::TableNextColumn();

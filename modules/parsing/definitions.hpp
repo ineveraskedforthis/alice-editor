@@ -8,6 +8,11 @@
 
 namespace game_definition {
 
+    struct modifier {
+        std::string name;
+        float value;
+    };
+
     struct issue {
         std::string name;
         std::vector<std::string> options{};
@@ -158,6 +163,10 @@ namespace game_definition {
         std::string name{};
         std::vector<std::string> first_names{};
         std::vector<std::string> last_names{};
+
+        std::string primary{};
+        int radicalism;
+
         int r; int g; int b;
     };
 

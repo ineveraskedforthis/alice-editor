@@ -93,6 +93,13 @@ struct culture {
 			context.culture.last_names.push_back(s);
 		}
 	};
+	void primary(association_type, std::string_view value, error_handler& err, int32_t line, culture_context& context) {
+		std::string actual_value {value};
+		context.culture.primary = actual_value;
+	};
+	void radicalism(association_type, int value, error_handler& err, int32_t line, culture_context& context) {
+		context.culture.radicalism = value;
+	};
 };
 
 struct culture_group {
@@ -159,6 +166,39 @@ struct pair_of_x_and_y {
 	template<typename C>
 	void finish(C& context) {}
 };
+
+
+struct continent_provinces {
+	std::vector<int> provinces_v2ids;
+
+	template<typename C>
+	void free_value(int32_t v, error_handler& err, int32_t line, C& context) {
+		provinces_v2ids.push_back(v);
+	}
+	template<typename C>
+	void finish(C&) { };
+};
+
+
+struct continent_definition {
+	continent_provinces provinces;
+	std::vector<game_definition::modifier> modifiers;
+
+	template<typename C>
+	void any_value(std::string_view name, association_type, float value, error_handler& err, int32_t line, C& context) {
+		std::string name_value {name};
+		modifiers.push_back({name_value, value});
+	};
+
+	template<typename C>
+	void finish(C&) { };
+};
+
+struct continent_file {
+	void finish(generic_context&) { };
+};
+
+void make_continent_definition(std::string_view name, token_generator& gen, error_handler& err, generic_context& context);
 
 struct pop_history_context {
 	state::layer& map;

@@ -27,7 +27,6 @@
 #include "misc/cpp/imgui_stdlib.h"
 #include "backends/imgui_impl_sdl2.h"
 #include "backends/imgui_impl_opengl3.h"
-#include "modules/colormaps/viridis.hpp"
 #include "modules/read_shader.hpp"
 #include "modules/ui/editor.hpp"
 #include "modules/ui/misc.hpp"
@@ -223,7 +222,7 @@ int main(int argc, char* argv[]) {
         state::control control_state {};
         assets::storage storage {};
         state::layers_stack layers {};
-        layers.load_owner_texture_to_gpu();
+        layers.load_province_colors_texture_to_gpu();
         state::editor editor {};
 
         float data_buffer[2000];
@@ -232,13 +231,6 @@ int main(int argc, char* argv[]) {
         std::string path_1;
         std::string path_2;
         std::string path_3;
-
-        for (auto i = 0; i <= 256 * 256 - 1; i++) {
-            auto id = uint8_t(i % 256);
-            province_data[i * 3 + 0] = colormaps::viridis[id][0] * 255;
-            province_data[i * 3 + 1] = colormaps::viridis[id][1] * 255;
-            province_data[i * 3 + 2] = colormaps::viridis[id][2] * 255;
-        }
 
         std::cout << "loading shaders2\n";
         auto line_vertex_shader = create_shader(
@@ -327,6 +319,8 @@ int main(int argc, char* argv[]) {
         TO_LOCATION[SHADER_UNIFORMS::STATES_DATA] = glGetUniformLocation(editor.map_program, "state_data");
         TO_LOCATION[SHADER_UNIFORMS::OWNER_DATA] = glGetUniformLocation(editor.map_program, "owner_data");
         TO_LOCATION[SHADER_UNIFORMS::RIVERS] = glGetUniformLocation(editor.map_program, "rivers");
+
+        TO_LOCATION[SHADER_UNIFORMS::HAVE_BORDERS] = glGetUniformLocation(editor.map_program, "have_color_border");
 
         TO_LOCATION[SHADER_UNIFORMS::MODEL] = glGetUniformLocation(editor.map_program, "model");
         TO_LOCATION[SHADER_UNIFORMS::VIEW] = glGetUniformLocation(editor.map_program, "view");
@@ -454,29 +448,9 @@ int main(int argc, char* argv[]) {
             ImGui_ImplSDL2_NewFrame();
             ImGui::NewFrame();
 
+
             ImGui::PushFont(main_font);
-            ImGui::PushStyleColor(ImGuiCol_Text, IM_COL32(0, 0, 0, 255));
-            ImGui::PushStyleColor(ImGuiCol_WindowBg, IM_COL32(200, 200, 200, 230));
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(220, 220, 220, 200));
-            ImGui::PushStyleColor(ImGuiCol_ChildBg, IM_COL32(240, 240, 240, 255));
-            ImGui::PushStyleColor(ImGuiCol_FrameBg, IM_COL32(250, 250, 250, 255));
-            ImGui::PushStyleColor(ImGuiCol_MenuBarBg, IM_COL32(250, 250, 250, 255));
-            ImGui::PushStyleColor(ImGuiCol_TitleBg, IM_COL32(200, 200, 200, 255));
-            ImGui::PushStyleColor(ImGuiCol_TitleBgActive, IM_COL32(250, 250, 250, 255));
-            ImGui::PushStyleColor(ImGuiCol_TitleBgCollapsed, IM_COL32(150, 150, 150, 255));
-            ImGui::PushStyleColor(ImGuiCol_TableHeaderBg, IM_COL32(220, 220, 220, 255));
-            ImGui::PushStyleColor(ImGuiCol_TableRowBg, IM_COL32(240, 240, 240, 255));
-            ImGui::PushStyleColor(ImGuiCol_PopupBg, IM_COL32(240, 240, 240, 255));
-            ImGui::PushStyleColor(ImGuiCol_ScrollbarGrab, IM_COL32(70, 70, 70, 255));
-            ImGui::PushStyleColor(ImGuiCol_ScrollbarGrabActive, IM_COL32(0, 0, 0, 255));
-            ImGui::PushStyleColor(ImGuiCol_Tab, IM_COL32(190, 190, 190, 255));
-            ImGui::PushStyleColor(ImGuiCol_TabActive, IM_COL32(255, 255, 255, 255));
-            ImGui::PushStyleColor(ImGuiCol_TabSelected, IM_COL32(240, 240, 240, 255));
-            ImGui::PushStyleColor(ImGuiCol_TabSelectedOverline, IM_COL32(0, 0, 0, 255));
-            ImGui::PushStyleColor(ImGuiCol_TabHovered, IM_COL32(220, 220, 220, 255));
-            ImGui::PushStyleColor(ImGuiCol_TabDimmed, IM_COL32(190, 190, 190, 255));
-            ImGui::PushStyleColor(ImGuiCol_TabDimmedSelected, IM_COL32(200, 200, 200, 255));
-            ImGui::PushStyleColor(ImGuiCol_TabDimmedSelectedOverline, IM_COL32(0, 0, 0, 255));
+            ImGui::StyleColorsLight();
 
             // ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0.f, 0.f));
 
@@ -531,8 +505,7 @@ int main(int argc, char* argv[]) {
                         layers.data.push_back(l);
                         layers.current_layer_index = 0;
                         layers.generate_indices();
-                        layers.update_owner_texture();
-                        layers.commit_owner_texture_to_gpu();
+                        layers.request_map_update = true;
                         layers.indices.load_province_texture_to_gpu();
                     }
 
@@ -545,10 +518,12 @@ int main(int argc, char* argv[]) {
                         layers.data.push_back(l);
                         layers.current_layer_index = 1;
                         layers.generate_indices();
-                        layers.update_owner_texture();
-                        layers.commit_owner_texture_to_gpu();
+                        layers.request_map_update = true;
                         layers.indices.load_province_texture_to_gpu();
                     }
+
+                    auto dates = layers.get_available_dates();
+                    control_state.map_date = dates[0];
 
                     auto t_end = std::chrono::high_resolution_clock::now();
 
@@ -563,10 +538,8 @@ int main(int argc, char* argv[]) {
                 ImGui::End();
             }
 
-            // ImGui::PopStyleVar();
 
             ImGui::PopFont();
-            ImGui::PopStyleColor(22);
 
             ImGui::Render();
             ImGui_ImplOpenGL3_RenderDrawData(ImGui::GetDrawData());

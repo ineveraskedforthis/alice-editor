@@ -7,6 +7,8 @@
 #include <optional>
 #include <vector>
 
+#include "../colormaps/viridis.hpp"
+
 #include "../glm/fwd.hpp"
 #define GLM_ENABLE_EXPERIMENTAL
 #include "../glm/ext/matrix_transform.hpp"
@@ -23,6 +25,10 @@
 #undef min
 
 namespace state {
+
+enum class MAP_MODE {
+    OWNER, CONTINENT, CULTURE, POP_DENSITY
+};
 
 glm::vec2 screen_to_texture(
     int x_in,
@@ -235,11 +241,19 @@ struct interface_dds_image {
     void expand_image_right(int amount);
 };
 
+struct protected_string {
+    bool can_edit;
+    std::string value;
+};
+
 // represent specific mod folder which overwrites previous definitions
 struct layer {
     std::string path = "./base-game";
 
     std::vector<std::string> poptypes{};
+
+    ankerl::unordered_dense::map<uint32_t, std::string> v2id_to_continent {};
+    ankerl::unordered_dense::map<std::string, std::vector<game_definition::modifier>> continent_modifiers {};
 
     //is this layer visible
     bool visible = true;
@@ -341,6 +355,8 @@ struct layer {
 struct layers_stack {
     std::vector<layer> data{};
 
+    bool request_map_update = false;
+
     // this data is based on history files which could be spread across several layers,
     // so we have to store it outside of layers
 
@@ -401,21 +417,119 @@ struct layers_stack {
         }
     }
 
-    GLuint owner_texture;
-    uint8_t province_owner[256 * 256 * 3];
-    void update_owner_texture(){
-        for(int i = 0; i < 256 * 256; i++) {
-            auto history = get_province_history(i);
-            if (history != nullptr) {
-                province_owner[i * 3 + 0] = history->owner_tag[0];
-                province_owner[i * 3 + 1] = history->owner_tag[1];
-                province_owner[i * 3 + 2] = history->owner_tag[2];
+    GLuint province_colors_texture;
+    uint8_t province_colors[256 * 256 * 3];
+    void update_province_colors(MAP_MODE mode, int32_t date, std::string culture){
+        request_map_update = false;
+        if (mode == MAP_MODE::OWNER) {
+            for(int i = 0; i < 256 * 256; i++) {
+                auto history = get_province_history(i);
+                if (history != nullptr) {
+                    if (history->owner_tag.length() == 3) {
+                        auto nation_int = game_definition::tag_to_int(
+                            {
+                                history->owner_tag[0],
+                                history->owner_tag[1],
+                                history->owner_tag[2],
+                            }
+                        );
+                        auto nation_common = get_nation_common(nation_int);
+                        if (nation_common) {
+                            province_colors[i * 3 + 0] = nation_common->R * 0.6f;
+                            province_colors[i * 3 + 1] = nation_common->G * 0.6f;
+                            province_colors[i * 3 + 2] = nation_common->B * 0.6f;
+                        }
+                    } else {
+                        province_colors[i * 3 + 0] = 0;
+                        province_colors[i * 3 + 1] = 0;
+                        province_colors[i * 3 + 2] = 0;
+                    }
+                }
+            }
+        } else if (mode == MAP_MODE::CONTINENT) {
+            for(int i = 0; i < 256 * 256; i++) {
+                auto history = get_continent(i);
+                province_colors[i * 3 + 0] = history.value[0];
+                province_colors[i * 3 + 1] = history.value[1];
+                province_colors[i * 3 + 2] = history.value.back();
+            }
+        } else if (mode == MAP_MODE::POP_DENSITY) {
+            float max = 0.f;
+            for(int i = 0; i < 256 * 256; i++) {
+                auto history = get_province_history(i);
+                if (history == nullptr) continue;
+                auto pops = get_pops(i, date);
+                if (pops && !sample_province_is_sea(i)) {
+                    float total = 0.f;
+                    for (auto& pop : *pops) {
+                        total += pop.size;
+                    }
+                    if (indices.v2id_to_size[i] > 0) {
+                        float density = (float)total / (float)indices.v2id_to_size[i];
+                        if (density > max) {
+                            max = density;
+                        }
+                    }
+                }
+            }
+
+            for(int i = 0; i < 256 * 256; i++) {
+                auto history = get_province_history(i);
+                if (history == nullptr) continue;
+                auto pops = get_pops(i, date);
+                if (pops && !sample_province_is_sea(i)) {
+                    float total = 0.f;
+                    for (auto& pop : *pops) {
+                        total += pop.size;
+                    }
+                    if (indices.v2id_to_size[i] > 0) {
+                        float density = (float)total / (float)indices.v2id_to_size[i];
+                        unsigned int index = std::min((unsigned int)255, (unsigned int)(density / max * 255.f));
+                        province_colors[i * 3 + 0] = colormaps::viridis[index][0] * 255;
+                        province_colors[i * 3 + 1] = colormaps::viridis[index][1] * 255;
+                        province_colors[i * 3 + 2] = colormaps::viridis[index][2] * 255;
+                    }
+                }
+            }
+        } else if (mode == MAP_MODE::CULTURE) {
+            float max = 0.f;
+            for(int i = 0; i < 256 * 256; i++) {
+                auto history = get_province_history(i);
+                if (history == nullptr) continue;
+                auto pops = get_pops(i, date);
+                if (pops && !sample_province_is_sea(i)) {
+                    float total = 0.f;
+                    for (auto& pop : *pops) {
+                        if (pop.culture == culture)
+                            total += pop.size;
+                    }
+                    if (total > max) {
+                        max = total;
+                    }
+                }
+            }
+
+            for(int i = 0; i < 256 * 256; i++) {
+                auto history = get_province_history(i);
+                if (history == nullptr) continue;
+                auto pops = get_pops(i, date);
+                if (pops && !sample_province_is_sea(i)) {
+                    float total = 0.f;
+                    for (auto& pop : *pops) {
+                        if (pop.culture == culture)
+                            total += pop.size;
+                    }
+                    unsigned int index = std::min((unsigned int)255, (unsigned int)(total / max * 255.f));
+                    province_colors[i * 3 + 0] = colormaps::viridis[index][0] * 255;
+                    province_colors[i * 3 + 1] = colormaps::viridis[index][1] * 255;
+                    province_colors[i * 3 + 2] = colormaps::viridis[index][2] * 255;
+                }
             }
         }
     }
-    void inline load_owner_texture_to_gpu() {
-        glGenTextures(1, &owner_texture);
-        glBindTexture(GL_TEXTURE_2D, owner_texture);
+    void inline load_province_colors_texture_to_gpu() {
+        glGenTextures(1, &province_colors_texture);
+        glBindTexture(GL_TEXTURE_2D, province_colors_texture);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MIN_FILTER, GL_NEAREST);
         glTexParameteri(GL_TEXTURE_2D, GL_TEXTURE_MAG_FILTER, GL_NEAREST);
         glTexImage2D(
@@ -427,12 +541,12 @@ struct layers_stack {
             0,
             GL_RGB,
             GL_UNSIGNED_BYTE,
-            province_owner
+            province_colors
         );
         check_gl_error("State texture update");
     }
-    void inline commit_owner_texture_to_gpu() {
-        glBindTexture(GL_TEXTURE_2D, owner_texture);
+    void inline commit_province_colors_texture_to_gpu() {
+        glBindTexture(GL_TEXTURE_2D, province_colors_texture);
         glTexImage2D(
             GL_TEXTURE_2D,
             0,
@@ -442,7 +556,7 @@ struct layers_stack {
             0,
             GL_RGB,
             GL_UNSIGNED_BYTE,
-            province_owner
+            province_colors
         );
     }
 
@@ -707,13 +821,13 @@ struct layers_stack {
         return data[current_layer_index].filename_to_nation_common.contains(def->filename);
     }
 
-    game_definition::province_history* get_province_history(int province_index) {
+    game_definition::province_history* get_province_history(int v2id) {
         // get latest history
         game_definition::province_history* result = nullptr;
 
         for (auto& l: data) {
-            if(l.visible && l.province_history.contains(province_index)) {
-                result = &l.province_history[province_index];
+            if(l.visible && l.province_history.contains(v2id)) {
+                result = &l.province_history[v2id];
             }
         }
 
@@ -1321,19 +1435,86 @@ struct layers_stack {
             return;
         }
         data[current_layer_index].province_history[province].owner_tag = owner_tag;
-        province_owner[3 * province + 0] = owner_tag[0];
-        province_owner[3 * province + 1] = owner_tag[1];
-        province_owner[3 * province + 2] = owner_tag[2];
+
+        request_map_update = true;
     }
 
     int32_t get_owner_int(int v2id) {
-        return game_definition::tag_to_int(
-            {
-                (char)province_owner[3 * v2id + 0],
-                (char)province_owner[3 * v2id + 1],
-                (char)province_owner[3 * v2id + 2]
+        auto history = get_province_history(v2id);
+        if (history) {
+            return game_definition::tag_to_int(
+                {
+                    history->owner_tag[0],
+                    history->owner_tag[1],
+                    history->owner_tag[2]
+                }
+            );
+        } else {
+            return 0;
+        }
+    }
+
+    protected_string get_continent(int v2id) {
+        auto& active_layer = data[current_layer_index];
+
+        if (active_layer.has_continent_txt) {
+            return {
+                true,
+                active_layer.v2id_to_continent[v2id]
+            };
+        }
+
+        layer* source = nullptr;
+        for (auto& l: data) {
+            if (l.visible && l.has_continent_txt) {
+                source = &l;
             }
-        );
+        }
+
+        return {
+            false,
+            source->v2id_to_continent[v2id]
+        };
+    }
+
+    void set_continent(int v2id, std::string continent) {
+        auto& active_layer = data[current_layer_index];
+        if (active_layer.has_continent_txt) {
+            active_layer.v2id_to_continent[v2id] = continent;
+        }
+    }
+
+    void copy_continents_to_active_layer() {
+        auto& active_layer = data[current_layer_index];
+        if (active_layer.has_continent_txt) {
+            return;
+        }
+
+        layer* source = nullptr;
+        for (auto& l: data) {
+            if (l.visible && l.has_continent_txt) {
+                source = &l;
+            }
+        }
+
+        active_layer.continent_modifiers = source->continent_modifiers;
+        active_layer.v2id_to_continent = source->v2id_to_continent;
+        active_layer.has_continent_txt = source->has_continent_txt;
+    }
+
+    std::vector<std::string> get_continents_list() {
+        auto& active_layer = data[current_layer_index];
+        if (!active_layer.has_continent_txt) {
+            return {};
+        }
+
+        std::vector<std::string> result {};
+
+        for (auto& [k, v] : active_layer.continent_modifiers) {
+            result.push_back(k);
+        }
+
+        return result;
     }
 
     int inline coord_to_pixel(glm::ivec2 coord) {
@@ -1489,6 +1670,10 @@ struct layers_stack {
             }
         }
 
+        if (!active_layer.has_continent_txt) {
+            copy_continents_to_active_layer();
+        }
+
         // copy regions:
         if (!active_layer.has_region_txt) {
             layer* latest_layer_with_data = nullptr;
@@ -1566,6 +1751,8 @@ struct layers_stack {
             active_layer.province_history[def.v2id] = p_new;
         }
 
+        auto continent = get_continent(old_v2id);
+        set_continent(def.v2id, continent.value);
 
         //finally, update colors
         set_pixel(pixel, def.r, def.g, def.b);
@@ -1581,11 +1768,7 @@ struct layers_stack {
         active_layer.province_state[2 * def.v2id + 1] = active_layer.province_state[2 * old_v2id + 1];
         active_layer.commit_state_texture_to_gpu();
 
-        province_owner[3 * def.v2id] = province_owner[3 * old_v2id];
-        province_owner[3 * def.v2id + 1] = province_owner[3 * old_v2id + 1];
-        province_owner[3 * def.v2id + 2] = province_owner[3 * old_v2id + 2];
-        commit_owner_texture_to_gpu();
-
+        request_map_update = true;
 
         return def;
     }
@@ -1748,8 +1931,8 @@ struct layers_stack {
         return result;
     }
 
-    bool get_owners_texture(GLuint& result) {
-        result = owner_texture;
+    bool get_province_colors_texture(GLuint& result) {
+        result = province_colors_texture;
         return true;
     }
     bool get_sea_texture(GLuint& result){
@@ -1762,6 +1945,31 @@ struct layers_stack {
         }
         return found;
     }
+    bool get_resources_texture_latest(GLuint& result, int& x, int& y) {
+        bool found = false;
+        for (auto& l: data) {
+            if (l.visible && l.resources_small.valid()) {
+                result = l.resources_small.texture_id;
+                x = l.resources_small.size_x;
+                y = l.resources_small.size_y;
+                found = true;
+            }
+            if (l.visible && l.resources_medium.valid()) {
+                result = l.resources_medium.texture_id;
+                x = l.resources_medium.size_x;
+                y = l.resources_medium.size_y;
+                found = true;
+            }
+            if (l.visible && l.resources_big.valid()) {
+                result = l.resources_big.texture_id;
+                x = l.resources_big.size_x;
+                y = l.resources_big.size_y;
+                found = true;
+            }
+        }
+        return found;
+    }
+
     bool get_resources_texture_small(GLuint& result, int& x, int& y){
         bool found = false;
         for (auto& l: data) {

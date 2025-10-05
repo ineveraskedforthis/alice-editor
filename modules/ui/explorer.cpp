@@ -535,7 +535,7 @@ namespace widgets {
                     GLuint texture_index;
                     int x;
                     int y;
-                    if (map.get_resources_texture_big(texture_index, x, y)) {
+                    if (map.get_resources_texture_latest(texture_index, x, y)) {
                         auto count = (float)active_layer.goods.size() + 1;
                         auto width = 1.f / count;
                         auto start = width * (def.index + 1);

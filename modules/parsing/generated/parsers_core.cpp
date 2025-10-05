@@ -343,6 +343,19 @@ void make_issue(std::string_view name, token_generator& gen, error_handler& err,
     parse_issue(gen, err, new_context);
 };
 
+void make_continent_definition(std::string_view name, token_generator& gen, error_handler& err, generic_context& context) {
+    std::string name_value {name};
+    std::cout << "detect continent: " << name_value << "\n";
+
+    auto parsed_continent = parse_continent_definition(gen, err, context);
+
+    context.map.continent_modifiers[name_value] = parsed_continent.modifiers;
+
+    for (auto item : parsed_continent.provinces.provinces_v2ids) {
+        context.map.v2id_to_continent[item] = name_value;
+    }
+}
+
 void make_issues_group(std::string_view name, token_generator& gen, error_handler& err, generic_context& context) {
     std::string actual_string {name};
     issue_group_context new_context(context.map, actual_string);

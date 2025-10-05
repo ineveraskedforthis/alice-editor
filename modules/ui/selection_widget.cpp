@@ -580,19 +580,13 @@ namespace widgets {
             ImGui::Text("%s", ((def->name) + conversions::wstring_to_utf8(L" (" + history->history_file_name + L") " + std::to_wstring(def->v2id))).c_str());
 
             if (ImGui::InputText("Owner", &history->owner_tag)) {
-                map.province_owner[3 * v2id + 0] = history->owner_tag[0];
-                map.province_owner[3 * v2id + 1] = history->owner_tag[1];
-                map.province_owner[3 * v2id + 2] = history->owner_tag[2];
-                map.commit_owner_texture_to_gpu();
+                map.request_map_update = true;
             }
 
             ImGui::SameLine();
             if (ImGui::Button("Clear owner")) {
                 history->owner_tag = "";
-                map.province_owner[3 * v2id + 0] = 0;
-                map.province_owner[3 * v2id + 1] = 0;
-                map.province_owner[3 * v2id + 2] = 0;
-                map.commit_owner_texture_to_gpu();
+                map.request_map_update = true;
             }
 
             ImGui::InputText("Controller", &history->controller_tag);
@@ -689,6 +683,7 @@ namespace widgets {
             }
 
             ImGui::InputInt("Railroad: ", &history->railroad);
+            ImGui::InputInt("Life rating: ", &history->life_rating);
             ImGui::InputInt("Naval base: ", &history->naval_base);
             ImGui::InputInt("Fort: ", &history->fort);
 
@@ -1222,6 +1217,29 @@ namespace widgets {
             }
             if (ImGui::BeginTabItem("Population")) {
                 province_population_widget(layers, control, control.selected_province_id);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Continent")) {
+                // retrieve continents list
+                auto continents = layers.get_continents_list();
+                auto current = layers.get_continent(control.selected_province_id);
+                if (current.can_edit) {
+                    if (ImGui::BeginCombo("##culture", current.value.c_str())) {
+                        for (int n = 0; n < continents.size(); n++) {
+                            const bool is_selected = (current.value == continents[n]);
+                            if (ImGui::Selectable(continents[n].c_str(), is_selected)){
+                                layers.set_continent(control.selected_province_id, continents[n]);
+                                layers.request_map_update = true;
+                            }
+                        }
+                        ImGui::EndCombo();
+                    }
+                } else {
+                    ImGui::Text("%s", current.value.c_str());
+                    if (ImGui::Button("Copy continents.txt to active layer")) {
+                        layers.copy_continents_to_active_layer();
+                    }
+                }
                 ImGui::EndTabItem();
             }
             ImGui::EndTabBar();

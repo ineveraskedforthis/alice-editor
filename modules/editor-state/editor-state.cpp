@@ -153,7 +153,7 @@ void paint_controler_and_owner_safe(control& control_state, layers_stack& map, i
         target->controller_tag = control_state.selected_tag;
 
         map.set_owner(index_target, target->owner_tag);
-        map.commit_owner_texture_to_gpu();
+        map.commit_province_colors_texture_to_gpu();
     }
 }
 

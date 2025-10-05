@@ -32,6 +32,9 @@ void culture_select(state::layers_stack& layers, state::control& control) {
     auto culture_def = layers.get_culture(control.selected_culture);
     ImGui::Text("%s", control.selected_culture.c_str());
 
+    ImGui::InputText("Primary tag", &culture_def->primary);
+    ImGui::InputInt("Radical.", &culture_def->radicalism);
+
     float fr = (float)(culture_def->r) / 255.f;
     float fg = (float)(culture_def->g) / 255.f;
     float fb = (float)(culture_def->b) / 255.f;

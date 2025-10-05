@@ -1,0 +1,3 @@
+optimisation_flag = -O3
+debug_flags =
+debug_flags_link =

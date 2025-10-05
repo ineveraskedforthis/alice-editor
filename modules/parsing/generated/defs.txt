@@ -158,6 +158,8 @@ group_of_strings
 culture
 #culture_context
 	color			group      	color_from_3i    	member_fn
+	radicalism     value      int              member_fn
+	primary value text member_fn
 	first_names		group		group_of_strings	member_fn
 	last_names		group		group_of_strings	member_fn
 
@@ -181,3 +183,14 @@ religion_group
 religion_file
 #generic_context
 	#any           extern      make_religion_group   discard
+
+continent_provinces
+	#free          value      int                       member_fn
+
+continent_definition
+	provinces      group   continent_provinces       member
+	#any   value   float   member_fn
+
+continent_file
+#generic_context
+	#any           extern     make_continent_definition discard

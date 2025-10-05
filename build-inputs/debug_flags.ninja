@@ -1,0 +1,3 @@
+optimisation_flag = -O0
+debug_flags = -g -gdwarf-3 -gcodeview
+debug_flags_link = -g -gdwarf-3

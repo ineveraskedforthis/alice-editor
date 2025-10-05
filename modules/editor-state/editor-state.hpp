@@ -42,6 +42,9 @@ struct split_target_province {
 };
 
 struct control {
+    MAP_MODE map_mode = MAP_MODE::OWNER;
+    int32_t map_date = 0;
+
     FLAG_EXPORT_OPTIONS flags_export = FLAG_EXPORT_OPTIONS::TGA;
     uint32_t selected_pixel = 0;
 
