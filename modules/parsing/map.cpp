@@ -1104,7 +1104,7 @@ namespace parsers{
                     if (i % 5 == 0) {
                         file << "\n\t\t\t";
                     }
-                    file << culture_def.first_names[i] << " ";
+                    file << conversions::native_to_win1250(conversions::utf8_to_wstring(culture_def.first_names[i])) << " ";
                 }
                 file << "\n";
                 file << "\t\t}\n";
@@ -1114,7 +1114,7 @@ namespace parsers{
                     if (i % 5 == 0) {
                         file << "\n\t\t\t";
                     }
-                    file << culture_def.last_names[i] << " ";
+                    file << conversions::native_to_win1250(conversions::utf8_to_wstring(culture_def.last_names[i])) << " ";
                 }
                 file << "\n";
                 file << "\t\t}\n";

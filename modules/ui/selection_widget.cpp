@@ -12,11 +12,13 @@
 
 #include <shobjidl_core.h>
 #include <shobjidl.h>
+#include "../conversion.hpp"
 #include <vector>
 #include <winnt.h>
 #include "win-wrapper.hpp"
 
 #include "ui_enums.hpp"
+
 #include "pops_buffer_widget.hpp"
 #include "cultures-select.hpp"
 
@@ -29,25 +31,6 @@
 #include "../assets-manager/assets.hpp"
 #include "../misc.hpp"
 
-// copied from Project Alice
-// Related GPL file can be found in ParserGenerator folder
-std::wstring utf8_to_wstring(std::string_view str) {
-	if(str.size() > 0) {
-		auto buffer = std::unique_ptr<WCHAR[]>(new WCHAR[str.length() * 2]);
-		auto chars_written = MultiByteToWideChar(CP_UTF8, 0, str.data(), int32_t(str.length()), buffer.get(), int32_t(str.length() * 2));
-		return std::wstring(buffer.get(), size_t(chars_written));
-	}
-	return std::wstring(L"");
-}
-
-std::string wstring_to_utf8(std::wstring str) {
-	if(str.size() > 0) {
-		auto buffer = std::unique_ptr<char[]>(new char[str.length() * 4]);
-		auto chars_written = WideCharToMultiByte(CP_UTF8, 0, str.data(), int32_t(str.length()), buffer.get(), int32_t(str.length() * 4), NULL, NULL);
-		return std::string(buffer.get(), size_t(chars_written));
-	}
-	return std::string("");
-}
 
 namespace widgets {
 
@@ -419,7 +402,7 @@ namespace widgets {
             int channels;
 
             auto new_image = SOIL_load_image(
-                (wstring_to_utf8(result)).c_str(),
+                (conversions::wstring_to_utf8(result)).c_str(),
                 &size_x,
                 &size_y,
                 &channels,
@@ -470,12 +453,12 @@ namespace widgets {
             auto& layer = layers.data[i];
             auto flag_path = layer.path + flag_path_from_layer;
             if (layer.paths_to_new_flags.contains(flag_key)) {
-                flag_path = wstring_to_utf8(layer.paths_to_new_flags[flag_key]);
+                flag_path = conversions::wstring_to_utf8(layer.paths_to_new_flags[flag_key]);
             }
             if (storage.filename_to_texture_asset.contains(flag_path)) {
                 if (layer.paths_to_new_flags.contains(flag_key)) {
                     auto path = layer.paths_to_new_flags[flag_key];
-                    ImGui::Text("%s", wstring_to_utf8(path).c_str());
+                    ImGui::Text("%s", conversions::wstring_to_utf8(path).c_str());
                 } else {
                     ImGui::Text("%s", (layer.path + flag_path_from_layer).c_str());
                 }
@@ -977,7 +960,7 @@ namespace widgets {
                             ImGuiTableColumnFlags_DefaultSort
                             | ImGuiTableColumnFlags_WidthFixed,
                             80.0f,
-                            province_population_culture
+                            explorer_columns::province_population_culture
                         );
                         ImGui::TableSetupColumn(
                             "Poptype",

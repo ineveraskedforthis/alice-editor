@@ -48,15 +48,8 @@ void culture_select(state::layers_stack& layers, state::control& control) {
     }
     ImGui::PopItemWidth();
 
-    if (!can_edit) {
-        ImGui::EndDisabled();
-    }
+    ImGui::SeparatorText("Cultural names");
 
-    ImGui::SeparatorText("Cultural names (DISABLED)");
-    ImGui::Text("Disabled until integration of a unicode conversions library");
-
-
-    ImGui::BeginDisabled();
     ImGui::Text("First names:");
     for (int i = 0; i < culture_def->first_names.size(); i++) {
         ImGui::PushID(i);
@@ -77,6 +70,9 @@ void culture_select(state::layers_stack& layers, state::control& control) {
     if (ImGui::Button("Add second name")) {
         culture_def->last_names.push_back({});
     }
-    ImGui::EndDisabled();
+
+    if (!can_edit) {
+        ImGui::EndDisabled();
+    }
 }
 }

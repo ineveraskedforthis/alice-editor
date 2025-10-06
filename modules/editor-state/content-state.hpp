@@ -19,7 +19,7 @@
 #include "../parsing/definitions.hpp"
 
 #include "../map/unordered_dense.h"
-#include "../misc.hpp"
+#include "../conversion.hpp"
 
 #undef max
 #undef min
