@@ -246,9 +246,35 @@ struct protected_string {
     std::string value;
 };
 
+struct legacy_localisation_query_response {
+    std::string key{};
+    std::string filename{};
+    int columns = 0;
+    std::vector<std::string> data{};
+};
+
+struct legacy_localisation_file {
+    std::wstring name {};
+    int columns = 0;
+    ankerl::unordered_dense::map<std::u16string, std::vector<std::u16string>> data_utf16 {};
+};
+
+struct alice_localisation_file {
+    std::wstring name {};
+    ankerl::unordered_dense::map<std::wstring, std::wstring> data {};
+};
+
+struct alice_localisation_folder {
+    std::wstring name {};
+    std::vector<alice_localisation_file> files {};
+};
+
 // represent specific mod folder which overwrites previous definitions
 struct layer {
     std::string path = "./base-game";
+
+    std::vector<legacy_localisation_file> loc_legacy {};
+    std::vector<alice_localisation_folder> loc_alice {};
 
     std::vector<std::string> poptypes{};
 
@@ -1582,6 +1608,88 @@ struct layers_stack {
         active_layer.culture_defs[name] = result;
     }
 
+    void set_localisation_legacy(std::string key, std::vector<legacy_localisation_query_response> value) {
+        if (!can_edit_localisation_legacy(key)) return;
+        auto& current_layer = data[current_layer_index];
+        for (auto file_index = 0; file_index < current_layer.loc_legacy.size(); file_index++) {
+            for (auto column_index = 0; column_index < current_layer.loc_legacy[file_index].columns; column_index++) {
+                current_layer.loc_legacy[file_index].data_utf16[conversions::u8_to_u16(key)][column_index] =
+                    conversions::u8_to_u16(value[file_index].data[column_index]);
+            }
+        }
+    }
+
+    void new_localisation_legacy(std::string key, std::string filename) {
+        auto& current_layer = data[current_layer_index];
+        for (auto& file : current_layer.loc_legacy) {
+            if (file.name == conversions::u8_to_w(filename)) {
+                file.data_utf16[conversions::u8_to_u16(key)] = {};
+                file.data_utf16[conversions::u8_to_u16(key)].resize(file.columns);
+                return;
+            }
+        }
+        legacy_localisation_file new_file {
+            conversions::u8_to_w(filename), 15, {}
+        };
+        current_layer.loc_legacy.push_back(new_file);
+    }
+
+    void copy_localisation_legacy(std::string key) {
+        auto& current_layer = data[current_layer_index];
+        for (int i = data.size() - 1; i >= 0; i--) {
+            auto& layer = data[i];
+            for (auto& file : layer.loc_legacy) {
+                auto found = file.data_utf16.find(conversions::u8_to_u16(key));
+                if (found != file.data_utf16.end()) {
+                    current_layer.loc_legacy.push_back(file);
+                    return;
+                }
+            }
+        }
+    }
+
+    bool can_edit_localisation_legacy(std::string key) {
+        auto& layer = data[current_layer_index];
+        for (auto& file : layer.loc_legacy) {
+            auto found = file.data_utf16.find(conversions::u8_to_u16(key));
+            if (found != file.data_utf16.end()) {
+                std::vector<std::string> query_data;
+                for (auto item : found->second) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    std::vector<legacy_localisation_query_response> get_localisation_legacy(std::string key) {
+        std::vector<legacy_localisation_query_response> result;
+        for (int i = data.size() - 1; i >= 0; i--) {
+            auto& layer = data[i];
+            for (auto& file : layer.loc_legacy) {
+                auto found = file.data_utf16.find(conversions::u8_to_u16(key));
+                if (found != file.data_utf16.end()) {
+                    std::vector<std::string> query_data;
+                    for (auto item : found->second) {
+                        query_data.push_back(conversions::u16_to_u8(item));
+                    }
+                    legacy_localisation_query_response res {
+                        key,
+                        conversions::w_to_u8(file.name),
+                        file.columns,
+                        query_data
+                    };
+                    result.push_back(res);
+                }
+            }
+            if (!result.empty()) {
+                return result;
+            }
+        }
+        return result;
+    }
+
     void new_nation(int32_t source_tag, int32_t tag, std::string filename) {
         auto& active_layer = data[current_layer_index];
 
@@ -1730,7 +1838,7 @@ struct layers_stack {
 
         game_definition::province_history p_new {};
 
-        p_new.history_file_name = std::to_wstring(active_layer.available_id) + L" - " + conversions::utf8_to_wstring(def.name) + L".txt";
+        p_new.history_file_name = std::to_wstring(active_layer.available_id) + L" - " + conversions::u8_to_w(def.name) + L".txt";
 
         auto p_old = get_province_history(old_v2id);
             // check if it is a sea

@@ -86,12 +86,12 @@ struct culture {
 	};
 	void first_names(group_of_strings value, error_handler& err, int32_t line, culture_context& context) {
 		for (auto& s: value.data) {
-			context.culture.first_names.push_back(conversions::wstring_to_utf8(conversions::win1250_to_native(s)));
+			context.culture.first_names.push_back(conversions::u16_to_u8(conversions::win1252_to_u16(s)));
 		}
 	};
 	void last_names(group_of_strings value, error_handler& err, int32_t line, culture_context& context) {
 		for (auto& s: value.data) {
-			context.culture.last_names.push_back(conversions::wstring_to_utf8(conversions::win1250_to_native(s)));
+			context.culture.last_names.push_back(conversions::u16_to_u8(conversions::win1252_to_u16(s)));
 		}
 	};
 	void primary(association_type, std::string_view value, error_handler& err, int32_t line, culture_context& context) {

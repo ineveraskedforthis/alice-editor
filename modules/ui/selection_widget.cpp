@@ -29,7 +29,7 @@
 
 #include "../editor-state/editor-state.hpp"
 #include "../assets-manager/assets.hpp"
-#include "../misc.hpp"
+#include "../conversion.hpp"
 
 
 namespace widgets {
@@ -402,7 +402,7 @@ namespace widgets {
             int channels;
 
             auto new_image = SOIL_load_image(
-                (conversions::wstring_to_utf8(result)).c_str(),
+                (conversions::w_to_u8(result)).c_str(),
                 &size_x,
                 &size_y,
                 &channels,
@@ -453,12 +453,12 @@ namespace widgets {
             auto& layer = layers.data[i];
             auto flag_path = layer.path + flag_path_from_layer;
             if (layer.paths_to_new_flags.contains(flag_key)) {
-                flag_path = conversions::wstring_to_utf8(layer.paths_to_new_flags[flag_key]);
+                flag_path = conversions::w_to_u8(layer.paths_to_new_flags[flag_key]);
             }
             if (storage.filename_to_texture_asset.contains(flag_path)) {
                 if (layer.paths_to_new_flags.contains(flag_key)) {
                     auto path = layer.paths_to_new_flags[flag_key];
-                    ImGui::Text("%s", conversions::wstring_to_utf8(path).c_str());
+                    ImGui::Text("%s", conversions::w_to_u8(path).c_str());
                 } else {
                     ImGui::Text("%s", (layer.path + flag_path_from_layer).c_str());
                 }
@@ -560,7 +560,7 @@ namespace widgets {
                 ImGui::BeginDisabled();
             }
 
-            ImGui::Text("%s", ((def->name) + conversions::wstring_to_utf8(L" (" + history->history_file_name + L") " + std::to_wstring(def->v2id))).c_str());
+            ImGui::Text("%s", ((def->name) + conversions::w_to_u8(L" (" + history->history_file_name + L") " + std::to_wstring(def->v2id))).c_str());
 
             if (ImGui::InputText("Owner", &history->owner_tag)) {
                 map.request_map_update = true;
@@ -1225,6 +1225,71 @@ namespace widgets {
                 }
                 ImGui::EndTabItem();
             }
+            if (ImGui::BeginTabItem("Localisation")) {
+                if (ImGui::BeginTabBar("ProvinceTabs", tab_bar_flags)) {
+                    if (ImGui::BeginTabItem("Legacy")) {
+                        ImGui::Text("Supports only win1252 codepage");
+
+
+                        auto key = "PROV" + std::to_string(control.selected_province_id);
+                        auto locs = layers.get_localisation_legacy(key);
+
+                        static std::vector<state::legacy_localisation_query_response> edited;
+                        if (edited.size() == 0 || locs.size() == 0) {
+                            edited = locs;
+                        } else if (edited[0].key != locs[0].key || edited.size() != locs.size()) {
+                            edited = locs;
+                        }
+
+                        bool disabled = false;
+                        if (!layers.can_edit_localisation_legacy(key)) {
+                            ImGui::Text("Not able to edit, layer doesn't have related localisation");
+                            if (ImGui::Button("Copy localisation to active layer")) {
+                                layers.copy_localisation_legacy(key);
+                            }
+                            ImGui::BeginDisabled();
+                            disabled = true;
+                        }
+
+                        int id = 0;
+                        for (auto& item: edited) {
+                            ImGui::PushID(id);
+                            id++;
+                            ImGui::Text("File %s", item.filename.c_str());
+                            for (int k = 0; k < item.columns; k++) {
+                                ImGui::PushID(k);
+                                ImGui::InputText((std::to_string(k) + " loc field").c_str(), &item.data[k]);
+                                ImGui::PopID();
+                            }
+                            ImGui::PopID();
+                            ImGui::Separator();
+                        }
+
+                        if (ImGui::Button("Commit changes")) {
+                            layers.set_localisation_legacy(key, edited);
+                        }
+
+                        if (disabled) {
+                            ImGui::EndDisabled();
+                        }
+
+                        static std::string filename = "editor.csv";
+                        ImGui::InputText("Filename", &filename);
+                        if (ImGui::Button("Create new loc")) {
+                            layers.new_localisation_legacy(key, filename);
+                        }
+
+                        ImGui::EndTabItem();
+                    }
+                    if (ImGui::BeginTabItem("Alice")) {
+                        ImGui::Text("Supports unicode");
+
+                        ImGui::EndTabItem();
+                    }
+                    ImGui::EndTabBar();
+                }
+                ImGui::EndTabItem();
+            }
             ImGui::EndTabBar();
         }
     }
@@ -1398,7 +1463,7 @@ namespace widgets {
                         map.retrieve_tech_folders(folders);
                         if (ImGui::BeginTabBar("TechnologyNationHistoryTabs", tab_bar_flags)) {
                             for (auto& folder : folders) {
-                                if (ImGui::BeginTabItem(conversions::wstring_to_utf8(folder).c_str())) {
+                                if (ImGui::BeginTabItem(conversions::w_to_u8(folder).c_str())) {
                                     technology_folder(
                                         map,
                                         history,
@@ -1425,7 +1490,7 @@ namespace widgets {
                         ImGuiTabBarFlags inventions_history_tab_bar_flags = ImGuiTabBarFlags_None;
                         if (ImGui::BeginTabBar("InventionsNationHistoryTabs", tab_bar_flags)) {
                             for (auto& folder : folders) {
-                                if (ImGui::BeginTabItem(conversions::wstring_to_utf8(folder).c_str())) {
+                                if (ImGui::BeginTabItem(conversions::w_to_u8(folder).c_str())) {
                                     inventions_folder(
                                         map,
                                         history,

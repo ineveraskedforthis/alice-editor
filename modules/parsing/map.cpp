@@ -925,8 +925,8 @@ namespace parsers{
         }
         for (auto& entry : std::filesystem::directory_iterator  {path + "/history" + "/provinces"}) {
             if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
-                auto name = entry.path().filename().wstring();
-                errors.file_name = conversions::wstring_to_utf8(name);
+                auto name = entry.path().filename().string();
+                errors.file_name = name;
                 // std::cout << name << std::endl;
                 auto first_space = name.find_first_of(' ');
                 auto id_string = name.substr(0, first_space);
@@ -934,7 +934,7 @@ namespace parsers{
                 std::cout << id << " ";
 
                 game_definition::province_history p{};
-                p.history_file_name = name;
+                p.history_file_name = entry.path().filename().wstring();;
                 p.historical_region = L"other";
 
                 parser_history_province2 parser {};
@@ -948,7 +948,7 @@ namespace parsers{
 
             for (auto& province_description : std::filesystem::directory_iterator(entry.path())) {
                 auto name = province_description.path().filename().wstring();
-                errors.file_name = conversions::wstring_to_utf8(name);
+                errors.file_name = conversions::w_to_u8(name);
                 // std::cout << name << std::endl;
                 auto first_space = name.find_first_of(' ');
                 auto id_string = name.substr(0, first_space);
@@ -1048,6 +1048,73 @@ namespace parsers{
         }
     }
 
+    void unload_legacy_loc(state::layer &layer, std::string path) {
+        std::filesystem::create_directory(path + "/localisation");
+        for (auto& file : layer.loc_legacy) {
+            std::ofstream output_file(path + "/localisation/" + conversions::w_to_u8(file.name));
+            for (auto& [key, value] : file.data_utf16) {
+                output_file << conversions::u16_to_win1252(key);
+                for (int i = 0; i < file.columns; i++) {
+                    if (i < value.size()) {
+                        output_file << ";" << conversions::u16_to_win1252(value[i]);
+                    } else {
+                        output_file << ";";
+                    }
+                }
+                output_file << conversions::u16_to_win1252(u"\n");
+            }
+        }
+    }
+
+    void load_legacy_loc(state::layer &layer, std::string path) {
+        std::cout << "reading legacy localisation\n";
+        if (!std::filesystem::exists(path + "/localisation")) {
+            return;
+        }
+        for (auto& entry : std::filesystem::directory_iterator  {path + "/localisation"}) {
+            if (!entry.is_directory() && entry.path().filename().string().ends_with(".csv")) {
+                auto name = entry.path().filename().wstring();
+                state::legacy_localisation_file file {};
+                file.name = name;
+
+                std::ifstream input_file(entry.path());
+                std::string str;
+
+                while (std::getline(input_file, str)) {
+                    if (str[0] == L'#') {
+                        continue;
+                    }
+                    bool is_key = true;
+                    std::u16string key{};
+                    int counter = 0;
+                    auto semicolon = conversions::u16_to_win1250(u";");
+                    bool last = false;
+                    while(!last) {
+                        auto end = str.find(semicolon);
+                        if (is_key) {
+                            key = conversions::win1252_to_u16(str.substr(0, end));
+                            is_key = false;
+                            file.data_utf16[key] = {};
+                            str.erase(0, end + 1);
+                        } else {
+                            if (end > str.length()) {
+                                file.data_utf16[key].push_back(conversions::win1252_to_u16(str));
+                                str.erase();
+                                last = true;
+                            } else {
+                                file.data_utf16[key].push_back(conversions::win1252_to_u16(str.substr(0, end)));
+                                str.erase(0, end + 1);
+                            }
+                            counter++;
+                        }
+                    }
+                    file.columns = counter;
+                }
+                layer.loc_legacy.push_back(file);
+            }
+        }
+    }
+
     void load_cultures(state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "registration of cultures\n";
         if (!std::filesystem::exists(path + "/common/cultures.txt")) {
@@ -1104,7 +1171,7 @@ namespace parsers{
                     if (i % 5 == 0) {
                         file << "\n\t\t\t";
                     }
-                    file << conversions::native_to_win1250(conversions::utf8_to_wstring(culture_def.first_names[i])) << " ";
+                    file << conversions::u16_to_win1252(conversions::u8_to_u16(culture_def.first_names[i])) << " ";
                 }
                 file << "\n";
                 file << "\t\t}\n";
@@ -1114,7 +1181,7 @@ namespace parsers{
                     if (i % 5 == 0) {
                         file << "\n\t\t\t";
                     }
-                    file << conversions::native_to_win1250(conversions::utf8_to_wstring(culture_def.last_names[i])) << " ";
+                    file << conversions::u16_to_win1252(conversions::u8_to_u16(culture_def.last_names[i])) << " ";
                 }
                 file << "\n";
                 file << "\t\t}\n";
@@ -1415,7 +1482,7 @@ border_cutoff = 1100.0
             int size_y;
             int channels;
             auto flag_data = SOIL_load_image(
-                conversions::wstring_to_utf8(flag_path).c_str(),
+                conversions::w_to_u8(flag_path).c_str(),
                 &size_x,
                 &size_y,
                 &channels,
@@ -1684,6 +1751,7 @@ border_cutoff = 1100.0
 
         load_continents(layer, layer.path, errors);
         register_pop_types(layer, layer.path);
+        load_legacy_loc(layer, layer.path);
         load_cultures(layer, layer.path, errors);
         register_religions(layer, layer.path, errors);
         load_province_defs(layer, layer.path);
@@ -1692,8 +1760,8 @@ border_cutoff = 1100.0
         load_regions(layer, layer.path);
         load_adjacencies(layer, layer.path);
         load_governments_list(layer, layer.path, errors);
-        load_technology_list(layer, conversions::utf8_to_wstring(layer.path), errors);
-        load_inventions_list(layer, conversions::utf8_to_wstring(layer.path), errors);
+        load_technology_list(layer, conversions::u8_to_w(layer.path), errors);
+        load_inventions_list(layer, conversions::u8_to_w(layer.path), errors);
         load_issues_list(layer, layer.path, errors);
         load_nations_list(layer, layer.path, errors);
         load_nations_common(layer, layer.path, errors);
@@ -1711,6 +1779,7 @@ border_cutoff = 1100.0
         std::cout << "Create directory: " << path << "\n";
         std::filesystem::create_directory(path);
 
+        unload_legacy_loc(layer, path);
         unload_cultures(layer, path);
         unload_continents(layer, path);
         unload_province_defs(layer, path);
@@ -1722,7 +1791,7 @@ border_cutoff = 1100.0
         unload_nations_list(layer, path);
         unload_nations_common(layer, path);
         unload_nation_history(layer, path);
-        unload_province_history(layer, conversions::utf8_to_wstring(path));
+        unload_province_history(layer, conversions::u8_to_w(path));
         unload_province_population(layer, path);
         unload_flags(layer, path, flag_option);
         unload_core_gfx(layer, path, amount_of_commodities);

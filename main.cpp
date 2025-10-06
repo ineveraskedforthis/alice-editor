@@ -498,7 +498,7 @@ int main(int argc, char* argv[]) {
 
                     {
                         state::layer l {};
-                        l.path = conversions::wstring_to_utf8(path_basegame);
+                        l.path = conversions::w_to_u8(path_basegame);
                         parsers::load_layer(layers, l);
                         l.load_state_texture_to_gpu();
                         l.load_sea_texture_to_gpu();
@@ -511,7 +511,7 @@ int main(int argc, char* argv[]) {
 
                     {
                         state::layer l {};
-                        l.path = conversions::wstring_to_utf8(path_mod);
+                        l.path = conversions::w_to_u8(path_mod);
                         parsers::load_layer(layers, l);
                         l.load_state_texture_to_gpu();
                         l.load_sea_texture_to_gpu();
