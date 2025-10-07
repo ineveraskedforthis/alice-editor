@@ -1115,6 +1115,64 @@ namespace parsers{
         }
     }
 
+    void unload_loc(state::layer &layer, std::string path) {
+        std::filesystem::create_directory(path + "/assets");
+        std::filesystem::create_directory(path + "/assets/localisation");
+        for (auto& folder : layer.loc_alice) {
+            std::filesystem::create_directory((path + "/assets/localisation/") + folder.name);
+            for (auto& file : folder.files) {
+                std::ofstream output_file(path + "/assets/localisation/" + folder.name + "/" + file.name);
+                for (auto& [key, value] : file.data_utf8) {
+                    output_file << key << ";" << value << "\n";
+                }
+            }
+        }
+    }
+
+    void load_loc(state::layer &layer, std::string path) {
+        std::cout << "reading localisation\n";
+        if (!std::filesystem::exists(path + "/assets/localisation")) {
+            return;
+        }
+        for (auto& entry : std::filesystem::directory_iterator  {path + "/assets/localisation"}) {
+            if (entry.is_directory()) {
+
+                state::alice_localisation_folder new_folder {
+                    entry.path().filename().string(),
+                    {}
+                };
+
+                for (auto& loc_file : std::filesystem::directory_iterator {entry}) {
+
+                    state::alice_localisation_file new_file {
+                        loc_file.path().filename().string(),
+                        {}
+                    };
+
+                    std::ifstream input_file(loc_file.path());
+                    std::string str;
+                    while (std::getline(input_file, str)) {
+                        if (str[0] == L'#') {
+                            continue;
+                        }
+                        auto separator = ";";
+                        auto end = str.find(separator);
+                        if (end > str.length()) {
+                            continue;
+                        }
+
+                        auto key = str.substr(0, end);
+                        str.erase(0, end + 1);
+                        auto value = str;
+                        new_file.data_utf8[key] = value;
+                    }
+                    new_folder.files.push_back(new_file);
+                }
+                layer.loc_alice.push_back(new_folder);
+            }
+        }
+    }
+
     void load_cultures(state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "registration of cultures\n";
         if (!std::filesystem::exists(path + "/common/cultures.txt")) {
@@ -1752,6 +1810,7 @@ border_cutoff = 1100.0
         load_continents(layer, layer.path, errors);
         register_pop_types(layer, layer.path);
         load_legacy_loc(layer, layer.path);
+        load_loc(layer, layer.path);
         load_cultures(layer, layer.path, errors);
         register_religions(layer, layer.path, errors);
         load_province_defs(layer, layer.path);
@@ -1780,6 +1839,7 @@ border_cutoff = 1100.0
         std::filesystem::create_directory(path);
 
         unload_legacy_loc(layer, path);
+        unload_loc(layer, path);
         unload_cultures(layer, path);
         unload_continents(layer, path);
         unload_province_defs(layer, path);

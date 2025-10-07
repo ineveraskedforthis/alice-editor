@@ -398,11 +398,13 @@ int main(int argc, char* argv[]) {
         ImGuiIO& io = ImGui::GetIO(); (void)io;
         io.ConfigFlags |= ImGuiConfigFlags_NavEnableKeyboard;
 
-        ImFont* main_font = io.Fonts->AddFontFromFileTTF(
-            "./assets/Montserrat/static/Montserrat-Regular.ttf",
-            18.0f,
-            NULL,
-            io.Fonts->GetGlyphRangesDefault()
+        ImFont* font = io.Fonts->AddFontFromFileTTF(
+            "./assets/Montserrat/static/Montserrat-Regular.ttf"
+        );
+        ImFontConfig config;
+        config.MergeMode = true;
+        io.Fonts->AddFontFromFileTTF(
+            "./assets/Noto_Sans_SC/static/NotoSansSC-Regular.ttf", 0.f, &config
         );
 
         ImGuiStyle& style = ImGui::GetStyle();
@@ -449,7 +451,7 @@ int main(int argc, char* argv[]) {
             ImGui::NewFrame();
 
 
-            ImGui::PushFont(main_font);
+            ImGui::PushFont(font);
             ImGui::StyleColorsLight();
 
             // ImGui::PushStyleVar(ImGuiStyleVar_WindowMinSize, ImVec2(0.f, 0.f));

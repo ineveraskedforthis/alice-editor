@@ -1226,12 +1226,14 @@ namespace widgets {
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Localisation")) {
+                auto key = "PROV" + std::to_string(control.selected_province_id);
+
+                ImGui::Text("%s", key.c_str());
+
                 if (ImGui::BeginTabBar("ProvinceTabs", tab_bar_flags)) {
                     if (ImGui::BeginTabItem("Legacy")) {
                         ImGui::Text("Supports only win1252 codepage");
 
-
-                        auto key = "PROV" + std::to_string(control.selected_province_id);
                         auto locs = layers.get_localisation_legacy(key);
 
                         static std::vector<state::legacy_localisation_query_response> edited;
@@ -1283,6 +1285,68 @@ namespace widgets {
                     }
                     if (ImGui::BeginTabItem("Alice")) {
                         ImGui::Text("Supports unicode");
+
+                        static std::vector<std::string> folders = layers.retrieve_languages();
+
+                        if (ImGui::BeginTabBar("Langs", tab_bar_flags)) {
+                            for (auto& lang : folders) {
+                                auto lang_u8 = lang;
+                                if (ImGui::BeginTabItem( lang_u8.c_str())) {
+
+                                    auto query = layers.get_localisation(key, lang);
+
+                                    static std::vector<state::alice_localisation_query_response> edited_query;
+
+                                    if (edited_query.size() == 0 || query.size() == 0) {
+                                        edited_query = query;
+                                    } else if (
+                                        edited_query[0].key != query[0].key
+                                        || edited_query.size() != query.size()
+                                        || edited_query[0].lang != query[0].lang
+                                    ) {
+                                        edited_query = query;
+                                    }
+
+                                    bool can_edit = false;
+                                    if (layers.can_edit_localisation(key, lang)) {
+                                        can_edit = true;
+                                    }
+
+                                    int counter = 0;
+                                    for (auto& result : edited_query) {
+                                        ImGui::PushID(counter);
+                                        ImGui::Text("File: %s", result.filename.c_str());
+                                        if (!can_edit) {
+                                            ImGui::Text("Can't edit layers below.");
+                                            if (ImGui::Button("Copy loc from layer below")) {
+                                                layers.copy_localisation(key, lang, result.filename);
+                                            }
+                                            ImGui::BeginDisabled();
+                                        }
+                                        ImGui::InputText(key.c_str(), &result.data);
+                                        if(!can_edit) {
+                                            ImGui::EndDisabled();
+                                        }
+                                        counter++;
+                                        ImGui::PopID();
+                                    }
+
+                                    if (can_edit) {
+                                        if (ImGui::Button("Commit changes")) {
+                                            layers.set_localisation(key, edited_query, lang);
+                                        }
+                                    }
+
+                                    if (ImGui::Button("Create new loc")) {
+                                        layers.new_localisation(key, lang, "editor.csv");
+                                    }
+
+                                    ImGui::EndTabItem();
+                                }
+                            }
+
+                            ImGui::EndTabBar();
+                        }
 
                         ImGui::EndTabItem();
                     }

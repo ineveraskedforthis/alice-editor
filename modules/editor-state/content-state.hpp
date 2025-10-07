@@ -253,6 +253,13 @@ struct legacy_localisation_query_response {
     std::vector<std::string> data{};
 };
 
+struct alice_localisation_query_response {
+    std::string key{};
+    std::string filename{};
+    std::string lang{};
+    std::string data{};
+};
+
 struct legacy_localisation_file {
     std::wstring name {};
     int columns = 0;
@@ -260,12 +267,12 @@ struct legacy_localisation_file {
 };
 
 struct alice_localisation_file {
-    std::wstring name {};
-    ankerl::unordered_dense::map<std::wstring, std::wstring> data {};
+    std::string name {};
+    ankerl::unordered_dense::map<std::string, std::string> data_utf8 {};
 };
 
 struct alice_localisation_folder {
-    std::wstring name {};
+    std::string name {};
     std::vector<alice_localisation_file> files {};
 };
 
@@ -1607,6 +1614,140 @@ struct layers_stack {
         result.b = b;
         active_layer.culture_defs[name] = result;
     }
+
+    std::vector<std::string> retrieve_languages() {
+        return {
+            "en-US",
+            "ru-RU",
+            "zh-CN"
+        };
+    }
+
+    void set_localisation(std::string key, std::vector<alice_localisation_query_response> value, std::string lang) {
+        if (!can_edit_localisation(key, lang)) return;
+        auto& current_layer = data[current_layer_index];
+        for (auto& folder : current_layer.loc_alice) {
+            if (folder.name == value[0].lang) {
+                for (auto file_index = 0; file_index < folder.files.size(); file_index++) {
+                    folder.files[file_index].data_utf8[key] = value[file_index].data;
+                }
+            }
+        }
+    }
+
+    void new_localisation(std::string key, std::string lang, std::string filename) {
+        auto& current_layer = data[current_layer_index];
+        for (auto& folder : current_layer.loc_alice) {
+            if (folder.name != lang) continue;
+            for (auto& file : folder.files) {
+                if (file.name == filename){
+                    auto found = file.data_utf8.find(key);
+                    if (found != file.data_utf8.end()) {
+                        return;
+                    }
+                    file.data_utf8[key] = "";
+                    return;
+                }
+            }
+            // file not found, create new:
+            alice_localisation_file new_file {
+                filename,
+                {}
+            };
+            new_file.data_utf8[key] = "";
+            folder.files.push_back(new_file);
+            return;
+        }
+
+        // folder not found
+
+        alice_localisation_file new_file {
+            filename,
+            {}
+        };
+        new_file.data_utf8[key] = "";
+        alice_localisation_folder new_folder {
+            lang, {new_file}
+        };
+        current_layer.loc_alice.push_back(new_folder);
+    }
+
+    void copy_localisation(std::string key, std::string lang, std::string filename) {
+        auto& active_layer = data[current_layer_index];
+        for (int i = data.size() - 1; i >= 0; i--) {
+            auto& layer = data[i];
+            for (auto& folder : layer.loc_alice) {
+                if (folder.name != lang) {
+                    continue;
+                }
+                for (auto& file : folder.files) {
+                    auto found = file.data_utf8.find(key);
+                    if (found != file.data_utf8.end()) {
+                        // check if folder is already there:
+                        for(auto& target_file : active_layer.loc_alice) {
+                            if (target_file.name != filename) {
+                                continue;
+                            }
+                            target_file.files.push_back(file);
+                            return;
+                        }
+                        alice_localisation_folder new_folder {
+                            lang, {
+                                file
+                            }
+                        };
+                        active_layer.loc_alice.push_back(new_folder);
+                        return;
+                    }
+                }
+            }
+        }
+    }
+
+    bool can_edit_localisation(std::string key, std::string lang) {
+        auto& layer = data[current_layer_index];
+        for (auto& folder : layer.loc_alice) {
+            if(folder.name != lang) {
+                continue;
+            }
+            for (auto& file : folder.files) {
+                auto found = file.data_utf8.find(key);
+                if (found != file.data_utf8.end()) {
+                    return true;
+                }
+            }
+        }
+        return false;
+    }
+
+    std::vector<alice_localisation_query_response> get_localisation(std::string key, std::string lang) {
+        std::vector<alice_localisation_query_response> result;
+        for (int i = data.size() - 1; i >= 0; i--) {
+            auto& layer = data[i];
+            for (auto& folder : layer.loc_alice) {
+                if (folder.name != lang) {
+                    continue;
+                }
+                for (auto& file : folder.files) {
+                    auto found = file.data_utf8.find(key);
+                    if (found != file.data_utf8.end()) {
+                        alice_localisation_query_response res {
+                            key,
+                            file.name,
+                            lang,
+                            found->second
+                        };
+                        result.push_back(res);
+                    }
+                }
+            }
+            if (!result.empty()) {
+                return result;
+            }
+        }
+        return result;
+    }
+
 
     void set_localisation_legacy(std::string key, std::vector<legacy_localisation_query_response> value) {
         if (!can_edit_localisation_legacy(key)) return;
