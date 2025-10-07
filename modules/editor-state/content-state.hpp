@@ -1195,6 +1195,48 @@ struct layers_stack {
         }
         auto pops = get_pops(v2id, date);
         auto& active_layer = data[current_layer_index];
+
+        bool folder_date_exists = false;
+        int folder_index = 0;
+        for (auto& folder : active_layer.province_population) {
+            if (folder.date == date) {
+                folder_date_exists = true;
+                break;
+            }
+            folder_index++;
+        }
+
+        if (!folder_date_exists) {
+            game_definition::pops_setups to_add {
+                date, {}
+            };
+            active_layer.province_population.push_back(to_add);
+            folder_index = active_layer.province_population.size() - 1;
+        }
+
+        // look for existing data first
+        bool data_exists_on_lower_level = false;
+        for (auto layer_index = current_layer_index - 1; layer_index >= 0; layer_index--) {
+            // create folder if it doesn't exist:
+
+            // check for folder
+            auto& layer = data[layer_index];
+            for (auto& folder : layer.province_population) {
+                if (folder.date == date) {
+                    // check for file with defined pops
+                    for (auto& file : folder.data) {
+                        auto found = file.data.find(v2id);
+                        if (found != file.data.end()) {
+                            active_layer.province_population[folder_index].data.push_back(file);
+                            return;
+                        }
+                    }
+                }
+            }
+        }
+
+        // pops do not exist on lower level, create new file:
+
         bool date_exists = false;
         for (auto& folder : active_layer.province_population) {
             if (folder.date == date) {
@@ -1210,7 +1252,6 @@ struct layers_stack {
                             }
                     }
                 }
-
                 if (!editor_generated_population_exists) {
                     game_definition::pops_history_file file {
                         "editor-pops.txt", {}
