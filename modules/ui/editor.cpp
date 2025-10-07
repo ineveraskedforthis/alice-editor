@@ -451,23 +451,64 @@ namespace widgets {
             state::select_pixel(control, layers, control.context_pixel);
         }
 
-        if (ImGui::BeginMenu("New")) {
+        if (ImGui::BeginMenu("New Province")) {
             static std::string new_province_name = "";
-            ImGui::InputText("Province Name", &new_province_name);
+            static std::string english_loc = "";
+            static std::string chinese_loc = "";
+            ImGui::InputText("Internal Name", &new_province_name);
+            ImGui::InputText("en-US", &english_loc);
+            ImGui::InputText("zh-CN", &chinese_loc);
 
-            if (ImGui::MenuItem("Province")) {
+            static bool is_legacy = false;
+
+            if (ImGui::RadioButton("Use legacy loc", is_legacy)) {
+                is_legacy = !is_legacy;
+            }
+
+            if (ImGui::MenuItem("Confirm")) {
                 auto prov = layers.new_province(
                     control.context_pixel, new_province_name
                 );
+
+                auto key = "PROV" + std::to_string(prov.v2id);
+
+                auto filename = "000_editor_provinces.csv";
+
+                control.selected_province_id = prov.v2id;
                 control.r = prov.r;
                 control.g = prov.g;
                 control.b = prov.b;
-            }
 
+                if (is_legacy) {
+                    layers.new_localisation_legacy(key, filename);
+                    layers.set_localisation_legacy(key, {
+                        {
+                            key, filename, 15, {
+                                english_loc
+                            }
+                        }
+                    });
+                } else {
+                    layers.new_localisation(key, "en-US", filename);
+                    layers.new_localisation(key, "zh-CN", filename);
+                    layers.set_localisation(key, {
+                            {key, filename, "en-US", english_loc}
+                        }, "en-US"
+                    );
+                    layers.set_localisation(key, {
+                            {key, filename, "zh-CN", chinese_loc}
+                        }, "zh-CN"
+                    );
+                }
+            }
+            ImGui::EndMenu();
+        }
+
+        if (ImGui::BeginMenu("New State")) {
             static std::string new_state_name = "";
             ImGui::InputText("State Name", &new_state_name);
 
-            if (ImGui::MenuItem("State")) {
+            if (ImGui::MenuItem("Confirm")) {
                 layers.new_state_at_province(
                     control.context_province, new_state_name
                 );

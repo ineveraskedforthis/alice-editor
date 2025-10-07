@@ -292,6 +292,7 @@ struct layer {
     bool visible = true;
 
     // provinces part of the layer
+    bool province_map_is_alice = false;
     std::optional<province_map> provinces_image {};
 
     // rivers part of the layer
@@ -1754,8 +1755,12 @@ struct layers_stack {
         auto& current_layer = data[current_layer_index];
         for (auto file_index = 0; file_index < current_layer.loc_legacy.size(); file_index++) {
             for (auto column_index = 0; column_index < current_layer.loc_legacy[file_index].columns; column_index++) {
-                current_layer.loc_legacy[file_index].data_utf16[conversions::u8_to_u16(key)][column_index] =
-                    conversions::u8_to_u16(value[file_index].data[column_index]);
+                if (column_index >= value[file_index].data.size()) {
+                    current_layer.loc_legacy[file_index].data_utf16[conversions::u8_to_u16(key)][column_index] = u"";
+                } else {
+                    current_layer.loc_legacy[file_index].data_utf16[conversions::u8_to_u16(key)][column_index] =
+                        conversions::u8_to_u16(value[file_index].data[column_index]);
+                }
             }
         }
     }
@@ -1937,6 +1942,7 @@ struct layers_stack {
                     latest_layer_with_data->province_state + sizeof(latest_layer_with_data->province_state),
                     active_layer.province_state
                 );
+                active_layer.states = latest_layer_with_data->states;
                 active_layer.has_region_txt = true;
             }
         }

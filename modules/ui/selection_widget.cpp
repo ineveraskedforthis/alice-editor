@@ -1275,7 +1275,7 @@ namespace widgets {
                             ImGui::EndDisabled();
                         }
 
-                        static std::string filename = "editor.csv";
+                        static std::string filename = "000_editor_provinces.csv";
                         ImGui::InputText("Filename", &filename);
                         if (ImGui::Button("Create new loc")) {
                             layers.new_localisation_legacy(key, filename);
@@ -1338,7 +1338,7 @@ namespace widgets {
                                     }
 
                                     if (ImGui::Button("Create new loc")) {
-                                        layers.new_localisation(key, lang, "editor.csv");
+                                        layers.new_localisation(key, lang, "000_editor_provinces.csv");
                                     }
 
                                     ImGui::EndTabItem();

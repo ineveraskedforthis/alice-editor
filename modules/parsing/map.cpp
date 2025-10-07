@@ -296,6 +296,7 @@ namespace parsers{
         auto has_v2_provinces = std::filesystem::exists(path + "/map/provinces.bmp");
 
         if (has_alice_provinces) {
+            layer.province_map_is_alice = true;
             auto map = SOIL_load_image(
                 (path + "/map/alice_provinces.png").c_str(),
                 &size_x,
@@ -311,6 +312,7 @@ namespace parsers{
             result.update_available_colors();
             layer.provinces_image = std::move(result);
         } else if (has_v2_provinces) {
+            layer.province_map_is_alice = false;
             auto map = SOIL_load_image(
                 (path + "/map/provinces.bmp").c_str(),
                 &size_x,
@@ -1301,9 +1303,34 @@ namespace parsers{
         std::filesystem::create_directory(path + "/map");
 
         std::cout << "write provinces image";
+        if (layer.province_map_is_alice) {
+            SOIL_save_image(
+                (path + "/map/alice_provinces.png").c_str(),
+                SOIL_SAVE_TYPE_PNG,
+                layer.provinces_image->size_x,
+                layer.provinces_image->size_y,
+                4,
+                layer.provinces_image->provinces_image_data
+            );
+        } else {
+            SOIL_save_image(
+                (path + "/map/provinces.bmp").c_str(),
+                SOIL_SAVE_TYPE_BMP,
+                layer.provinces_image->size_x,
+                layer.provinces_image->size_y,
+                4,
+                layer.provinces_image->provinces_image_data
+            );
+        }
+    }
+    void unload_province_map_bmp(state::layer &layer, std::string path) {
+        if(layer.provinces_image == std::nullopt) return;
+        std::filesystem::create_directory(path + "/map");
+
+        std::cout << "write provinces image";
         SOIL_save_image(
-            (path + "/map/alice_provinces.png").c_str(),
-            SOIL_SAVE_TYPE_PNG,
+            (path + "/map/provinces.bmp").c_str(),
+            SOIL_SAVE_TYPE_BMP,
             layer.provinces_image->size_x,
             layer.provinces_image->size_y,
             4,
