@@ -125,79 +125,6 @@ namespace widgets {
             ImGui::EndDisabled();
     }
 
-    std::wstring open_image_selection_dialog(GUID& dialog_id) {
-        IFileOpenDialog* DIALOG;
-        auto DIALOG_RESULT = CoCreateInstance(
-            CLSID_FileOpenDialog,
-            NULL,
-            CLSCTX_ALL,
-            IID_IFileOpenDialog,
-            reinterpret_cast<void**>(&DIALOG)
-        );
-        if(FAILED(DIALOG_RESULT)) {
-            return L"";
-        }
-
-        auto hres = DIALOG->SetClientGuid(dialog_id);
-
-        if (hres != S_OK) {
-            MessageBoxW(
-                NULL,
-                L"Error during setting dialog guid.",
-                L"Something is wrong???",
-                MB_OK
-            );
-            return L"";
-        }
-
-        DIALOG->SetDefaultExtension(L"tga");
-
-        _COMDLG_FILTERSPEC FILTER_JPEG;
-        FILTER_JPEG.pszName = L"JPG (*.jpg,*.jpeg)";
-        FILTER_JPEG.pszSpec = L"*.jpg;*.jpeg";
-
-        _COMDLG_FILTERSPEC FILTER_PNG;
-        FILTER_PNG.pszName = L"PNG (*.png)";
-        FILTER_PNG.pszSpec = L"*.png";
-
-        _COMDLG_FILTERSPEC FILTER_TGA;
-        FILTER_TGA.pszName = L"TGA (*.tga)";
-        FILTER_TGA.pszSpec = L"*.tga";
-
-        std::array<_COMDLG_FILTERSPEC, 3> FILE_TYPES {FILTER_JPEG, FILTER_PNG, FILTER_TGA};
-
-        DIALOG->SetFileTypes(3, FILE_TYPES.data());
-        DIALOG->SetOptions(FOS_PATHMUSTEXIST | FOS_FILEMUSTEXIST | FOS_NOCHANGEDIR | FOS_FORCEFILESYSTEM);
-
-        DIALOG_RESULT = DIALOG->Show(NULL);
-        if(FAILED(DIALOG_RESULT)) {
-            DIALOG->Release();
-            return L"";
-        }
-
-        IShellItem* ITEM;
-        DIALOG_RESULT = DIALOG->GetResult(&ITEM);
-        if(FAILED(DIALOG_RESULT)) {
-            DIALOG->Release();
-            return L"";
-        }
-
-        //  STORE AND CONVERT THE FILE NAME
-        PWSTR RETRIEVED_PATH;
-        DIALOG_RESULT = ITEM->GetDisplayName(SIGDN_FILESYSPATH, &RETRIEVED_PATH);
-        if(FAILED(DIALOG_RESULT)) {
-            ITEM->Release();
-            DIALOG->Release();
-            return L"";
-        }
-
-        std::wstring path(RETRIEVED_PATH);
-        CoTaskMemFree(RETRIEVED_PATH);
-        ITEM->Release();
-        DIALOG->Release();
-        return path;
-    }
-
     void commodity_widget_definition(state::layers_stack& layers, std::string commodity_name) {
         state::layer& active_layer = layers.data[layers.current_layer_index];
         auto commodity = layers.get_commodity_definition(commodity_name);
@@ -391,7 +318,7 @@ namespace widgets {
                 layers.copy_resources_to_current_layer();
             }
 
-            auto result = open_image_selection_dialog(winapi::UUID_open_trade_goods_icon);
+            auto result = winapi::open_image_selection_dialog(winapi::UUID_open_trade_goods_icon);
 
             if (result.empty()) {
                 return;
@@ -1617,7 +1544,7 @@ namespace widgets {
 
                 ImGui::PushID(0);
                 if (ImGui::Button("Choose a new flag")) {
-                    auto result = open_image_selection_dialog(winapi::UUID_open_flags);
+                    auto result = winapi::open_image_selection_dialog(winapi::UUID_open_flags);
                     active_layer.paths_to_new_flags[string_tag] = result;
                 }
                 if (!flag_widget(map, storage, string_tag, default_flag_path_png)) {
@@ -1634,7 +1561,7 @@ namespace widgets {
                         std::string flag_path = "/gfx/flags/" + flag_key + ".tga";
                         std::string flag_path_png = "/gfx/flags/" + flag_key + ".png";
                         if (ImGui::Button("Choose a new flag")) {
-                            auto result = open_image_selection_dialog(winapi::UUID_open_flags);
+                            auto result = winapi::open_image_selection_dialog(winapi::UUID_open_flags);
                             active_layer.paths_to_new_flags[string_tag] = result;
                         }
                         if (!flag_widget(map, storage, flag_key, flag_path_png)) {

@@ -10,4 +10,5 @@ extern UUID UUID_open_flags;
 extern UUID UUID_open_trade_goods_icon;
 const std::wstring uuidformat = L"xxxxxxxx-xxxx-xxxx-xxxx-xxxxxxxxxxxx";
 void load_uuids();
+std::wstring open_image_selection_dialog(GUID& dialog_id);
 };

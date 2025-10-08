@@ -1,5 +1,6 @@
 #include "explorer.hpp"
 
+#include "SOIL2.h"
 #include "imgui.h"
 #include "misc/cpp/imgui_stdlib.h"
 
@@ -11,6 +12,7 @@
 #include <string>
 #include "ui_enums.hpp"
 #include "cultures-explore.hpp"
+#include "win-wrapper.hpp"
 
 namespace widgets {
 
@@ -414,27 +416,46 @@ namespace widgets {
             map.copy_goods_to_current_layer();
             map.copy_resources_to_current_layer();
             auto count = active_layer.goods.size();
+
+            auto actual_position = 0;
+            for (int skipped_class = 0; skipped_class <= selected_class; skipped_class++) {
+                // count items of classes below AND current
+                for (auto& [key, item] : map.data[map.current_layer_index].goods) {
+                    if (item.group == trade_good_classes[skipped_class]) {
+                        actual_position++;
+                    }
+                }
+            }
+
             {
                 auto& image = active_layer.resources_small;
                 auto size = image.size_x / (count + 1);
                 image.expand_image_right(size);
+                image.insert_width((actual_position + 1) * size, size);
             }
             {
                 auto& image = active_layer.resources_medium;
                 auto size = image.size_x / (count + 1);
-                image.expand_image_right(size);
+                image.insert_width((actual_position + 1) * size, size);
             }
             {
                 auto& image = active_layer.resources_big;
                 auto size = image.size_x / (count + 1);
-                image.expand_image_right(size);
+                image.insert_width((actual_position + 1) * size, size);
+            }
+
+            // update indices:
+
+            for (auto& [key, value] : active_layer.goods) {
+                if (value.index >= actual_position) {
+                    value.index++;
+                }
             }
 
             game_definition::commodity new_good {
-                .index = (int)active_layer.goods.size(),
+                .index = actual_position,
                 .name = name_of_new_good,
                 .group = trade_good_classes[selected_class],
-
             };
             active_layer.goods[name_of_new_good] = new_good;
         }
@@ -477,7 +498,7 @@ namespace widgets {
                 "Name",
                 ImGuiTableColumnFlags_DefaultSort
                 | ImGuiTableColumnFlags_WidthFixed,
-                100.0f,
+                200.0f,
                 goods_name
             );
             // ImGui::TableSetupColumn(
@@ -595,6 +616,108 @@ namespace widgets {
             }
             if (ImGui::BeginTabItem("Cultures")) {
                 cultures_list(map, control);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("GFX")) {
+                if (!map.data[map.current_layer_index].has_unit_panel_gfx) {
+                    if (ImGui::Button("Copy unit panel def to current layer")) {
+                        map.copy_unitpanel_gfx_to_current_layer();
+                    }
+                } else {
+                    auto& layer = map.data[map.current_layer_index];
+                    int counter = 0;
+
+                    for (auto& item : layer.unit_panel_gfx.sprites) {
+                        if (item.noofframes == 0) {
+                            continue;
+                        }
+
+                        ImGui::PushID(counter);
+                        ++counter;
+
+                        auto found = layer.dds_strips.find(item.texturefile);
+                        if (found == layer.dds_strips.end()) {
+                            if (ImGui::Button(("Load " + item.texturefile).c_str())) {
+                                state::interface_dds_image new_texture {};
+                                int index = map.data.size() - 1;
+                                bool loaded = false;
+                                while (index > -1 && !loaded) {
+                                    loaded = new_texture.load(map.data[index].path + "/" + item.texturefile);
+                                    --index;
+                                }
+                                layer.dds_strips[item.texturefile] = new_texture;
+                            }
+                        } else {
+                            ImGui::Text("%s", ("Edit " + item.texturefile).c_str());
+                            int frame_to_delete = -1;
+                            auto width = 1.f / (float)(item.noofframes);
+                            auto width_pixels = found->second.size_x / item.noofframes;
+                            for (auto frame = 0; frame < item.noofframes; frame++) {
+                                ImGui::PushID(frame);
+                                auto start = width * (frame);
+                                auto end = width + start;
+                                ImGui::Text("%s", std::to_string(frame + 1).c_str());
+                                ImGui::SameLine();
+                                ImGui::Image(
+                                    found->second.texture_id,
+                                    ImVec2(found->second.size_x * width, found->second.size_y),
+                                    ImVec2(start, 0.f),
+                                    ImVec2(end, 1.f)
+                                );
+                                ImGui::SameLine();
+                                if (ImGui::Button("Delete")) {
+                                    auto width_pixels = found->second.size_x / item.noofframes;
+                                    auto start = frame * found->second.size_x / item.noofframes;
+                                    found->second.erase_width(start, start + width_pixels);
+                                    item.noofframes--;
+                                }
+                                ImGui::SameLine();
+                                if (ImGui::Button("Insert above")) {
+                                    auto width_pixels = found->second.size_x / item.noofframes;
+                                    auto start = frame * found->second.size_x / item.noofframes;
+                                    found->second.insert_width(start, width_pixels);
+                                    item.noofframes++;
+                                }
+                                ImGui::SameLine();
+                                if (ImGui::Button("Rewrite")) {
+                                    auto result = winapi::open_image_selection_dialog(winapi::UUID_open_trade_goods_icon);
+                                    if (result.empty()) {
+                                        ImGui::PopID();
+                                        continue;
+                                    }
+
+                                    int size_x;
+                                    int size_y;
+                                    int channels;
+
+                                    auto uploaded_image = SOIL_load_image(
+                                        (conversions::w_to_u8(result)).c_str(),
+                                        &size_x,
+                                        &size_y,
+                                        &channels,
+                                        SOIL_LOAD_AUTO
+                                    );
+
+                                    if (uploaded_image) {
+                                        found->second.replace_area(
+                                            width_pixels * frame, 0, width_pixels,
+                                            found->second.size_y,
+                                            uploaded_image,
+                                            size_x, size_y, channels
+                                        );
+                                    }
+                                }
+                                ImGui::PopID();
+                            }
+                            if (ImGui::Button("Insert below")) {
+                                auto width_pixels = found->second.size_x / item.noofframes;
+                                found->second.expand_image_right(width_pixels);
+                                item.noofframes++;
+                            }
+                        }
+                        ImGui::PopID();
+                    }
+                }
                 ImGui::EndTabItem();
             }
             // if (ImGui::BeginTabItem("Adjacencies")) {

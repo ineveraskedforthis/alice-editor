@@ -239,6 +239,15 @@ struct interface_dds_image {
     // update existing texture
     void commit_to_gpu();
     void expand_image_right(int amount);
+    void erase_width(int start_from, int up_to);
+    void insert_width(int start, int width);
+    void replace_area(
+        int x, int y, int w, int h,
+        uint8_t* source,
+        int source_x,
+        int source_y,
+        int source_channels
+    );
 };
 
 struct protected_string {
@@ -274,6 +283,18 @@ struct alice_localisation_file {
 struct alice_localisation_folder {
     std::string name {};
     std::vector<alice_localisation_file> files {};
+};
+
+struct gfx_file {
+    std::vector<game_definition::sprite> sprites{};
+    std::vector<game_definition::sprite> text_sprites{};
+    std::vector<game_definition::sprite> masked_shields{};
+    std::vector<game_definition::sprite> cornered_sprites{};
+    std::vector<std::string> lightTypes_text{};
+    std::vector<std::string> objectTypes_text{};
+    std::vector<std::string> bitmapfonts_text{};
+    std::vector<std::string> bitmapfont_text{};
+    std::vector<std::string> fonts_text{};
 };
 
 // represent specific mod folder which overwrites previous definitions
@@ -369,21 +390,18 @@ struct layer {
     bool has_religions = false;
 
     // interface description
-    std::vector<game_definition::sprite> sprites{};
-    std::vector<game_definition::sprite> text_sprites{};
-    std::vector<game_definition::sprite> masked_shields{};
-    std::vector<game_definition::sprite> cornered_sprites{};
-    std::vector<std::string> lightTypes_text{};
-    std::vector<std::string> objectTypes_text{};
-    std::vector<std::string> bitmapfonts_text{};
-    std::vector<std::string> bitmapfont_text{};
-    std::vector<std::string> fonts_text{};
     bool has_core_gfx = false;
+    gfx_file core_gfx{};
+
+    bool has_unit_panel_gfx = false;
+    gfx_file unit_panel_gfx{};
 
     // resources images
     interface_dds_image resources_small;
     interface_dds_image resources_medium;
     interface_dds_image resources_big;
+
+    ankerl::unordered_dense::map<std::string, interface_dds_image> dds_strips;
 };
 
 struct layers_stack {
@@ -1489,30 +1507,51 @@ struct layers_stack {
         }
     }
 
-    void copy_goods_to_current_layer() {
+    void copy_unitpanel_gfx_to_current_layer() {
         layer* source = nullptr;
         for (auto& l: data) {
-            if (l.visible && l.has_goods) {
+            if (l.visible && l.has_unit_panel_gfx) {
                 source = &l;
             }
         }
-
         auto& active_layer = data[current_layer_index];
-
         if (source != nullptr) {
-            active_layer.has_goods = true;
-            active_layer.goods = source->goods;
+            active_layer.has_unit_panel_gfx = true;
+            active_layer.unit_panel_gfx = source->unit_panel_gfx;
+        }
+    }
 
-            active_layer.has_core_gfx = true;
-            active_layer.sprites = source->sprites;
-            active_layer.text_sprites = source->text_sprites;
-            active_layer.masked_shields = source->masked_shields;
-            active_layer.cornered_sprites = source->cornered_sprites;
-            active_layer.lightTypes_text = source->lightTypes_text;
-            active_layer.objectTypes_text = source->objectTypes_text;
-            active_layer.bitmapfonts_text = source->bitmapfonts_text;
-            active_layer.bitmapfont_text = source->bitmapfont_text;
-            active_layer.fonts_text = source->fonts_text;
+    void copy_goods_to_current_layer() {
+        {
+            layer* source = nullptr;
+            for (auto& l: data) {
+                if (l.visible && l.has_goods) {
+                    source = &l;
+                }
+            }
+
+            auto& active_layer = data[current_layer_index];
+
+            if (source != nullptr) {
+                active_layer.has_goods = true;
+                active_layer.goods = source->goods;
+            }
+        }
+
+        {
+            layer* source = nullptr;
+            for (auto& l: data) {
+                if (l.visible && l.has_core_gfx) {
+                    source = &l;
+                }
+            }
+
+            auto& active_layer = data[current_layer_index];
+
+            if (source != nullptr) {
+                active_layer.has_core_gfx = true;
+                active_layer.core_gfx = source->core_gfx;
+            }
         }
     }
 

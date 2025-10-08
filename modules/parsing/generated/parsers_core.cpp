@@ -225,7 +225,7 @@ void sprite::allwaystransparent(association_type, bool value, error_handler& err
 };
 
 
-void handle_sprites_group(token_generator& gen, error_handler& err, generic_context& context){
+void handle_sprites_group(token_generator& gen, error_handler& err, gfx_file_context& context){
     parse_sprites_group(gen, err, context);
 }
 
@@ -255,67 +255,67 @@ void stupid_parsing(token_generator& gen, std::string& result) {
     }
 }
 
-void save_light_types(token_generator& gen, error_handler& err, generic_context& context) {
+void save_light_types(token_generator& gen, error_handler& err, gfx_file_context& context) {
     std::string data;
     stupid_parsing(gen, data);
-    context.map.lightTypes_text.push_back(data);
+    context.gfx_file.lightTypes_text.push_back(data);
 }
-void save_object_types(token_generator& gen, error_handler& err, generic_context& context){
+void save_object_types(token_generator& gen, error_handler& err, gfx_file_context& context){
     std::string data;
     stupid_parsing(gen, data);
-    context.map.objectTypes_text.push_back(data);
+    context.gfx_file.objectTypes_text.push_back(data);
 }
-void save_bitmap_fonts(token_generator& gen, error_handler& err, generic_context& context){
+void save_bitmap_fonts(token_generator& gen, error_handler& err, gfx_file_context& context){
     std::string data;
     stupid_parsing(gen, data);
-    context.map.bitmapfonts_text.push_back(data);
+    context.gfx_file.bitmapfonts_text.push_back(data);
 }
-void save_bitmap_font(token_generator& gen, error_handler& err, generic_context& context){
+void save_bitmap_font(token_generator& gen, error_handler& err, gfx_file_context& context){
     std::string data;
     stupid_parsing(gen, data);
-    context.map.bitmapfont_text.push_back(data);
+    context.gfx_file.bitmapfont_text.push_back(data);
 }
-void save_fonts(token_generator& gen, error_handler& err, generic_context& context){
+void save_fonts(token_generator& gen, error_handler& err, gfx_file_context& context){
     std::string data;
     stupid_parsing(gen, data);
-    context.map.fonts_text.push_back(data);
+    context.gfx_file.fonts_text.push_back(data);
 }
 
-void make_sprite(token_generator& gen, error_handler& err, generic_context& context) {
+void make_sprite(token_generator& gen, error_handler& err, gfx_file_context& context) {
     game_definition::sprite result {};
     gfx_sprite_context ctx {
         .map = context.map,
         .sprite = result,
     };
     parse_sprite(gen, err, ctx);
-    context.map.sprites.push_back(result);
+    context.gfx_file.sprites.push_back(result);
 }
-void make_text_sprite(token_generator& gen, error_handler& err, generic_context& context) {
+void make_text_sprite(token_generator& gen, error_handler& err, gfx_file_context& context) {
     game_definition::sprite result {};
     gfx_sprite_context ctx {
         .map = context.map,
         .sprite = result,
     };
     parse_sprite(gen, err, ctx);
-    context.map.text_sprites.push_back(result);
+    context.gfx_file.text_sprites.push_back(result);
 }
-void make_masked_shield(token_generator& gen, error_handler& err, generic_context& context) {
+void make_masked_shield(token_generator& gen, error_handler& err, gfx_file_context& context) {
     game_definition::sprite result {};
     gfx_sprite_context ctx {
         .map = context.map,
         .sprite = result,
     };
     parse_sprite(gen, err, ctx);
-    context.map.masked_shields.push_back(result);
+    context.gfx_file.masked_shields.push_back(result);
 }
-void make_cornered_sprite(token_generator& gen, error_handler& err, generic_context& context) {
+void make_cornered_sprite(token_generator& gen, error_handler& err, gfx_file_context& context) {
     game_definition::sprite result {};
     gfx_sprite_context ctx {
         .map = context.map,
         .sprite = result,
     };
     parse_sprite(gen, err, ctx);
-    context.map.cornered_sprites.push_back(result);
+    context.gfx_file.cornered_sprites.push_back(result);
 }
 
 void make_pop_province_list(

@@ -1617,7 +1617,39 @@ border_cutoff = 1100.0
         auto str = buffer.str();
         parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
 
-        parsers::parse_core_gfx_file(tk, errors, ctx_generic);
+        gfx_file_context ctx {
+            layer, layer.core_gfx
+        };
+
+        parsers::parse_core_gfx_file(tk, errors, ctx);
+    }
+
+    void load_unitpanel_gfx(state::layer& layer, std::string path, parsers::error_handler& errors) {
+        std::cout << "Parse core.gfx\n";
+        std::cout << path + "/interface/core.gfx" << "\n";
+        if (!std::filesystem::exists(path + "/interface/unitpanel.gfx")) {
+            std::cout << "Not found\n";
+            return;
+        }
+
+        layer.has_unit_panel_gfx = true;
+        std::ifstream file(path + "/interface/unitpanel.gfx");
+        parsers::generic_context ctx_generic {
+            layer
+        };
+
+        errors.file_name = "/interface/unitpanel.gfx";
+
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        auto str = buffer.str();
+        parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+
+        gfx_file_context ctx {
+            layer, layer.unit_panel_gfx
+        };
+
+        parsers::parse_core_gfx_file(tk, errors, ctx);
     }
 
     void write_gfx(game_definition::sprite& item, std::ofstream& file, int amount_of_commodities) {
@@ -1674,33 +1706,30 @@ border_cutoff = 1100.0
         }
     }
 
-    void unload_core_gfx(state::layer& layer, std::string path, int amount_of_commodities) {
+    void unload_gfx_file(state::layer& layer, std::string path, std::string filename, state::gfx_file& data, int amount_of_commodities) {
         std::cout << "Write core.gfx\n";
-        if (!layer.has_core_gfx) {
-            return;
-        }
 
         std::filesystem::create_directory(path + "/interface");
-        std::ofstream file(path + "/interface/core.gfx");
+        std::ofstream file(path + "/interface/" + filename);
 
         file << "spriteTypes = {\n";
 
-        for (auto & item : layer.sprites) {
+        for (auto & item : data.sprites) {
             file << "\tspriteType = {\n";
             write_gfx(item, file, amount_of_commodities);
             file << "\t}\n";
         }
-        for (auto & item : layer.text_sprites) {
+        for (auto & item : data.text_sprites) {
             file << "\ttextSpriteType = {\n";
             write_gfx(item, file, amount_of_commodities);
             file << "\t}\n";
         }
-        for (auto & item : layer.masked_shields) {
+        for (auto & item : data.masked_shields) {
             file << "\tmaskedShieldType = {\n";
             write_gfx(item, file, amount_of_commodities);
             file << "\t}\n";
         }
-        for (auto & item : layer.cornered_sprites) {
+        for (auto & item : data.cornered_sprites) {
             file << "\tcorneredTileSpriteType = {\n";
             write_gfx(item, file, amount_of_commodities);
             file << "\t}\n";
@@ -1708,22 +1737,26 @@ border_cutoff = 1100.0
 
         file << "}\n";
 
-        for (auto & item : layer.lightTypes_text) {
+        for (auto & item : data.lightTypes_text) {
             file << "lightTypes = " << item << "\n";
         }
-        for (auto & item : layer.objectTypes_text) {
+        for (auto & item : data.objectTypes_text) {
             file << "objectTypes = " << item << "\n";
         }
-        for (auto & item : layer.bitmapfonts_text) {
+        for (auto & item : data.bitmapfonts_text) {
             file << "bitmapfonts = " << item << "\n";
         }
-        for (auto & item : layer.bitmapfont_text) {
+        for (auto & item : data.bitmapfont_text) {
             file << "bitmapfont = " << item << "\n";
         }
-        for (auto & item : layer.fonts_text) {
+        for (auto & item : data.fonts_text) {
             file << "fonts = " << item << "\n";
         }
     }
+
+    static std::vector<std::string> trade_good_classes = {
+        "military_goods", "raw_material_goods", "industrial_goods", "consumer_goods"
+    };
 
     void load_goods(state::layer& layer, std::string path, parsers::error_handler& errors) {
         std::cout << "Parse goods.txt\n";
@@ -1756,12 +1789,16 @@ border_cutoff = 1100.0
 
         ankerl::unordered_dense::map<std::string, std::vector<std::string>> group_to_goods {};
 
-        for (auto& [key, commodity] : layer.goods) {
-            auto iterator = group_to_goods.find(commodity.group);
-            if (iterator == group_to_goods.end()) {
-                group_to_goods[commodity.group] = {commodity.name};
-            } else {
-                iterator->second.push_back(commodity.name);
+        for (auto& commodity_class : trade_good_classes) {
+            for (auto& [key, commodity] : layer.goods) {
+                if (commodity.group == commodity_class) {
+                    auto iterator = group_to_goods.find(commodity.group);
+                    if (iterator == group_to_goods.end()) {
+                        group_to_goods[commodity_class] = {commodity.name};
+                    } else {
+                        iterator->second.push_back(commodity.name);
+                    }
+                }
             }
         }
 
@@ -1829,6 +1866,10 @@ border_cutoff = 1100.0
         layer.resources_big.save(path + "/gfx/interface/resources_big.dds");
         layer.resources_medium.save(path + "/gfx/interface/resources.dds");
         layer.resources_small.save(path + "/gfx/interface/resources_small.dds");
+
+        for (auto& [key, value] : layer.dds_strips) {
+            value.save(path + "/" + key);
+        }
     }
 
     void load_layer(state::layers_stack& state, state::layer &layer) {
@@ -1855,6 +1896,7 @@ border_cutoff = 1100.0
         load_province_history(layer, layer.path, errors);
         load_province_population(layer, layer.path, errors);
         load_core_gfx(layer, layer.path, errors);
+        load_unitpanel_gfx(layer, layer.path, errors);
         load_goods(layer, layer.path, errors);
         load_resources_image(layer, layer.path);
 
@@ -1881,7 +1923,12 @@ border_cutoff = 1100.0
         unload_province_history(layer, conversions::u8_to_w(path));
         unload_province_population(layer, path);
         unload_flags(layer, path, flag_option);
-        unload_core_gfx(layer, path, amount_of_commodities);
+        if (layer.has_core_gfx) {
+            unload_gfx_file(layer, path, "core.gfx", layer.core_gfx, amount_of_commodities);
+        }
+        if (layer.has_unit_panel_gfx) {
+            unload_gfx_file(layer, path, "unitpanel.gfx", layer.unit_panel_gfx, amount_of_commodities);
+        }
         unload_goods(layer, path);
         unload_resources_image(layer, path);
     }

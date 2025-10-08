@@ -10,6 +10,7 @@
 namespace state {
 	struct layer;
 	struct layers_stack;
+	struct gfx_file;
 };
 
 namespace parsers {
@@ -33,6 +34,11 @@ struct color_from_3i {
 
 struct generic_context{
 	state::layer& map;
+};
+
+struct gfx_file_context{
+	state::layer& map;
+	state::gfx_file& gfx_file;
 };
 
 struct commodity_group_context {
@@ -237,11 +243,11 @@ struct technology_sub_file {
 };
 
 struct core_gfx_file {
-	void finish(generic_context&) { }
+	void finish(gfx_file_context&) { }
 };
 
 struct sprites_group {
-	void finish(generic_context&) {}
+	void finish(gfx_file_context&) {}
 };
 
 struct goods_file {
@@ -301,17 +307,17 @@ struct sprite {
 	void allwaystransparent(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context);
 };
 
-void make_sprite(token_generator& gen, error_handler& err, generic_context& context);
-void make_text_sprite(token_generator& gen, error_handler& err, generic_context& context);
-void make_masked_shield(token_generator& gen, error_handler& err, generic_context& context);
-void make_cornered_sprite(token_generator& gen, error_handler& err, generic_context& context);
+void make_sprite(token_generator& gen, error_handler& err, gfx_file_context& context);
+void make_text_sprite(token_generator& gen, error_handler& err, gfx_file_context& context);
+void make_masked_shield(token_generator& gen, error_handler& err, gfx_file_context& context);
+void make_cornered_sprite(token_generator& gen, error_handler& err, gfx_file_context& context);
 
-void handle_sprites_group(token_generator& gen, error_handler& err, generic_context& context);
-void save_light_types(token_generator& gen, error_handler& err, generic_context& context);
-void save_object_types(token_generator& gen, error_handler& err, generic_context& context);
-void save_bitmap_fonts(token_generator& gen, error_handler& err, generic_context& context);
-void save_bitmap_font(token_generator& gen, error_handler& err, generic_context& context);
-void save_fonts(token_generator& gen, error_handler& err, generic_context& context);
+void handle_sprites_group(token_generator& gen, error_handler& err, gfx_file_context& context);
+void save_light_types(token_generator& gen, error_handler& err, gfx_file_context& context);
+void save_object_types(token_generator& gen, error_handler& err, gfx_file_context& context);
+void save_bitmap_fonts(token_generator& gen, error_handler& err, gfx_file_context& context);
+void save_bitmap_font(token_generator& gen, error_handler& err, gfx_file_context& context);
+void save_fonts(token_generator& gen, error_handler& err, gfx_file_context& context);
 
 void make_issue(std::string_view name, token_generator& gen, error_handler& err, issue_group_context& context);
 void make_issues_group(std::string_view name, token_generator& gen, error_handler& err, generic_context& context);
@@ -368,41 +374,40 @@ void make_pop_province_list(std::string_view name, token_generator& gen, error_h
 template<typename C>
 government_type parse_government_type(token_generator& gen, error_handler& err, C&& context);
 
-sprites_group parse_sprites_group(token_generator& gen, error_handler& err, generic_context&& context);
+sprites_group parse_sprites_group(token_generator& gen, error_handler& err, gfx_file_context& context);
 
 struct nation_history_file{
-    game_definition::nation_history& nation;
+	game_definition::nation_history& nation;
 	state::layers_stack& state;
 	state::layer& map;
 };
 
 struct national_flag_handler {
-    std::string _government;
-    std::string _flag;
-    void flag(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
-    void government(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
-    void finish(nation_history_file&) { }
+	std::string _government;
+	std::string _flag;
+	void flag(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
+	void government(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
+	void finish(nation_history_file&) { }
 };
 
 struct upper_house_handler {
-    void any_value(std::string_view label, association_type, float value, error_handler& err, int32_t line, nation_history_file& context);
-    void finish(nation_history_file&) { }
+	void any_value(std::string_view label, association_type, float value, error_handler& err, int32_t line, nation_history_file& context);
+	void finish(nation_history_file&) { }
 };
 
 struct foreign_investment_handler {
-    void any_value(std::string_view label, association_type, float value, error_handler& err, int32_t line, nation_history_file& context);
-    void finish(nation_history_file&) { }
+	void any_value(std::string_view label, association_type, float value, error_handler& err, int32_t line, nation_history_file& context);
+	void finish(nation_history_file&) { }
 };
 
 void enter_country_file_dated_block(std::string_view label, token_generator& gen, error_handler& err, nation_history_file& context);
 
 struct nation_handler {
-
-    void finish(nation_history_file&);
-    void govt_flag(national_flag_handler const& value, error_handler& err, int32_t line, nation_history_file& context);
-    foreign_investment_handler foreign_investment;
+	void finish(nation_history_file&);
+	void govt_flag(national_flag_handler const& value, error_handler& err, int32_t line, nation_history_file& context);
+	foreign_investment_handler foreign_investment;
 	upper_house_handler upper_house;
-    void set_country_flag(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
+	void set_country_flag(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
 	void set_global_flag(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
 	void colonial_points(association_type, int32_t value, error_handler& err, int32_t line, nation_history_file& context);
 	void capital(association_type, int32_t value, error_handler& err, int32_t line, nation_history_file& context);

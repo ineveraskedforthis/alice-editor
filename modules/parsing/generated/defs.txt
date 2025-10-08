@@ -25,7 +25,7 @@ sprite
 	size 					group		pair_of_x_and_y		member
 
 sprites_group
-#generic_context
+#gfx_file_context
 	spritetype				extern		make_sprite				discard
 	textspritetype			extern		make_text_sprite		discard
 	corneredtilespritetype	extern		make_cornered_sprite	discard
@@ -33,7 +33,7 @@ sprites_group
 
 
 core_gfx_file
-#generic_context
+#gfx_file_context
 	spritetypes			extern		handle_sprites_group		discard
 	lighttypes			extern		save_light_types	discard
 	objecttypes			extern		save_object_types	discard
