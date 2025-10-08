@@ -1665,13 +1665,15 @@ struct layers_stack {
         };
     }
 
-    void set_localisation(std::string key, std::vector<alice_localisation_query_response> value, std::string lang) {
+    void set_localisation(std::string key, alice_localisation_query_response value, std::string lang) {
         if (!can_edit_localisation(key, lang)) return;
         auto& current_layer = data[current_layer_index];
         for (auto& folder : current_layer.loc_alice) {
-            if (folder.name == value[0].lang) {
-                for (auto file_index = 0; file_index < folder.files.size(); file_index++) {
-                    folder.files[file_index].data_utf8[key] = value[file_index].data;
+            if (folder.name == value.lang) {
+                for (auto& file : folder.files) {
+                    if (file.name == value.filename) {
+                        file.data_utf8[key] = value.data;
+                    }
                 }
             }
         }

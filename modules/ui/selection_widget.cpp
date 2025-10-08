@@ -1333,7 +1333,9 @@ namespace widgets {
 
                                     if (can_edit) {
                                         if (ImGui::Button("Commit changes")) {
-                                            layers.set_localisation(key, edited_query, lang);
+                                            for (auto i = 0; i < edited_query.size(); i++) {
+                                                layers.set_localisation(key, edited_query[i], lang);
+                                            }
                                         }
                                     }
 

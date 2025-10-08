@@ -491,13 +491,11 @@ namespace widgets {
                 } else {
                     layers.new_localisation(key, "en-US", filename);
                     layers.new_localisation(key, "zh-CN", filename);
-                    layers.set_localisation(key, {
-                            {key, filename, "en-US", english_loc}
-                        }, "en-US"
+                    layers.set_localisation(key,
+                        {key, filename, "en-US", english_loc}, "en-US"
                     );
-                    layers.set_localisation(key, {
-                            {key, filename, "zh-CN", chinese_loc}
-                        }, "zh-CN"
+                    layers.set_localisation(key,
+                        {key, filename, "zh-CN", chinese_loc}, "zh-CN"
                     );
                 }
             }
