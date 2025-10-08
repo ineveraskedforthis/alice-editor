@@ -1502,6 +1502,17 @@ struct layers_stack {
         if (source != nullptr) {
             active_layer.has_goods = true;
             active_layer.goods = source->goods;
+
+            active_layer.has_core_gfx = true;
+            active_layer.sprites = source->sprites;
+            active_layer.text_sprites = source->text_sprites;
+            active_layer.masked_shields = source->masked_shields;
+            active_layer.cornered_sprites = source->cornered_sprites;
+            active_layer.lightTypes_text = source->lightTypes_text;
+            active_layer.objectTypes_text = source->objectTypes_text;
+            active_layer.bitmapfonts_text = source->bitmapfonts_text;
+            active_layer.bitmapfont_text = source->bitmapfont_text;
+            active_layer.fonts_text = source->fonts_text;
         }
     }
 
