@@ -275,13 +275,13 @@ int main(int argc, char* argv[]) {
 
         glBindBuffer(GL_ARRAY_BUFFER, 0);
         glBindVertexArray(0);
-        state::check_gl_error("rivers buffers");
+        ogl::check_gl_error("rivers buffers");
 
         // loading textures for icons:
 
 
 
-        state::check_gl_error("Before shaders");
+        ogl::check_gl_error("Before shaders");
 
         std::cout << "loading shaders\n";
         auto vertex_shader = create_shader(
@@ -312,7 +312,7 @@ int main(int argc, char* argv[]) {
             TO_LOCATION[SHADER_UNIFORMS::TRIANGLE_VIEW] = glGetUniformLocation(editor.triangle_program, "view");
         }
 
-        state::check_gl_error("Shaders");
+        ogl::check_gl_error("Shaders");
 
         TO_LOCATION[SHADER_UNIFORMS::PROVINCE_INDICES] = glGetUniformLocation(editor.map_program, "province_indices");
         TO_LOCATION[SHADER_UNIFORMS::PROVINCE_IS_SEA] = glGetUniformLocation(editor.map_program, "is_sea_texture");
@@ -339,7 +339,7 @@ int main(int argc, char* argv[]) {
         auto last_frame_start = std::chrono::high_resolution_clock::now();
 
         glGenVertexArrays(1, &editor.map_fake_VAO);
-        state::check_gl_error("Vertex array");
+        ogl::check_gl_error("Vertex array");
 
         glm::vec3 shift {0, 0, 0.5};
         float zoom = 1.f;
@@ -363,7 +363,7 @@ int main(int argc, char* argv[]) {
         TO_LOCATION[SHADER_UNIFORMS::MODEL_LINE] = glGetUniformLocation(editor.line_program, "model");
         TO_LOCATION[SHADER_UNIFORMS::VIEW_LINE] = glGetUniformLocation(editor.line_program, "view");
 
-        state::check_gl_error("line shaders");
+        ogl::check_gl_error("line shaders");
 
         // prepare opengl stuff for fill tool display
         glGenVertexArrays(1, &editor.fill_tool_VertexArray);
@@ -391,7 +391,7 @@ int main(int argc, char* argv[]) {
         glBindVertexArray(0);
 
 
-        state::check_gl_error("line buffers");
+        ogl::check_gl_error("line buffers");
 
         window.running = true;
 

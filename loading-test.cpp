@@ -3,11 +3,8 @@
 #include <string>
 #include <vector>
 #include "GL/glew.h"
-#include "modules/glm/fwd.hpp"
 #include "modules/parsing/generated/parsers_core.hpp"
 #include "modules/parsing/map.hpp"
-#define GLM_ENABLE_EXPERIMENTAL
-#include "modules/glm/ext/matrix_transform.hpp"
 
 #include "modules/ui/editor.hpp"
 #include "modules/ui/window-wrapper.hpp"

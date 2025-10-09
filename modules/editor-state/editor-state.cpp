@@ -1,6 +1,5 @@
 #include <optional>
 #include <string>
-#include <iostream>
 #include <algorithm>
 #include "editor-state.hpp"
 
@@ -14,27 +13,6 @@ namespace state {
 
 int inline pairing(glm::ivec2 a, glm::ivec2 b) {
     return a.x * b.x + a.y * b.y;
-}
-
-void check_gl_error(std::string message) {
-    auto error = glGetError();
-    if (error != GL_NO_ERROR) {
-        std::cout << "Error at ";
-        std::cout << message << "\n";
-        std::cout << "Gl Error " << error << ": ";
-        std::cout << glewGetErrorString(error) << "\n";
-    }
-}
-
-std::string fill_mode_string(FILL_MODE MODE) {
-    switch (MODE) {
-    case FILL_MODE::PROVINCE:
-        return "Province";
-        break;
-    case FILL_MODE::OWNER_AND_CONTROLLER:
-        return "Owner&Control";
-        break;
-    }
 }
 
 int pixel(control& control_state, layers_stack& map) {
@@ -115,7 +93,7 @@ void paint_state(control& control_state, layers_stack& map, uint32_t target_pixe
 
 void paint_province_safe(control& control_state, layers_stack& map, int pixel_index, uint32_t province_index) {
     auto color = map.sample_province_color(pixel_index);
-    auto rgb_target = state::rgb_to_uint(color.r, color.g, color.b);
+    auto rgb_target = datatypes::rgb_to_uint(color.r, color.g, color.b);
     auto index_target = map.rgb_to_v2id(color.r, color.g, color.b);
     if (index_target == std::nullopt) return;
     auto source_is_sea = map.sample_province_is_sea(province_index);
@@ -130,7 +108,7 @@ void paint_province_unsafe(control& control_state, layers_stack& map, int pixel_
 
 void paint_controler_and_owner_safe(control& control_state, layers_stack& map, int pixel_index) {
     auto color = map.sample_province_color(pixel_index);
-    auto rgb_target = state::rgb_to_uint(color.r, color.g, color.b);
+    auto rgb_target = datatypes::rgb_to_uint(color.r, color.g, color.b);
     auto index_target_optional = map.rgb_to_v2id(color.r, color.g, color.b);
     if (index_target_optional == std::nullopt) return;
     auto index_target = index_target_optional.value();

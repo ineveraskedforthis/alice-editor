@@ -1,3 +1,5 @@
+#pragma once
+
 #include "GL/glew.h"
 #include <algorithm>
 #include <array>
@@ -6,29 +8,25 @@
 #include <iostream>
 #include <optional>
 #include <vector>
-
 #include "../colormaps/viridis.hpp"
-
 #include "../glm/fwd.hpp"
-#define GLM_ENABLE_EXPERIMENTAL
-#include "../glm/ext/matrix_transform.hpp"
+#include "../glm/ext/vector_float2.hpp"
+#include "../glm/ext/vector_int2.hpp"
 #include <string>
-
 #include "GL/glew.h"
-
+#include "../gl-wrapper/inline.hpp"
 #include "../parsing/definitions.hpp"
-
-#include "../map/unordered_dense.h"
 #include "../conversion.hpp"
+#include "../gl-wrapper/texture-dds.hpp"
+#include "province-map.hpp"
+#include "inline.hpp"
+#include "editor-enums.hpp"
+#include "../gl-wrapper/texture.hpp"
 
 #undef max
 #undef min
 
 namespace state {
-
-enum class MAP_MODE {
-    OWNER, CONTINENT, CULTURE, POP_DENSITY
-};
 
 glm::vec2 screen_to_texture(
     int x_in,
@@ -49,29 +47,8 @@ glm::vec2 screen_to_texture(
     // USER CAN REQUEST TO COPY DATA TO THE ACTIVE LAYER FROM THE HIGHEST VISIBLE LAYER WHICH HAS THE REQUIRED DATA
 
 
-// converts rgb to a single number
-uint32_t inline rgb_to_uint(int r, int g, int b) {
-    return (r << 16) + (g << 8) + b;
-}
 
 
-struct color {
-    uint8_t r;
-    uint8_t g;
-    uint8_t b;
-};
-
-color inline uint_to_r_g_b(uint32_t c) {
-    auto r = c >> 16;
-    c -= (r << 16);
-    auto g = c >> 8;
-    c -= (g << 8);
-    auto b = c;
-
-    return {(uint8_t)r, (uint8_t)g, (uint8_t)b};
-}
-
-void check_gl_error(std::string message);
 
 struct province_texture {
     int size_x = 0;
@@ -89,11 +66,7 @@ struct province_texture {
     std::vector<uint8_t> v2id_exists{};
     std::vector<glm::vec2> v2id_to_mean{};
 
-    province_texture(){
-        v2id_to_size.resize(256 * 256);
-        v2id_exists.resize(256 * 256);
-        v2id_to_mean.resize(256 * 256);
-    };
+    province_texture();
     province_texture& operator=(province_texture& source);
     int coord_to_pixel(glm::ivec2 coord);
     void load_province_texture_to_gpu();
@@ -101,154 +74,8 @@ struct province_texture {
     void commit_province_texture_changes_to_gpu();
 };
 
-struct province_map {
-    int size_x = 0;
-    int size_y = 0;
-    uint8_t* provinces_image_data = nullptr;
 
-    uint32_t available_color = 0;
-    uint8_t available_r = 0;
-    uint8_t available_g = 0;
-    uint8_t available_b = 0;
 
-    std::vector<uint8_t> color_present {};
-
-    void clear();
-    void update_available_colors();
-    void recalculate_present_colors();
-    void populate_adjacent_colors(uint32_t rgb, std::vector<uint32_t> & result);
-
-    int inline coord_to_pixel(glm::ivec2 coord) {
-        return coord.y * size_x + coord.x;
-    }
-    int inline coord_to_pixel(glm::vec2 coord) {
-        return int(std::floor(coord.y))
-            * size_x
-            + int(std::floor(coord.x));
-    }
-
-    // constructor from dim
-    explicit province_map(int x, int y) {
-        size_x = x;
-        size_y = y;
-        provinces_image_data = new uint8_t[size_x * size_y * 4];
-    }
-
-    // constructor from dim and data
-    explicit province_map(int x, int y, uint8_t* data) {
-        size_x = x;
-        size_y = y;
-        provinces_image_data = data;
-    }
-
-    // destructor
-    ~province_map()
-    {
-        delete[] provinces_image_data;
-    }
-
-    // copy constructor
-    province_map(const province_map& source) {
-        // delete old data
-        delete[] provinces_image_data;
-
-        size_x = source.size_x;
-        size_y = source.size_y;
-
-        // create new data and copy values there
-        provinces_image_data = new uint8_t[size_x * size_y * 4];
-        std::copy(source.provinces_image_data, source.provinces_image_data + size_x * size_y * 4, provinces_image_data);
-        color_present = source.color_present;
-        available_r = source.available_r;
-        available_g = source.available_g;
-        available_b = source.available_b;
-    }
-
-    // copy assignment
-    province_map& operator=(province_map& source) {
-        if (&source == this)
-			return *this;
-
-        delete[] provinces_image_data;
-
-        size_x = source.size_x;
-        size_y = source.size_y;
-
-        provinces_image_data = new uint8_t[size_x * size_y * 4];
-        std::copy(source.provinces_image_data, source.provinces_image_data + size_x * size_y * 4, provinces_image_data);
-        color_present = source.color_present;
-        available_r = source.available_r;
-        available_g = source.available_g;
-        available_b = source.available_b;
-
-        return *this;
-    }
-
-    // move constructor
-    province_map(province_map&& source) noexcept :
-    size_x(std::move(source.size_x)),
-    size_y(std::move(source.size_y)),
-    available_r(std::move(source.available_r)),
-    available_g(std::move(source.available_g)),
-    available_b(std::move(source.available_b)),
-    color_present(std::move(source.color_present)),
-    provinces_image_data(source.provinces_image_data) {
-        source.clear();
-    }
-
-    // move assignment
-    province_map& operator=(province_map&& source) noexcept {
-        if (&source == this)
-			return *this;
-
-        // delete whatever we had in the array
-        delete[] provinces_image_data;
-        // steal pointer
-        provinces_image_data = std::move(source.provinces_image_data);
-        size_x = std::move(source.size_x);
-        size_y = std::move(source.size_y);
-        available_r = std::move(source.available_r),
-        available_g = std::move(source.available_g);
-        available_b = std::move(source.available_b);
-        color_present = std::move(source.color_present);
-        source.clear();
-        return *this;
-    }
-
-    int screen_to_pixel(glm::vec2 screen) {
-        auto w = size_x;
-        return int(std::floor(screen.y) * w + std::floor(screen.x));
-    }
-};
-
-struct interface_dds_image {
-    uint8_t* data = nullptr;
-    int size_x;
-    int size_y;
-    int channels;
-
-    GLuint texture_id = 0;
-
-    interface_dds_image& operator=(interface_dds_image& source);
-
-    bool valid();
-    bool load(std::string path);
-    void save(std::string path);
-    // initial loading
-    void upload_to_gpu();
-    // update existing texture
-    void commit_to_gpu();
-    void expand_image_right(int amount);
-    void erase_width(int start_from, int up_to);
-    void insert_width(int start, int width);
-    void replace_area(
-        int x, int y, int w, int h,
-        uint8_t* source,
-        int source_x,
-        int source_y,
-        int source_channels
-    );
-};
 
 struct protected_string {
     bool can_edit;
@@ -325,6 +152,8 @@ struct layer {
 
     bool has_continent_txt = false;
 
+    ankerl::unordered_dense::map<std::string, ogl::data_texture> secondary_rgo_map;
+
     uint8_t province_is_sea[256 * 256];
     GLuint sea_texture;
     bool has_default_map;
@@ -397,11 +226,11 @@ struct layer {
     gfx_file unit_panel_gfx{};
 
     // resources images
-    interface_dds_image resources_small;
-    interface_dds_image resources_medium;
-    interface_dds_image resources_big;
+    ogl::interface_dds_image resources_small;
+    ogl::interface_dds_image resources_medium;
+    ogl::interface_dds_image resources_big;
 
-    ankerl::unordered_dense::map<std::string, interface_dds_image> dds_strips;
+    ankerl::unordered_dense::map<std::string, ogl::interface_dds_image> dds_strips;
 };
 
 struct layers_stack {
@@ -452,7 +281,7 @@ struct layers_stack {
                 auto r = layer_with_province_map->provinces_image->provinces_image_data[4 * i + 0];
                 auto g = layer_with_province_map->provinces_image->provinces_image_data[4 * i + 1];
                 auto b = layer_with_province_map->provinces_image->provinces_image_data[4 * i + 2];
-                auto rgb = rgb_to_uint(r, g, b);
+                auto rgb = datatypes::rgb_to_uint(r, g, b);
                 auto find_result = layer_with_definitions->rgb_to_v2id.find(rgb);
                 if (find_result != layer_with_definitions->rgb_to_v2id.end()) {
                     auto index = find_result->second;
@@ -595,7 +424,7 @@ struct layers_stack {
             GL_UNSIGNED_BYTE,
             province_colors
         );
-        check_gl_error("State texture update");
+        ogl::check_gl_error("State texture update");
     }
     void inline commit_province_colors_texture_to_gpu() {
         glBindTexture(GL_TEXTURE_2D, province_colors_texture);
@@ -661,8 +490,8 @@ struct layers_stack {
         auto index_pair = sample_province_index_pair(pixel);
         return index_pair.x + index_pair.y * 256;
     }
-    color sample_province_color(int pixel) {
-        color result {0, 0, 0};
+    datatypes::color sample_province_color(int pixel) {
+        datatypes::color result {0, 0, 0};
         layer* last_layer = nullptr;
         for (auto& l: data) {
             if (l.visible && l.provinces_image != std::nullopt) {
@@ -717,7 +546,7 @@ struct layers_stack {
     }
 
     std::optional<int> rgb_to_v2id(uint8_t r, uint8_t g, uint8_t b) {
-        auto rgb = rgb_to_uint(r, g, b);
+        auto rgb = datatypes::rgb_to_uint(r, g, b);
         std::optional<int> index = std::nullopt;
         for (auto& l: data) {
             if(l.visible && l.has_province_definitions) {
@@ -2041,7 +1870,7 @@ struct layers_stack {
         }
 
         auto c = sample_province_color(pixel);
-        auto old_rgb = rgb_to_uint(c.r, c.g, c.b);
+        auto old_rgb = datatypes::rgb_to_uint(c.r, c.g, c.b);
         auto old_v2id = sample_province_index(pixel);
 
         // update available colors
@@ -2071,7 +1900,7 @@ struct layers_stack {
 
         auto& def = active_layer.province_definitions[active_layer.province_definitions.size() - 1];
 
-        auto new_rgb = rgb_to_uint(def.r, def.g, def.b);
+        auto new_rgb = datatypes::rgb_to_uint(def.r, def.g, def.b);
         active_layer.rgb_to_v2id[new_rgb] = def.v2id;
 
         // create province history

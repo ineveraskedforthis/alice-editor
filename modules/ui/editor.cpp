@@ -103,15 +103,7 @@ namespace widgets {
             ImGui::EndCombo();
         }
 
-        std::string mapmode_preview = "Political";
-        if (control.map_mode == state::MAP_MODE::CONTINENT) {
-            mapmode_preview = "Continent";
-        } else if (control.map_mode == state::MAP_MODE::POP_DENSITY) {
-            mapmode_preview = "Pop. density";
-        } else if (control.map_mode == state::MAP_MODE::CULTURE) {
-            mapmode_preview = "Culture";
-        }
-
+        std::string mapmode_preview = state::to_string(control.map_mode);
 
         if (ImGui::BeginCombo("Map mode", mapmode_preview.c_str())) {
             {
@@ -207,10 +199,10 @@ namespace widgets {
 
         if (control.mode == state::CONTROL_MODE::FILL) {
             ImGui::Text("Fill mode");
-            if (ImGui::BeginCombo("dropdown fill", fill_mode_string(control.fill_mode).c_str())) {
+            if (ImGui::BeginCombo("dropdown fill", state::to_string(control.fill_mode).c_str())) {
                 for (int n = 0; n < 2; n++) {
                     const bool is_selected = (control.fill_mode == (state::FILL_MODE)n);
-                    if (ImGui::Selectable(fill_mode_string((state::FILL_MODE)n).c_str(), is_selected))
+                    if (ImGui::Selectable(state::to_string((state::FILL_MODE)n).c_str(), is_selected))
                         control.fill_mode = (state::FILL_MODE)n;
                     if (is_selected)
                         ImGui::SetItemDefaultFocus();
@@ -848,7 +840,7 @@ namespace widgets {
         glBindVertexArray(editor.map_fake_VAO);
         glDrawArrays(GL_TRIANGLES, 0, 6 * 2 * 2);
 
-        state::check_gl_error("After draw:");
+        ogl::check_gl_error("After draw:");
 
         if (
             (
@@ -896,7 +888,7 @@ namespace widgets {
         glBindVertexArray(adj_VAO);
         glDrawArrays(GL_TRIANGLES, 0, adj_vertices_count);
 
-        state::check_gl_error("After draw line:");
+        ogl::check_gl_error("After draw line:");
 
         glUseProgram(editor.rivers_program);
 
@@ -906,7 +898,7 @@ namespace widgets {
         glBindVertexArray(rivers_VAO);
         glDrawArrays(GL_TRIANGLES, 0, control.rivers_mesh.size());
 
-        state::check_gl_error("After draw rivers:");
+        ogl::check_gl_error("After draw rivers:");
 
         if (control.reset_focus) {
             ImGui::SetWindowFocus(NULL);

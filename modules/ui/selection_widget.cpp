@@ -182,7 +182,7 @@ namespace widgets {
     }
 
     void compress_image_to_commodity_strip(
-        state::interface_dds_image& target,
+        ogl::interface_dds_image& target,
         int count,
         int target_index,
         uint8_t* new_image,
@@ -452,7 +452,7 @@ namespace widgets {
                     control.local_adjacency.clear();
 
                     std::vector<uint32_t> adj_colors{};
-                    map.populate_adjacent_colors(state::rgb_to_uint(def->r, def->g, def->b), adj_colors);
+                    map.populate_adjacent_colors(datatypes::rgb_to_uint(def->r, def->g, def->b), adj_colors);
 
                     for (auto & rgb : adj_colors) {
                         auto adj_v2id = map.rgb_to_v2id(rgb);

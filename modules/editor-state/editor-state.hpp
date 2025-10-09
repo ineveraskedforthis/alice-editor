@@ -7,28 +7,12 @@
 #include <string>
 
 #include "../glm/fwd.hpp"
-#define GLM_ENABLE_EXPERIMENTAL
-#include "../glm/ext/matrix_transform.hpp"
 
 #include "GL/glew.h"
 #include "content-state.hpp"
 #include "editor-enums.hpp"
 
 namespace state {
-
-void check_gl_error(std::string message);
-
-
-enum class CONTROL_MODE {
-    NONE, SELECT, PICKING_COLOR, PAINTING, FILL, FILL_UNSAFE
-};
-
-
-enum class FILL_MODE {
-    PROVINCE, OWNER_AND_CONTROLLER
-};
-
-std::string fill_mode_string(FILL_MODE MODE);
 
 struct selected_pop {
     uint32_t v2id;

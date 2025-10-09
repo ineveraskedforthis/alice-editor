@@ -638,7 +638,7 @@ namespace widgets {
                         auto found = layer.dds_strips.find(item.texturefile);
                         if (found == layer.dds_strips.end()) {
                             if (ImGui::Button(("Load " + item.texturefile).c_str())) {
-                                state::interface_dds_image new_texture {};
+                                ogl::interface_dds_image new_texture {};
                                 int index = map.data.size() - 1;
                                 bool loaded = false;
                                 while (index > -1 && !loaded) {
