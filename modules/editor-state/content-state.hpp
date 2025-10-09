@@ -238,6 +238,8 @@ struct layers_stack {
 
     bool request_map_update = false;
 
+    ogl::data_texture* get_rgo_texture(std::string commodity);
+
     // this data is based on history files which could be spread across several layers,
     // so we have to store it outside of layers
 
@@ -1244,7 +1246,9 @@ struct layers_stack {
 
     void copy_province_history_to_current_layer(int v2id) {
         auto available_history = get_province_history(v2id);
-        data[current_layer_index].province_history[v2id] = *available_history;
+        if (available_history) {
+            data[current_layer_index].province_history[v2id] = *available_history;
+        }
     }
 
     void set_province_history(int v2id) {

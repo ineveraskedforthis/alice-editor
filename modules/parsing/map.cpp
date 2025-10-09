@@ -1493,6 +1493,7 @@ border_cutoff = 1100.0
         std::filesystem::create_directory(path + L"/history");
         std::filesystem::create_directory(path + L"/history/provinces");
 
+
         for (auto& [key, val] : layer.province_history) {
             auto folder_path = path + L"/history/provinces/" + val.historical_region;
             std::filesystem::create_directory(folder_path);
@@ -1778,6 +1779,36 @@ border_cutoff = 1100.0
         parsers::parse_goods_file(tk, errors, ctx_generic);
     }
 
+    void after_loading_goods_and_province_history(state::layer& layer, std::string path) {
+        for (auto& [key, commodity] : layer.goods) {
+            auto has_heatmap = std::filesystem::exists(path + "/rgo_heat_" + key + ".png");
+            if (!has_heatmap) continue;
+
+            for (auto& [v2id, prov] : layer.province_history) {
+                prov.secondary_rgo_size[key] = 0;
+            }
+
+            ogl::data_texture heatmap;
+            int size_x;
+            int size_y;
+            int channels;
+            auto map = SOIL_load_image(
+                (path + "/rgo_heat_" + key + ".png").c_str(),
+                &size_x,
+                &size_y,
+                &channels,
+                4
+            );
+            heatmap.clear(size_x, size_y, 1);
+            for (int pixel = 0; pixel < size_x * size_y; pixel++) {
+                heatmap.data[pixel] = map[pixel * 4];
+            }
+            heatmap.upload_to_gpu();
+            layer.secondary_rgo_map[key] = heatmap;
+            layer.secondary_rgo_map[key].update_texture = true;
+        }
+    }
+
     void unload_goods(state::layer& layer, std::string path) {
         std::cout << "Write goods\n";
         if (!layer.has_goods) {
@@ -1788,6 +1819,13 @@ border_cutoff = 1100.0
         std::ofstream file(path + "common/goods.txt");
 
         ankerl::unordered_dense::map<std::string, std::vector<std::string>> group_to_goods {};
+
+        for (auto& [key, commodity] : layer.goods) {
+            auto texture_exists = layer.secondary_rgo_map.find(key);
+            if (texture_exists == layer.secondary_rgo_map.end()) continue;
+            auto& texture = texture_exists->second;
+            SOIL_save_image((path + "/rgo_heat_" + key + ".png").c_str(), SOIL_SAVE_TYPE_PNG, texture.size_x, texture.size_y, 1, texture.data);
+        }
 
         for (auto& commodity_class : trade_good_classes) {
             for (auto& [key, commodity] : layer.goods) {
@@ -1899,6 +1937,7 @@ border_cutoff = 1100.0
         load_unitpanel_gfx(layer, layer.path, errors);
         load_goods(layer, layer.path, errors);
         load_resources_image(layer, layer.path);
+        after_loading_goods_and_province_history(layer, layer.path);
 
         std::cout << errors.accumulated_errors;
     }

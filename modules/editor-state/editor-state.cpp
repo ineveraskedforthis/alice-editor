@@ -2,6 +2,7 @@
 #include <string>
 #include <algorithm>
 #include "editor-state.hpp"
+#include "editor-enums.hpp"
 
 #undef max
 #undef min
@@ -100,6 +101,13 @@ void paint_province_safe(control& control_state, layers_stack& map, int pixel_in
     auto target_is_sea = map.sample_province_is_sea(index_target.value());
     if (source_is_sea != target_is_sea) return;
     map.set_pixel(pixel_index, control_state.r, control_state.g, control_state.b);
+}
+
+void paint_rgo(control& control_state, layers_stack& map, int x, int y, int8_t intensity) {
+    auto texture = map.get_rgo_texture(control_state.selected_commodity);
+    if (texture) {
+        texture->add_r(x, y, intensity);
+    }
 }
 
 void paint_province_unsafe(control& control_state, layers_stack& map, int pixel_index) {

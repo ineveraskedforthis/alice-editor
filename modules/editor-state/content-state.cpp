@@ -183,6 +183,19 @@ void province_texture::commit_province_texture_changes_to_gpu() {
 }
 
 
+ogl::data_texture*  layers_stack::get_rgo_texture(std::string commodity) {
+    int last = current_layer_index;
+    while (last >= 0) {
+        if (!data[last].visible) continue;
+
+        auto found = data[last].secondary_rgo_map.find(commodity);
+        if (found != data[last].secondary_rgo_map.end()) {
+            return &found->second;
+        }
+        --last;
+    }
+    return nullptr;
+}
 
 // TODO
 void layers_stack::save_population_texture() {

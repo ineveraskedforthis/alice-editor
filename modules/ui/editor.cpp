@@ -70,6 +70,42 @@ namespace widgets {
 
         if (ImGui::Button("SAVE")) {
             std::filesystem::create_directory("./editor-output");
+
+            // write secondary rgos to provinces:
+
+            auto size_x = layers.get_provinces_image_x();
+            auto size_y = layers.get_provinces_image_y();
+            auto& commodities = layers.data[layers.current_layer_index].goods;
+
+            // reset all secondary rgo:
+            for (auto& [key, value] : layers.data[layers.current_layer_index].province_history) {
+                value.secondary_rgo_size.clear();
+            }
+
+            for (int pixel = 0; pixel < size_x * size_y; pixel++) {
+                auto v2id = layers.sample_province_index(pixel);
+                auto province_history = layers.get_province_history(v2id);
+                if (province_history == nullptr) continue;
+
+                for (auto& [key, c] : commodities) {
+                    auto data = layers.get_rgo_texture(key);
+                    if (data == nullptr) continue;
+                    if (data->data[pixel] == 0) continue;
+
+                    if (!layers.can_edit_province_history(v2id)) {
+                        layers.copy_province_history_to_current_layer(v2id);
+                        province_history = layers.get_province_history(v2id);
+                        province_history->secondary_rgo_size.clear();
+                    }
+
+                    auto found = province_history->secondary_rgo_size.find(key);
+                    if (found == province_history->secondary_rgo_size.end()) {
+                        province_history->secondary_rgo_size[key] = 0;
+                    }
+                    province_history->secondary_rgo_size[key] += (int)(data->data[pixel]) * 10;
+                }
+            }
+
             parsers::unload_data(
                 layers.data[layers.current_layer_index],
                 "./editor-output/" + std::to_string(layers.current_layer_index) + "/",
@@ -137,6 +173,15 @@ namespace widgets {
                 const bool is_selected = (control.map_mode == state::MAP_MODE::CULTURE);
                 if (ImGui::Selectable("Culture", is_selected)) {
                     control.map_mode = state::MAP_MODE::CULTURE;
+                    layers.request_map_update = true;
+                }
+                if (is_selected)
+                    ImGui::SetItemDefaultFocus();
+            }
+            if (control.selected_commodity.size() != 0) {
+                const bool is_selected = (control.map_mode == state::MAP_MODE::RGO);
+                if (ImGui::Selectable("RGO", is_selected)) {
+                    control.map_mode = state::MAP_MODE::RGO;
                     layers.request_map_update = true;
                 }
                 if (is_selected)
@@ -727,12 +772,31 @@ namespace widgets {
                     if (target.y < control.delayed_map_coord.y) {
                         control.delayed_map_coord.y--;
                     }
-                    if (control.mode == state::CONTROL_MODE::FILL) {
-                        paint_line(control, layers, true);
+                    if (control.map_mode == state::MAP_MODE::RGO) {
+                        if (control.mode == state::CONTROL_MODE::FILL) {
+                            if (control.paint_progress >= 1.f) {
+                                auto radius = int(glm::distance(
+                                    glm::vec2(control.delayed_map_coord),
+                                    glm::vec2(control.fill_center)
+                                ));
+                                for (int dx = -radius; dx <= radius; dx++) {
+                                    for (int dy = -radius; dy <= radius; dy++) {
+                                        if (dx * dx + dy * dy <= radius * radius)
+                                            state::paint_rgo(control, layers, control.fill_center.x + dx, control.fill_center.y + dy, 5);
+                                    }
+                                }
+                                control.paint_progress = 0.f;
+                            }
+                        }
+                    } else {
+                        if (control.mode == state::CONTROL_MODE::FILL) {
+                            paint_line(control, layers, true);
+                        }
+                        if (control.mode == state::CONTROL_MODE::FILL_UNSAFE) {
+                            paint_line(control, layers, false);
+                        }
                     }
-                    if (control.mode == state::CONTROL_MODE::FILL_UNSAFE) {
-                        paint_line(control, layers, false);
-                    }
+
                 }
                 break;
             }
@@ -835,6 +899,30 @@ namespace widgets {
         layers.get_province_colors_texture(owners_texture);
         glBindTexture(GL_TEXTURE_2D, owners_texture);
         glUniform1i(uniform_locations[SHADER_UNIFORMS::OWNER_DATA], 3);
+
+        glActiveTexture(GL_TEXTURE4);
+
+        if (control.map_mode == state::MAP_MODE::RGO && !control.selected_commodity.empty()) {
+            glUniform1f(uniform_locations[SHADER_UNIFORMS::DISPLAY_DATA_TEXTURE], 1.f);
+            auto texture = layers.get_rgo_texture(control.selected_commodity);
+            if (texture) {
+                if (control.update_rgo_map) {
+                    texture->update_texture = true;
+                    control.update_rgo_map = false;
+                }
+                texture->commit_to_gpu();
+                glUniform1i(uniform_locations[SHADER_UNIFORMS::DATA_TEXTURE], texture->texture_id);
+            } else {
+                ogl::data_texture empty_data {};
+                empty_data.clear(layers.get_provinces_image_x(), layers.get_provinces_image_y(), 1);
+                empty_data.upload_to_gpu();
+                glUniform1i(uniform_locations[SHADER_UNIFORMS::DATA_TEXTURE], empty_data.texture_id);
+                layers.data[layers.current_layer_index].secondary_rgo_map[control.selected_commodity] = empty_data;
+            }
+        } else {
+            glUniform1f(uniform_locations[SHADER_UNIFORMS::DISPLAY_DATA_TEXTURE], 0.f);
+        }
+        glUniform1i(uniform_locations[SHADER_UNIFORMS::DATA_TEXTURE], 4);
 
 
         glBindVertexArray(editor.map_fake_VAO);

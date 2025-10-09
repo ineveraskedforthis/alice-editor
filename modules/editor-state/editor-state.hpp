@@ -41,6 +41,7 @@ struct control {
     std::vector<selected_pop> selected_pops{};
 
     std::string selected_culture {};
+    float paint_progress = 0.f;
 
     bool moving_the_map = false;
     glm::vec2 camera_shift {};
@@ -48,6 +49,7 @@ struct control {
     // glm::vec2 selected_province;
     uint32_t selected_province_id = 0;
     std::string selected_commodity {};
+    bool update_rgo_map = false;
     std::string selected_tag {};
     bool selection_delay = false;
     glm::vec2 hovered_province {};
@@ -97,6 +99,7 @@ void pick_color(control& control_state, layers_stack& map);
 void paint(control& control_state, layers_stack& map);
 void paint_state(control& control_state, layers_stack& map, uint32_t target_pixel, uint32_t source_pixel);
 void paint_controler_and_owner_safe(control& control_state, layers_stack& map, int pixel_index);
+void paint_rgo(control& control_state, layers_stack& map, int x, int y, int8_t intensity);
 void paint_safe(control& control_state, layers_stack& map, int pixel_index, uint32_t province_index);
 void paint_line(control& control_state, layers_stack& map, bool respect_coasts);
 

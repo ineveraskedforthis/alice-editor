@@ -320,6 +320,9 @@ int main(int argc, char* argv[]) {
         TO_LOCATION[SHADER_UNIFORMS::OWNER_DATA] = glGetUniformLocation(editor.map_program, "owner_data");
         TO_LOCATION[SHADER_UNIFORMS::RIVERS] = glGetUniformLocation(editor.map_program, "rivers");
 
+        TO_LOCATION[SHADER_UNIFORMS::DATA_TEXTURE] = glGetUniformLocation(editor.map_program, "additional_data");
+        TO_LOCATION[SHADER_UNIFORMS::DISPLAY_DATA_TEXTURE] = glGetUniformLocation(editor.map_program, "display_additional_data");
+
         TO_LOCATION[SHADER_UNIFORMS::HAVE_BORDERS] = glGetUniformLocation(editor.map_program, "have_color_border");
 
         TO_LOCATION[SHADER_UNIFORMS::MODEL] = glGetUniformLocation(editor.map_program, "model");
@@ -431,6 +434,12 @@ int main(int argc, char* argv[]) {
             time += dt;
             update_timer += dt;
             update_texture_timer += dt;
+
+            if (control_state.lmb_pressed) {
+                control_state.paint_progress = std::min(control_state.paint_progress + dt * 10.f, 1.f);
+            } else {
+                control_state.paint_progress = 0.f;
+            }
 
             if (update_timer < frame_time) {
                 std::this_thread::sleep_for(std::chrono::milliseconds(1));

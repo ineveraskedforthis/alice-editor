@@ -7,7 +7,7 @@ enum class FLAG_EXPORT_OPTIONS {
     TGA, PNG
 };
 enum class FILL_MODE {
-    PROVINCE, OWNER_AND_CONTROLLER
+    PROVINCE, OWNER_AND_CONTROLLER, RGO
 };
 enum class CONTROL_MODE {
     NONE, SELECT, PICKING_COLOR, PAINTING, FILL, FILL_UNSAFE
@@ -19,6 +19,8 @@ inline std::string to_string(FILL_MODE MODE) {
                 return "Province";
                 case FILL_MODE::OWNER_AND_CONTROLLER:
                 return "Owner&Control";
+                case FILL_MODE::RGO:
+                return "RGO";
         }
 }
 

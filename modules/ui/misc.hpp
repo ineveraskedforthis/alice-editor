@@ -13,6 +13,10 @@ namespace SHADER_UNIFORMS {
         HOVERED_PROVINCE = 9,
         STATES_DATA = 10,
         OWNER_DATA,
+
+        DATA_TEXTURE,
+        DISPLAY_DATA_TEXTURE,
+
         SIZE,
         RIVERS,
         MODEL_LINE, VIEW_LINE,

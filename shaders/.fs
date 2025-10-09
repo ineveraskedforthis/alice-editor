@@ -7,6 +7,7 @@ flat in vec2 chunk;
 
 uniform float zoom;
 uniform float have_color_border;
+uniform float display_additional_data;
 uniform float pixel_x;
 uniform float pixel_y;
 uniform vec2 hovered_province;
@@ -17,6 +18,7 @@ uniform sampler2D province_indices;
 uniform sampler2D is_sea_texture;
 uniform sampler2D state_data;
 uniform sampler2D owner_data;
+uniform sampler2D additional_data;
 
 layout (location = 0) out vec4 out_color;
 
@@ -184,4 +186,8 @@ void main()
     }
 
     out_color = sea_color + highlight_pixel + hover_province + highlight_province;
+
+    if (display_additional_data > 0.5f) {
+        out_color = out_color * 0.2f + texture(additional_data, coord).r * 0.7f;
+    }
 }

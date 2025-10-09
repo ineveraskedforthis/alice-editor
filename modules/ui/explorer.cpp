@@ -568,6 +568,7 @@ namespace widgets {
                             ImVec2(start + width, 1.0f)
                         )) {
                             control.selected_commodity = name;
+                            control.update_rgo_map = true;
                         };
                     } else {
                         ImGui::Text("%d", def.index);
