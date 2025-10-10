@@ -100,6 +100,22 @@ namespace game_definition {
         std::string unit_names{};
     };
 
+    struct color_3f {
+        float r;
+        float g;
+        float b;
+    };
+
+struct projection {
+    int size;
+    float spin;
+    bool pulsating;
+    float pulselowest;
+    int pulsespeed;
+    float expanding;
+    bool additative;
+};
+
     struct sprite {
         std::string key{};
         std::string name{};
@@ -109,6 +125,19 @@ namespace game_definition {
         std::string effectfile{};
         std::string loadtype{};
         std::string clicksound{};
+
+        std::optional<std::array<float, 3>> offset2;
+        std::optional<std::string> font;
+
+        std::optional<std::string> mask{};
+        std::optional<float> scale{};
+        std::optional<int> font_size{};
+
+        bool has_color;
+        color_3f color;
+
+        bool has_color_two;
+        color_3f color_two;
 
         int size_x = 0;
         int size_y = 0;

@@ -430,7 +430,6 @@ namespace widgets {
             {
                 auto& image = active_layer.resources_small;
                 auto size = image.size_x / (count + 1);
-                image.expand_image_right(size);
                 image.insert_width((actual_position + 1) * size, size);
             }
             {

@@ -18,7 +18,6 @@
 #include "templates.hpp"
 #include "countries.hpp"
 
-#include "../misc.hpp"
 #include "../editor-state/editor-enums.hpp"
 
 #include "SOIL2.h"
@@ -1625,9 +1624,37 @@ border_cutoff = 1100.0
         parsers::parse_core_gfx_file(tk, errors, ctx);
     }
 
+    void load_mapitems_gfx(state::layer& layer, std::string path, parsers::error_handler& errors) {
+        std::cout << "Parse mapitems.gfx\n";
+        std::cout << path + "/interface/mapitems.gfx" << "\n";
+        if (!std::filesystem::exists(path + "/interface/mapitems.gfx")) {
+            std::cout << "Not found\n";
+            return;
+        }
+
+        layer.has_mapitems_gfx = true;
+        std::ifstream file(path + "/interface/mapitems.gfx");
+        parsers::generic_context ctx_generic {
+            layer
+        };
+
+        errors.file_name = "/interface/mapitems.gfx";
+
+        std::stringstream buffer;
+        buffer << file.rdbuf();
+        auto str = buffer.str();
+        parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+
+        gfx_file_context ctx {
+            layer, layer.mapitems_gfx
+        };
+
+        parsers::parse_core_gfx_file(tk, errors, ctx);
+    }
+
     void load_unitpanel_gfx(state::layer& layer, std::string path, parsers::error_handler& errors) {
-        std::cout << "Parse core.gfx\n";
-        std::cout << path + "/interface/core.gfx" << "\n";
+        std::cout << "Parse unitpanel.gfx\n";
+        std::cout << path + "/interface/unitpanel.gfx" << "\n";
         if (!std::filesystem::exists(path + "/interface/unitpanel.gfx")) {
             std::cout << "Not found\n";
             return;
@@ -1705,10 +1732,31 @@ border_cutoff = 1100.0
         if (item.has_border_size) {
             file << "\t\tborderSize = { x = " << item.border_size_x << " y = " << item.border_size_y <<  " }\n";
         }
+        if (item.has_color) {
+            file << "\t\tcolor = { " << item.color.r << " " << item.color.g << " " << item.color.b <<  " }\n";
+        }
+        if (item.has_color_two) {
+            file << "\t\tcolortwo = { " << item.color_two.r << " " << item.color_two.g << " " << item.color_two.b <<  " }\n";
+        }
+        if (item.offset2) {
+            file << "\t\tcolortwo = { " << (*item.offset2)[0] << " " << (*item.offset2)[1] << " " << (*item.offset2)[2] <<  " }\n";
+        }
+        if (item.mask) {
+            file << "\t\tmask = \"" << *item.mask << "\"\n";
+        }
+        if (item.scale) {
+            file << "\t\tscale = \"" << *item.scale << "\"\n";
+        }
+        if (item.font) {
+            file << "\t\tfont_size = \"" << *item.font << "\"\n";
+        }
+        if (item.font_size) {
+            file << "\t\tfont_size = \"" << *item.font_size << "\"\n";
+        }
     }
 
     void unload_gfx_file(state::layer& layer, std::string path, std::string filename, state::gfx_file& data, int amount_of_commodities) {
-        std::cout << "Write core.gfx\n";
+        std::cout << "Write mapitems.gfx\n";
 
         std::filesystem::create_directory(path + "/interface");
         std::ofstream file(path + "/interface/" + filename);
@@ -1736,14 +1784,59 @@ border_cutoff = 1100.0
             file << "\t}\n";
         }
 
+        for (auto & item : data.progress_bars) {
+            file << "\tcorneredTileSpriteType = {\n";
+            write_gfx(item, file, amount_of_commodities);
+            file << "\t}\n";
+        }
+
         file << "}\n";
 
         for (auto & item : data.lightTypes_text) {
             file << "lightTypes = " << item << "\n";
         }
-        for (auto & item : data.objectTypes_text) {
-            file << "objectTypes = " << item << "\n";
+
+
+        file << "objectTypes = {";
+
+        for (auto & item : data.billboards) {
+            file << "\tbillboardType = {\n";
+            write_gfx(item, file, amount_of_commodities);
+            file << "\t}\n";
         }
+        for (auto & item : data.unitstats_billboards) {
+            file << "\tunitstatsBillboardType = {\n";
+            write_gfx(item, file, amount_of_commodities);
+            file << "\t}\n";
+        }
+        for (auto & item : data.projections) {
+            file << "\tprojectionType = " << item << "\n";
+        }
+        for (auto & item : data.progress_bars3d) {
+            file << "\tprogressbar3dType = " << item << "\n";
+        }
+        for (auto & item : data.province_types) {
+            file << "\tprovinceType = " << item << "\n";
+        }
+        for (auto & item : data.mechtypes) {
+            file << "\tmeshType = " << item << "\n";
+        }
+        for (auto & item : data.map_text_types) {
+            file << "\tmapTextType = " << item << "\n";
+        }
+        for (auto & item : data.animated_map_texts) {
+            file << "\tanimatedmaptext = " << item << "\n";
+        }
+        for (auto & item : data.watertypes) {
+            file << "\tprovinceWaterType = " << item << "\n";
+        }
+        for (auto & item : data.flagtypes) {
+            file << "\tflagType = " << item << "\n";
+        }
+
+        file << "}";
+
+
         for (auto & item : data.bitmapfonts_text) {
             file << "bitmapfonts = " << item << "\n";
         }
@@ -1935,6 +2028,7 @@ border_cutoff = 1100.0
         load_province_population(layer, layer.path, errors);
         load_core_gfx(layer, layer.path, errors);
         load_unitpanel_gfx(layer, layer.path, errors);
+        load_mapitems_gfx(layer, layer.path, errors);
         load_goods(layer, layer.path, errors);
         load_resources_image(layer, layer.path);
         after_loading_goods_and_province_history(layer, layer.path);
@@ -1967,6 +2061,9 @@ border_cutoff = 1100.0
         }
         if (layer.has_unit_panel_gfx) {
             unload_gfx_file(layer, path, "unitpanel.gfx", layer.unit_panel_gfx, amount_of_commodities);
+        }
+        if (layer.has_mapitems_gfx) {
+            unload_gfx_file(layer, path, "mapitems.gfx", layer.mapitems_gfx, amount_of_commodities);
         }
         unload_goods(layer, path);
         unload_resources_image(layer, path);

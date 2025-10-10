@@ -164,8 +164,8 @@ namespace parser {
                         while (value.parse(c) && file.get(c));
                         country_string = value.data;
 
-                        std::cout << "tag: " << key.data << "\n";
-                        std::cout << "file: " << country_string << "\n";
+                        // std::cout << "tag: " << key.data << "\n";
+                        // std::cout << "file: " << country_string << "\n";
                         std::array<int8_t, 3> tag = {
                             (key.data[0]),
                             (key.data[1]),

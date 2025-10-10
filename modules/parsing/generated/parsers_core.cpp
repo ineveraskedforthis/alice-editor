@@ -223,8 +223,36 @@ void sprite::transparencecheck(association_type, bool value, error_handler& err,
 void sprite::allwaystransparent(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context){
     context.sprite.allwaystransparent = value;
 };
+void sprite::color(color_from_3f value, error_handler& err, int32_t line, gfx_sprite_context& context) {
+    context.sprite.has_color = true;
+    context.sprite.color.r = value.colors[0];
+    context.sprite.color.g = value.colors[1];
+    context.sprite.color.b = value.colors[2];
+}
+void sprite::colortwo(color_from_3f value, error_handler& err, int32_t line, gfx_sprite_context& context) {
+    context.sprite.has_color_two = true;
+    context.sprite.color_two.r = value.colors[0];
+    context.sprite.color_two.g = value.colors[1];
+    context.sprite.color_two.b = value.colors[2];
+}
+void sprite::mask(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.sprite.mask = actual_value;
+}
+void sprite::font_size(association_type, int value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    context.sprite.font_size = value;
+}
+void sprite::scale(association_type, float value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    context.sprite.scale = value;
+}
 
-
+void sprite::offset2(color_from_3f value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    context.sprite.offset2 = value.colors;
+}
+void sprite::font(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.sprite.font = actual_value;
+}
 void handle_sprites_group(token_generator& gen, error_handler& err, gfx_file_context& context){
     parse_sprites_group(gen, err, context);
 }
@@ -259,11 +287,6 @@ void save_light_types(token_generator& gen, error_handler& err, gfx_file_context
     std::string data;
     stupid_parsing(gen, data);
     context.gfx_file.lightTypes_text.push_back(data);
-}
-void save_object_types(token_generator& gen, error_handler& err, gfx_file_context& context){
-    std::string data;
-    stupid_parsing(gen, data);
-    context.gfx_file.objectTypes_text.push_back(data);
 }
 void save_bitmap_fonts(token_generator& gen, error_handler& err, gfx_file_context& context){
     std::string data;
@@ -308,6 +331,25 @@ void make_masked_shield(token_generator& gen, error_handler& err, gfx_file_conte
     parse_sprite(gen, err, ctx);
     context.gfx_file.masked_shields.push_back(result);
 }
+void make_progressbartype(token_generator& gen, error_handler& err, gfx_file_context& context) {
+    game_definition::sprite result {};
+    gfx_sprite_context ctx {
+        .map = context.map,
+        .sprite = result,
+    };
+    parse_sprite(gen, err, ctx);
+    context.gfx_file.progress_bars.push_back(result);
+}
+void make_progressbar3dtype(token_generator& gen, error_handler& err, gfx_file_context& context) {
+    std::string res;
+    stupid_parsing(gen, res);
+    context.gfx_file.progress_bars3d.push_back(res);
+}
+void make_flagtype(token_generator& gen, error_handler& err, gfx_file_context& context) {
+    std::string res;
+    stupid_parsing(gen, res);
+    context.gfx_file.flagtypes.push_back(res);
+}
 void make_cornered_sprite(token_generator& gen, error_handler& err, gfx_file_context& context) {
     game_definition::sprite result {};
     gfx_sprite_context ctx {
@@ -316,6 +358,69 @@ void make_cornered_sprite(token_generator& gen, error_handler& err, gfx_file_con
     };
     parse_sprite(gen, err, ctx);
     context.gfx_file.cornered_sprites.push_back(result);
+}
+void make_billboard(token_generator& gen, error_handler& err, gfx_file_context& context){
+    game_definition::sprite result {};
+    gfx_sprite_context ctx {
+        .map = context.map,
+        .sprite = result,
+    };
+    parse_sprite(gen, err, ctx);
+    context.gfx_file.billboards.push_back(result);
+}
+void make_unitstatsbillboard(token_generator& gen, error_handler& err, gfx_file_context& context){
+    game_definition::sprite result {};
+    gfx_sprite_context ctx {
+        .map = context.map,
+        .sprite = result,
+    };
+    parse_sprite(gen, err, ctx);
+    context.gfx_file.unitstats_billboards.push_back(result);
+}
+
+void make_projectiontype(token_generator& gen, error_handler& err, gfx_file_context& context){
+    std::string res;
+    stupid_parsing(gen, res);
+    context.gfx_file.projections.push_back(res);
+}
+
+// void projection::finish(gfx_file_context& context) {
+//     const game_definition::projection val {
+//         size,
+//         spin,
+//         pulsating,
+//         pulselowest,
+//         pulsespeed,
+//         expanding,
+//         additative
+//     };
+//     context.gfx_file.projections.push_back(val);
+// }
+
+void make_meshtype(token_generator& gen, error_handler& err, gfx_file_context& context){
+    std::string res;
+    stupid_parsing(gen, res);
+    context.gfx_file.mechtypes.push_back(res);
+}
+void make_maptexttype(token_generator& gen, error_handler& err, gfx_file_context& context){
+    std::string res;
+    stupid_parsing(gen, res);
+    context.gfx_file.map_text_types.push_back(res);
+}
+void make_provincetype(token_generator& gen, error_handler& err, gfx_file_context& context){
+    std::string res;
+    stupid_parsing(gen, res);
+    context.gfx_file.province_types.push_back(res);
+}
+void make_animatedmaptext(token_generator& gen, error_handler& err, gfx_file_context& context){
+    std::string res;
+    stupid_parsing(gen, res);
+    context.gfx_file.animated_map_texts.push_back(res);
+}
+void make_watertype(token_generator& gen, error_handler& err, gfx_file_context& context){
+    std::string res;
+    stupid_parsing(gen, res);
+    context.gfx_file.watertypes.push_back(res);
 }
 
 void make_pop_province_list(

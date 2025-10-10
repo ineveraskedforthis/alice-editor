@@ -32,6 +32,23 @@ struct color_from_3i {
 	}
 };
 
+struct color_from_3f {
+	int index = 0;
+	std::array<float, 3> colors;
+	template<typename C>
+	void finish(C& context) {
+		if (index == 1) {
+			colors[1] = colors[0];
+			colors[2] = colors[0];
+		}
+	}
+	template<typename C>
+	void free_value(float v, error_handler& err, int32_t line, C& context) {
+		colors[index] = (uint8_t)v;
+		index++;
+	}
+};
+
 struct generic_context{
 	state::layer& map;
 };
@@ -139,6 +156,11 @@ struct commodity_context {
 struct gfx_sprite_context{
 	state::layer& map;
 	game_definition::sprite& sprite;
+};
+
+struct gfx_projection_context{
+	state::layer& map;
+	game_definition::projection& sprite;
 };
 
 struct generic_global_context {
@@ -289,8 +311,8 @@ struct sprite {
 			context.sprite.has_size = true;
 		}
 		if (bordersize.exists) {
-			context.sprite.border_size_x = size.x;
-			context.sprite.border_size_y = size.y;
+			context.sprite.border_size_x = bordersize.x;
+			context.sprite.border_size_y = bordersize.y;
 			context.sprite.has_border_size = true;
 		}
 	}
@@ -305,16 +327,45 @@ struct sprite {
 	void texturefile2(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
 	void transparencecheck(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context);
 	void allwaystransparent(association_type, bool value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void color(color_from_3f value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void colortwo(color_from_3f value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void mask(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void font_size(association_type, int value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void scale(association_type, float value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void offset2(color_from_3f value, error_handler& err, int32_t line, gfx_sprite_context& context);
+	void font(association_type, std::string_view value, error_handler& err, int32_t line, gfx_sprite_context& context);
 };
+
+// struct projection {
+// 	void finish(gfx_file_context& context);
+// 	int size;
+// 	float spin;
+// 	bool pulsating;
+// 	float pulselowest;
+// 	int pulsespeed;
+// 	float expanding;
+// 	bool additative;
+// };
 
 void make_sprite(token_generator& gen, error_handler& err, gfx_file_context& context);
 void make_text_sprite(token_generator& gen, error_handler& err, gfx_file_context& context);
 void make_masked_shield(token_generator& gen, error_handler& err, gfx_file_context& context);
 void make_cornered_sprite(token_generator& gen, error_handler& err, gfx_file_context& context);
+void make_progressbartype(token_generator& gen, error_handler& err, gfx_file_context& context);
+void make_progressbar3dtype(token_generator& gen, error_handler& err, gfx_file_context& context);
+void make_flagtype(token_generator& gen, error_handler& err, gfx_file_context& context);
+void make_billboard(token_generator& gen, error_handler& err, gfx_file_context& context);
+void make_unitstatsbillboard(token_generator& gen, error_handler& err, gfx_file_context& context);
+void make_projectiontype(token_generator& gen, error_handler& err, gfx_file_context& context);
+
+void make_meshtype(token_generator& gen, error_handler& err, gfx_file_context& context);
+void make_maptexttype(token_generator& gen, error_handler& err, gfx_file_context& context);
+void make_provincetype(token_generator& gen, error_handler& err, gfx_file_context& context);
+void make_animatedmaptext(token_generator& gen, error_handler& err, gfx_file_context& context);
+void make_watertype(token_generator& gen, error_handler& err, gfx_file_context& context);
 
 void handle_sprites_group(token_generator& gen, error_handler& err, gfx_file_context& context);
 void save_light_types(token_generator& gen, error_handler& err, gfx_file_context& context);
-void save_object_types(token_generator& gen, error_handler& err, gfx_file_context& context);
 void save_bitmap_fonts(token_generator& gen, error_handler& err, gfx_file_context& context);
 void save_bitmap_font(token_generator& gen, error_handler& err, gfx_file_context& context);
 void save_fonts(token_generator& gen, error_handler& err, gfx_file_context& context);

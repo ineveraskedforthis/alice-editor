@@ -1,3 +1,10 @@
+
+color_from_3i
+	#free          			value      int              member_fn
+
+color_from_3f
+	#free          			value      float              member_fn
+
 issue
 #issue_context
 	next_step_only value     bool                   member_fn
@@ -23,6 +30,13 @@ sprite
 	loadtype				value		text				member_fn
 	bordersize				group		pair_of_x_and_y		member
 	size 					group		pair_of_x_and_y		member
+	color				group color_from_3f	member_fn
+	colortwo				group color_from_3f	member_fn
+	mask value		text				member_fn
+	scale	value		float					member_fn
+	font_size value int member_fn
+	font value text member_fn
+	offset2 group color_from_3f member_fn
 
 sprites_group
 #gfx_file_context
@@ -30,16 +44,26 @@ sprites_group
 	textspritetype			extern		make_text_sprite		discard
 	corneredtilespritetype	extern		make_cornered_sprite	discard
 	maskedshieldtype		extern		make_masked_shield		discard
-
+	progressbartype			extern		make_progressbartype		discard
+	billboardtype			extern		make_billboard			discard
+	unitstatsbillboardtype		extern		make_unitstatsbillboard		discard
+	projectiontype			extern		make_projectiontype		discard
+	provincetype extern		make_provincetype		discard
+	provincewatertype extern make_watertype discard
+	maptexttype extern make_maptexttype discard
+	animatedmaptext extern make_animatedmaptext discard
+	meshtype extern make_meshtype discard
+	progressbar3dtype extern make_progressbar3dtype discard
+	flagtype extern make_flagtype discard
 
 core_gfx_file
 #gfx_file_context
-	spritetypes			extern		handle_sprites_group		discard
+	spritetypes			extern		handle_sprites_group	discard
 	lighttypes			extern		save_light_types	discard
-	objecttypes			extern		save_object_types	discard
+	objecttypes			extern		handle_sprites_group	discard
 	bitmapfonts			extern		save_bitmap_fonts	discard
 	bitmapfont			extern		save_bitmap_font	discard
-	fonts 				extern		save_fonts			discard
+	fonts 				extern		save_fonts		discard
 
 issues_group
 #issue_group_context
@@ -113,8 +137,6 @@ nation_handler
 	set_global_flag               value      text                              member_fn
 	decision                        value      text                              member_fn
 
-color_from_3i
-	#free          			value      int              member_fn
 
 good
 #commodity_context

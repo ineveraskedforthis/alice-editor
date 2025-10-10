@@ -1,0 +1,10 @@
+
+projection
+#gfx_file_context
+	size value int member
+	spin value float member
+	pulsating value bool member
+	pulselowest value float member
+	pulsespeed value int member
+	additative value bool member
+	expanding value float member

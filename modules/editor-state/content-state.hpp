@@ -117,8 +117,22 @@ struct gfx_file {
     std::vector<game_definition::sprite> text_sprites{};
     std::vector<game_definition::sprite> masked_shields{};
     std::vector<game_definition::sprite> cornered_sprites{};
+    std::vector<game_definition::sprite> progress_bars{};
+
+    // objects:
+    std::vector<std::string> progress_bars3d{};
+    std::vector<std::string> flagtypes{};
+    std::vector<game_definition::sprite> billboards{};
+    std::vector<game_definition::sprite> unitstats_billboards{};
+    std::vector<std::string> projections{};
+    std::vector<std::string> mechtypes{};
+    std::vector<std::string> map_text_types{};
+    std::vector<std::string> province_types{};
+    std::vector<std::string> animated_map_texts{};
+    std::vector<std::string> watertypes{};
+
+    // other categories:
     std::vector<std::string> lightTypes_text{};
-    std::vector<std::string> objectTypes_text{};
     std::vector<std::string> bitmapfonts_text{};
     std::vector<std::string> bitmapfont_text{};
     std::vector<std::string> fonts_text{};
@@ -221,6 +235,9 @@ struct layer {
     // interface description
     bool has_core_gfx = false;
     gfx_file core_gfx{};
+
+    bool has_mapitems_gfx = false;
+    gfx_file mapitems_gfx{};
 
     bool has_unit_panel_gfx = false;
     gfx_file unit_panel_gfx{};
@@ -1384,6 +1401,22 @@ struct layers_stack {
             if (source != nullptr) {
                 active_layer.has_core_gfx = true;
                 active_layer.core_gfx = source->core_gfx;
+            }
+        }
+
+        {
+            layer* source = nullptr;
+            for (auto& l: data) {
+                if (l.visible && l.has_mapitems_gfx) {
+                    source = &l;
+                }
+            }
+
+            auto& active_layer = data[current_layer_index];
+
+            if (source != nullptr) {
+                active_layer.has_mapitems_gfx = true;
+                active_layer.mapitems_gfx = source->mapitems_gfx;
             }
         }
     }
