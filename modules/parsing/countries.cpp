@@ -119,6 +119,26 @@ namespace parser {
                     // while (parser::nothing(c) && file.get(c));
                     while (parser::until_brackets_balance(c, balance) && file.get(c))
                         n.unit_names += c;
+                } else {
+                    game_definition::color_government_row new_rule {};
+                    new_rule.government = key.data;
+                    while (parser::until_open_bracket(c) && file.get(c));
+                    file.get(c);
+                    // read three values:
+                    value.reset();
+                    while(parser::nothing(c) && file.get(c));
+                    while(value.parse(c) && file.get(c));
+                    new_rule.color.R = std::stoi(value.data);
+                    value.reset();
+                    while(parser::nothing(c) && file.get(c));
+                    while(value.parse(c) && file.get(c));
+                    new_rule.color.G = std::stoi(value.data);
+                    value.reset();
+                    while(parser::nothing(c) && file.get(c));
+                    while(value.parse(c) && file.get(c));
+                    new_rule.color.B = std::stoi(value.data);
+                    while (parser::until_close_bracket(c) && file.get(c));
+                    n.special_colors.push_back(new_rule);
                 }
             }
             while (!parser::strict_end_of_the_line(c)) {

@@ -91,10 +91,22 @@ namespace game_definition {
         bool dynamic=false;
     };
 
+    struct color_3i {
+        uint8_t R = 0;
+        uint8_t G = 0;
+        uint8_t B = 0;
+    };
+
+    struct color_government_row {
+        std::string government;
+        color_3i color;
+    };
+
     struct nation_common {
         uint8_t R = 0;
         uint8_t G = 0;
         uint8_t B = 0;
+        std::vector<color_government_row> special_colors{};
         std::string graphical_culture{};
         std::vector<party> parties{};
         std::string unit_names{};

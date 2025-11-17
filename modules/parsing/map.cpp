@@ -762,6 +762,9 @@ namespace parsers{
             std::ofstream file(path + "/common/countries/" + key);
 
             file << "color = { " << (int)value.R << " " << (int)value.G << " " << (int)value.B << " }\n";
+            for (auto& data : value.special_colors) {
+                file << data.government << " = { " << (int)data.color.R << " " << (int)data.color.G << " " << (int)data.color.B << " }\n";
+            }
             file << "graphical_culture = " << value.graphical_culture << "\n";
             for (auto& party : value.parties) {
                 file << "party = {\n";
