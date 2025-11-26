@@ -40,7 +40,7 @@ char16_t win1250toUTF16(char in) {
 	return converted[(uint8_t)in];
 }
 
-char16_t win1252toUTF16(char in) {
+char16_t win1252toUTF16(unsigned char in) {
 	constexpr static char16_t convert[256] = {
 0x0000,
 0x0001, //START OF HEADING
@@ -335,7 +335,9 @@ std::string u16_to_win1252(std::u16string data_in) {
 	std::string result;
 	for(auto ch: data_in) {
 		for (size_t i = 0; i < 256; i++) {
-			if (win1252toUTF16(i) == ch) {
+			auto val1 = win1252toUTF16(i);
+			auto val2 = ch;
+			if (val1 == val2) {
 				result += (char8_t)i;
 			}
 		}

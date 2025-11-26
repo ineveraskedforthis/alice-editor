@@ -10,7 +10,7 @@ char16_t win1250toUTF16(char in);
 std::u16string win1250_to_u16(std::string data_in);
 std::string u16_to_win1250(std::u16string data_in);
 
-char16_t win1252toUTF16(char in);
+char16_t win1252toUTF16(unsigned char in);
 std::u16string win1252_to_u16(std::string data_in);
 std::string u16_to_win1252(std::u16string data_in);
 
