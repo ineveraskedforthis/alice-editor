@@ -117,6 +117,21 @@ struct culture {
 			context.culture.last_names.push_back(conversions::u16_to_u8(conversions::win1252_to_u16(s)));
 		}
 	};
+	void male_names(group_of_strings value, error_handler& err, int32_t line, culture_context& context) {
+		for (auto& s: value.data) {
+			context.culture.first_names.push_back(conversions::u16_to_u8(conversions::win1252_to_u16(s)));
+		}
+	};
+	void female_names(group_of_strings value, error_handler& err, int32_t line, culture_context& context) {
+		for (auto& s: value.data) {
+			context.culture.first_names.push_back(conversions::u16_to_u8(conversions::win1252_to_u16(s)));
+		}
+	};
+	void dynasty_names(group_of_strings value, error_handler& err, int32_t line, culture_context& context) {
+		for (auto& s: value.data) {
+			context.culture.last_names.push_back(conversions::u16_to_u8(conversions::win1252_to_u16(s)));
+		}
+	};
 	void primary(association_type, std::string_view value, error_handler& err, int32_t line, culture_context& context) {
 		std::string actual_value {value};
 		context.culture.primary = actual_value;
@@ -143,7 +158,119 @@ struct culture_group {
 	void is_overseas(association_type, bool value, error_handler& err, int32_t line, culture_group_context& context) {
 		context.culture_group.is_overseas = value;
 	};
+	void male_names(group_of_strings value, error_handler& err, int32_t line, culture_group_context& context) {
+		for (auto& s: value.data) {
+			context.culture_group.first_names.push_back(conversions::u16_to_u8(conversions::win1252_to_u16(s)));
+		}
+	};
+	void female_names(group_of_strings value, error_handler& err, int32_t line, culture_group_context& context) {
+		for (auto& s: value.data) {
+			context.culture_group.first_names.push_back(conversions::u16_to_u8(conversions::win1252_to_u16(s)));
+		}
+	};
+	void dynasty_names(group_of_strings value, error_handler& err, int32_t line, culture_group_context& context) {
+		for (auto& s: value.data) {
+			context.culture_group.last_names.push_back(conversions::u16_to_u8(conversions::win1252_to_u16(s)));
+		}
+	};
 };
+struct province_history_context {
+	game_definition::province_history& history;
+	// game_definition::pops_history_file& extrapolated_population;
+};
+
+
+struct setter_meiou {
+	std::string lhs;
+	float value;
+	void finish(province_history_context&) { }
+};
+
+struct dated_block {
+	void set_key(association_type, setter_meiou setter, error_handler& err, int32_t line, province_history_context& context) {
+		if (setter.lhs == "starting_rural_pop_1350") {
+			context.history.rural_population = setter.value * 10000.f;
+		}
+		if (setter.lhs == "starting_urban_pop_1350") {
+			context.history.urban_population = setter.value * 10000.f;
+		}
+	}
+	void finish(province_history_context&) { }
+};
+
+void enter_dated_block(std::string_view name, token_generator& gen, error_handler& err, province_history_context& context);
+void enter_setter_meiou(token_generator& gen, error_handler& err, province_history_context& context);
+
+struct pv_party_loyalty {
+	int32_t loyalty_value = 0;
+	std::string party;
+	void ideology(association_type, std::string_view text, error_handler& err, int32_t line, province_history_context& context) {
+		party = text;
+	}
+	void finish(province_history_context&) { }
+};
+struct pv_state_building {
+	int32_t level = 1;
+	std::string building;
+	std::string upgrade;
+	void finish(province_history_context&) { }
+};
+
+struct province_rgo_ext_desc {
+	std::string commodity;
+	float max_employment_value;
+	void max_employment(association_type, uint32_t value, error_handler& err, int32_t line, province_history_context& context);
+	void trade_good(association_type, std::string_view text, error_handler& err, int32_t line, province_history_context& context);
+	void finish(province_history_context&);
+};
+
+struct province_rgo_ext {
+	void entry(province_rgo_ext_desc const& value, error_handler& err, int32_t line, province_history_context& context);
+	void finish(province_history_context&) { }
+};
+
+// void enter_dated_block(std::string_view name, token_generator& gen, error_handler& err, province_history_context& context);
+
+struct province_rgo_ext_2_desc {
+	std::string commodity;
+	float max_employment_value;
+	void max_employment(association_type, uint32_t value, error_handler& err, int32_t line, province_history_context& context);
+	void trade_good(association_type, std::string_view text, error_handler& err, int32_t line, province_history_context& context);
+	void finish(province_history_context&);
+};
+
+struct province_rgo_ext_2 {
+	void entry(province_rgo_ext_2_desc const& value, error_handler& err, int32_t line, province_history_context& context);
+	void finish(province_history_context&) { }
+};
+
+struct province_revolt {
+	std::string rebel;
+	void type(parsers::association_type, std::string_view text, error_handler& err, int32_t line, province_history_context& context);
+	void finish(province_history_context&) {
+	}
+};
+
+struct province_history_handler {
+	void life_rating(association_type, uint32_t value, error_handler& err, int32_t line, province_history_context& context);
+	void colony(association_type, uint32_t value, error_handler& err, int32_t line, province_history_context& context);
+	void trade_goods(association_type, std::string_view text, error_handler& err, int32_t line, province_history_context& context);
+	void owner(association_type, std::string_view value , error_handler& err, int32_t line, province_history_context& context);
+	void controller(association_type, std::string_view value , error_handler& err, int32_t line, province_history_context& context);
+	void terrain(association_type, std::string_view text, error_handler& err, int32_t line, province_history_context& context);
+	void add_core(association_type, std::string_view value , error_handler& err, int32_t line, province_history_context& context);
+	void remove_core(association_type, std::string_view value , error_handler& err, int32_t line, province_history_context& context);
+	void party_loyalty(pv_party_loyalty const& value, error_handler& err, int32_t line, province_history_context& context);
+	void state_building(pv_state_building const& value, error_handler& err, int32_t line, province_history_context& context);
+	void is_slave(association_type, bool value, error_handler& err, int32_t line, province_history_context& context);
+	void rgo_distribution(province_rgo_ext const& value, error_handler& err, int32_t line, province_history_context& context);
+	void rgo_distribution_add(province_rgo_ext_2 const& value, error_handler& err, int32_t line, province_history_context& context);
+	// void factory_limit(province_factory_limit const& value, error_handler& err, int32_t line, province_history_context& context);
+	void revolt(province_revolt const& rev, error_handler& err, int32_t line, province_history_context& context);
+	void any_value(std::string_view name, association_type, uint32_t value, error_handler& err, int32_t line, province_history_context& context);
+	void finish(province_history_context&) { }
+};
+
 struct religion_group {
 	void finish(religion_group_context&) {}
 };

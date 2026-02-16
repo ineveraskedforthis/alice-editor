@@ -119,6 +119,24 @@ namespace parser {
                     // while (parser::nothing(c) && file.get(c));
                     while (parser::until_brackets_balance(c, balance) && file.get(c))
                         n.unit_names += c;
+                } else if (key.data == "historical_idea_groups") {
+                    while (parser::until_close_bracket(c) && file.get(c));
+                } else if (key.data == "historical_units") {
+                    while (parser::until_close_bracket(c) && file.get(c));
+                } else if (key.data == "monarch_names") {
+                    while (parser::until_close_bracket(c) && file.get(c));
+                } else if (key.data == "leader_names") {
+                    while (parser::until_close_bracket(c) && file.get(c));
+                } else if (key.data == "ship_names") {
+                    while (parser::until_close_bracket(c) && file.get(c));
+                } else if (key.data == "army_names") {
+                    while (parser::until_close_bracket(c) && file.get(c));
+                } else if (key.data == "fleet_names") {
+                    while (parser::until_close_bracket(c) && file.get(c));
+                } else if (key.data == "historical_score") {
+                    while (parser::until_close_bracket(c) && file.get(c));
+                } else if (key.data == "random_nation_chance") {
+                    while (parser::until_close_bracket(c) && file.get(c));
                 } else {
                     game_definition::color_government_row new_rule {};
                     new_rule.government = key.data;
@@ -162,9 +180,9 @@ namespace parser {
         char c = ' ';
 
         // parse file
-        while (true) {
+        while (!file.eof()) {
             // parse line:
-            while (true) {
+            while (!file.eof()) {
                 while (parser::nothing(c)) {
                     if (!file.get(c)){
                         return;

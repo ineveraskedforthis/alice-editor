@@ -616,4 +616,227 @@ void pop_history_definition::rebel_type(
     _rebel_type = value_reserved;
 }
 
+
+
+
+
+void
+province_history_handler::life_rating
+(
+    association_type,
+    uint32_t value,
+    error_handler& err,
+    int32_t line,
+	province_history_context& context
+) {
+    context.history.life_rating = value;
+}
+
+void
+province_history_handler::colony
+(
+    association_type,
+    uint32_t value,
+    error_handler& err,
+    int32_t line,
+    province_history_context& context
+) {
+    context.history.colonial = value;
+}
+
+void
+province_history_handler::trade_goods
+(
+    association_type,
+    std::string_view text,
+    error_handler& err,
+    int32_t line,
+	province_history_context& context
+) {
+    context.history.main_trade_good = text;
+}
+
+void province_history_handler::rgo_distribution(province_rgo_ext const& value, error_handler& err, int32_t line, province_history_context& context) {
+	return;
+}
+
+void province_history_handler::rgo_distribution_add(province_rgo_ext_2 const& value, error_handler& err, int32_t line, province_history_context& context) {
+	return;
+}
+
+// void province_history_handler::factory_limit(province_factory_limit const& value, error_handler& err, int32_t line, province_history_context& context) {
+// 	return;
+// }
+
+void province_history_handler::revolt(province_revolt const& rev, error_handler& err, int32_t line, province_history_context& context) {
+    context.history.revolt = rev.rebel;
+}
+
+void
+province_history_handler::owner(
+    association_type,
+    std::string_view value,
+    error_handler& err,
+    int32_t line,
+	province_history_context& context
+) {
+    auto v = std::string{value};
+    context.history.owner_tag = v;
+}
+
+void
+province_history_handler::controller(
+    association_type,
+    std::string_view value,
+    error_handler& err,
+    int32_t line,
+	province_history_context& context
+) {
+    auto v = std::string{value};
+    context.history.controller_tag = v;
+}
+
+void
+province_history_handler::terrain(
+    association_type, std::string_view text, error_handler& err, int32_t line,
+	province_history_context& context
+) {
+    context.history.terrain = text;
+}
+
+void province_history_handler::add_core(association_type, std::string_view value, error_handler& err, int32_t line,
+	province_history_context& context
+) {
+    auto v = std::string{value};
+    context.history.cores.push_back(v);
+}
+
+void province_history_handler::remove_core(
+    association_type,
+    std::string_view value,
+    error_handler& err,
+    int32_t line,
+	province_history_context& context
+) {
+    // todo
+    return;
+}
+
+void province_history_handler::party_loyalty(pv_party_loyalty const& value, error_handler& err, int32_t line,
+	province_history_context& context
+) {
+    // todo
+    return;
+}
+
+void province_history_handler::state_building(
+    pv_state_building const& value,
+    error_handler& err,
+    int32_t line,
+	province_history_context& context
+) {
+    context.history.buildings.push_back({value.level, value.building, value.upgrade});
+}
+
+void province_history_handler::is_slave(
+    association_type,
+    bool value,
+    error_handler& err,
+    int32_t line,
+	province_history_context& context
+) {
+    context.history.is_slave = value;
+}
+
+void province_history_handler::any_value(std::string_view name, association_type, uint32_t value, error_handler& err, int32_t line,
+			province_history_context& context
+) {
+    // todo: register buildings somewhere
+    if (name == "railroad") {
+        context.history.railroad = value;
+    }
+    if (name == "fort") {
+        context.history.fort = value;
+    }
+    if (name == "naval_base") {
+        context.history.naval_base = value;
+    }
+}
+
+void province_rgo_ext_desc::max_employment(association_type, uint32_t value, error_handler& err, int32_t line, province_history_context& context) {
+	max_employment_value = float(value);
+}
+
+void province_rgo_ext_desc::trade_good(association_type, std::string_view text, error_handler& err, int32_t line, province_history_context& context) {
+	commodity = text;
+}
+
+void province_rgo_ext_desc::finish(province_history_context& context) {
+
+};
+
+void province_rgo_ext::entry(province_rgo_ext_desc const& value, error_handler& err, int32_t line, province_history_context& context) {
+	context.history.secondary_rgo_size[value.commodity] = value.max_employment_value;
+}
+
+void province_rgo_ext_2_desc::max_employment(association_type, uint32_t value, error_handler& err, int32_t line, province_history_context& context) {
+	max_employment_value = float(value);
+}
+
+void province_rgo_ext_2_desc::trade_good(
+    association_type,
+    std::string_view text,
+    error_handler& err,
+    int32_t line,
+    province_history_context& context
+) {
+    commodity = text;
+}
+
+void province_rgo_ext_2_desc::finish(province_history_context& context) {
+
+};
+
+void province_rgo_ext_2::entry(province_rgo_ext_2_desc const& value, error_handler& err, int32_t line, province_history_context& context) {
+	context.history.secondary_rgo_size_add[value.commodity] = value.max_employment_value;
+}
+
+/*
+void province_factory_limit_desc::max_level(association_type, uint32_t value, error_handler& err, int32_t line, province_history_context& context) {
+	max_level_value = int8_t(value);
+}
+
+void province_factory_limit_desc::trade_good(association_type, std::string_view text, error_handler& err, int32_t line, province_history_context& context) {
+	if(auto it = context.outer_context.map_of_commodity_names.find(std::string(text));
+			it != context.outer_context.map_of_commodity_names.end()) {
+		trade_good_id = it->second;
+	} else {
+		err.accumulated_errors +=
+			std::string(text) + " is not a valid commodity name (" + err.file_name + " line " + std::to_string(line) + ")\n";
+	}
+}
+
+void province_factory_limit_desc::finish(province_history_context& context) {
+
+};
+
+void province_factory_limit::entry(province_factory_limit_desc const& value, error_handler& err, int32_t line, province_history_context& context) {
+	if(value.trade_good_id) {
+		auto p = context.id;
+		context.outer_context.state.world.province_set_factory_max_size(p, value.trade_good_id, value.max_level_value * 10'000.f);
+		context.outer_context.state.world.province_set_factory_limit_was_set_during_scenario_creation(p, true);
+	}
+}
+*/
+
+void province_revolt::type(parsers::association_type ,std::string_view text, error_handler& err, int32_t line, province_history_context& context) {
+	rebel = text;
+}
+
+void enter_dated_block(std::string_view name, token_generator& gen, error_handler& err, province_history_context& context) {
+    parse_dated_block(gen, err, context);
+}
+void enter_setter_meiou(token_generator& gen, error_handler& err, province_history_context& context) {
+    parse_setter_meiou(gen, err, context);
+}
 }

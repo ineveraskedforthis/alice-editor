@@ -542,7 +542,7 @@ namespace parsers{
         std::ifstream file;
 
         if (areas_file_exist) {
-            std::ifstream file(path + "/map/area.txt");
+            file.open(path + "/map/area.txt");
         } else if (region_file_exist) {
             file.open(path + "/map/region.txt");
         } else {
@@ -744,12 +744,21 @@ namespace parsers{
     void load_nations_list(state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "Parse nations list\n";
         if (!std::filesystem::exists(path + "/common/countries.txt")) {
-            std::cout << "Not found\n";
-            return;
+            if (std::filesystem::exists(path + "/common/country_tags")) {
+                for (auto& entry : std::filesystem::directory_iterator  {path + "/common" + "/country_tags"}) {
+                    if (!entry.is_directory() && entry.path().filename().wstring().ends_with(L".txt")) {
+                        layer.has_nations_list = true;
+                        std::ifstream file(entry.path());
+                        parser::countries_list(layer, file);
+                    }
+                }
+                return;
+            } else {
+                std::cout << "Not found\n";
+                return;
+            }
         }
-
         layer.has_nations_list = true;
-
         std::ifstream file(path + "/common/countries.txt");
         parser::countries_list(layer, file);
     }
@@ -928,9 +937,9 @@ namespace parsers{
             return;
         }
         for (auto& entry : std::filesystem::directory_iterator  {path + "/history" + "/provinces"}) {
-            if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
-                auto name = entry.path().filename().string();
-                errors.file_name = name;
+            if (!entry.is_directory() && entry.path().filename().wstring().ends_with(L".txt")) {
+                auto name = entry.path().filename().wstring();
+                errors.file_name = conversions::w_to_u8(name);
                 // std::cout << name << std::endl;
                 auto first_space = name.find_first_of(' ');
                 auto id_string = name.substr(0, first_space);
@@ -941,9 +950,15 @@ namespace parsers{
                 p.history_file_name = entry.path().filename().wstring();;
                 p.historical_region = L"other";
 
-                parser_history_province2 parser {};
+                province_history_context ctx {
+                    p
+                };
                 std::ifstream file(entry.path());
-                parser.parse(p, file);
+                std::stringstream buffer;
+                buffer << file.rdbuf();
+                auto str = buffer.str();
+                parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+                parse_province_history_handler(tk, errors, ctx);
 
                 layer.province_history[id] = p;
 
@@ -965,9 +980,19 @@ namespace parsers{
                     p.history_file_name = name;
                     p.historical_region = entry.path().filename().wstring();
 
-                    parser_history_province2 parser {};
-                    std::ifstream file(province_description.path());
-                    parser.parse(p, file);
+                    province_history_context ctx {
+                        p
+                    };
+                    std::ifstream file(entry.path());
+                    std::stringstream buffer;
+                    buffer << file.rdbuf();
+                    auto str = buffer.str();
+                    parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+                    parse_province_history_handler(tk, errors, ctx);
+
+                    // parser_history_province2 parser {};
+                    // std::ifstream file(province_description.path());
+                    // parser.parse(p, file);
 
                     layer.province_history[id] = p;
                 } catch (const std::invalid_argument & e) {
@@ -1180,25 +1205,40 @@ namespace parsers{
     void load_cultures(state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "registration of cultures\n";
         if (!std::filesystem::exists(path + "/common/cultures.txt")) {
-            std::cout << "no cultures found\n";
-            return;
+            std::cout << "no cultures found, check for modern folders\n";
+            if (!std::filesystem::exists(path+"/common/cultures")){
+                std::cout << "no cultures found\n";
+                return;
+            }
+            for (auto& entry : std::filesystem::directory_iterator  {path + "/common/cultures"}) {
+                if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
+                    errors.file_name = entry.path().filename().string();
+                    layer.has_cultures = true;
+                    std::ifstream file(entry.path());
+                    std::stringstream buffer;
+                    buffer << file.rdbuf();
+                    auto str = buffer.str();
+                    parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+                    culture_file_context ctx {
+                        layer
+                    };
+                    parsers::parse_culture_file(tk, errors, ctx);
+                }
+            }
+        } else {
+            errors.file_name = "/common/cultures.txt";
+            layer.has_cultures = true;
+            std::ifstream file(path + "/common/cultures.txt");
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+            auto str = buffer.str();
+            parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+            culture_file_context ctx {
+                layer
+            };
+            parsers::parse_culture_file(tk, errors, ctx);
         }
 
-        errors.file_name = "/common/cultures.txt";
-
-        layer.has_cultures = true;
-
-        std::ifstream file(path + "/common/cultures.txt");
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        auto str = buffer.str();
-        parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
-
-        culture_file_context ctx {
-            layer
-        };
-
-        parsers::parse_culture_file(tk, errors, ctx);
     }
 
     void unload_cultures(state::layer &layer, std::string path) {
@@ -1236,6 +1276,13 @@ namespace parsers{
                     file << conversions::u16_to_win1252(conversions::u8_to_u16(culture_def.first_names[i])) << " ";
                 }
                 file << "\n";
+                for (int i = 0; i < def.first_names.size(); i++) {
+                    if (i % 5 == 0) {
+                        file << "\n\t\t\t";
+                    }
+                    file << conversions::u16_to_win1252(conversions::u8_to_u16(def.first_names[i])) << " ";
+                }
+                file << "\n";
                 file << "\t\t}\n";
 
                 file << "\t\tlast_names = {";
@@ -1244,6 +1291,13 @@ namespace parsers{
                         file << "\n\t\t\t";
                     }
                     file << conversions::u16_to_win1252(conversions::u8_to_u16(culture_def.last_names[i])) << " ";
+                }
+                file << "\n";
+                for (int i = 0; i < def.last_names.size(); i++) {
+                    if (i % 5 == 0) {
+                        file << "\n\t\t\t";
+                    }
+                    file << conversions::u16_to_win1252(conversions::u8_to_u16(def.last_names[i])) << " ";
                 }
                 file << "\n";
                 file << "\t\t}\n";
@@ -2029,6 +2083,12 @@ border_cutoff = 1100.0
         load_nation_history(state, layer, layer.path, errors);
         load_province_history(layer, layer.path, errors);
         load_province_population(layer, layer.path, errors);
+        // if (layer.province_population.empty()) {
+        //     game_definition::pops_setups dummy { 0, {} };
+        //     game_definition::pops_history_file dummy_file {};
+        //     dummy_file.filename = "meiou-pops.txt"
+        //     for (auto& p : layer.province_population)
+        // }
         load_core_gfx(layer, layer.path, errors);
         load_unitpanel_gfx(layer, layer.path, errors);
         load_mapitems_gfx(layer, layer.path, errors);

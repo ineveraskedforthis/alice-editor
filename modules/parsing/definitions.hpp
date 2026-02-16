@@ -217,6 +217,8 @@ struct projection {
         std::string unit{};
         std::string union_tag{};
         std::vector<std::string> cultures{};
+        std::vector<std::string> first_names{};
+        std::vector<std::string> last_names{};
         bool is_overseas = true;
     };
 
@@ -332,7 +334,9 @@ struct projection {
         std::string controller_tag{};
         std::vector<std::string> cores{};
         std::string main_trade_good{};
+        std::string revolt{};
         ankerl::unordered_dense::map<std::string, int> secondary_rgo_size{};
+        ankerl::unordered_dense::map<std::string, int> secondary_rgo_size_add{};
         int life_rating;
         int railroad;
         int naval_base;
@@ -343,6 +347,9 @@ struct projection {
         std::wstring historical_region = L"unknown";
         std::string terrain{};
         std::string is_slave{};
+
+        float rural_population;
+        float urban_population;
     };
 
     struct pop_history {
