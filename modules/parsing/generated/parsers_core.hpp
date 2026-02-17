@@ -183,18 +183,20 @@ struct province_history_context {
 struct setter_meiou {
 	std::string lhs;
 	float value;
-	void finish(province_history_context&) { }
+	void finish(province_history_context& context) {
+		if (lhs == "starting_rural_pop_1350") {
+			context.history.rural_population = value * 1000.f;
+		}
+		if (lhs == "starting_urban_pop_1350") {
+			context.history.urban_population += value * 1000.f;
+		}
+		if (lhs == "starting_urban_pop") {
+			context.history.urban_population += value * 1000.f;
+		}
+	}
 };
 
 struct dated_block {
-	void set_key(association_type, setter_meiou setter, error_handler& err, int32_t line, province_history_context& context) {
-		if (setter.lhs == "starting_rural_pop_1350") {
-			context.history.rural_population = setter.value * 10000.f;
-		}
-		if (setter.lhs == "starting_urban_pop_1350") {
-			context.history.urban_population = setter.value * 10000.f;
-		}
-	}
 	void finish(province_history_context&) { }
 };
 
@@ -254,10 +256,14 @@ struct province_revolt {
 struct province_history_handler {
 	void life_rating(association_type, uint32_t value, error_handler& err, int32_t line, province_history_context& context);
 	void colony(association_type, uint32_t value, error_handler& err, int32_t line, province_history_context& context);
+	void base_tax(association_type, uint32_t value, error_handler& err, int32_t line, province_history_context& context);
+	void base_production(association_type, uint32_t value, error_handler& err, int32_t line, province_history_context& context);
 	void trade_goods(association_type, std::string_view text, error_handler& err, int32_t line, province_history_context& context);
 	void owner(association_type, std::string_view value , error_handler& err, int32_t line, province_history_context& context);
 	void controller(association_type, std::string_view value , error_handler& err, int32_t line, province_history_context& context);
 	void terrain(association_type, std::string_view text, error_handler& err, int32_t line, province_history_context& context);
+	void culture(association_type, std::string_view text, error_handler& err, int32_t line, province_history_context& context);
+	void religion(association_type, std::string_view text, error_handler& err, int32_t line, province_history_context& context);
 	void add_core(association_type, std::string_view value , error_handler& err, int32_t line, province_history_context& context);
 	void remove_core(association_type, std::string_view value , error_handler& err, int32_t line, province_history_context& context);
 	void party_loyalty(pv_party_loyalty const& value, error_handler& err, int32_t line, province_history_context& context);

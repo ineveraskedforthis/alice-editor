@@ -242,10 +242,14 @@ province_history_handler
 #province_history_context
 	life_rating       value          uint               member_fn
 	colony            value          uint               member_fn
+	base_tax            value          uint               member_fn
+	base_production            value          uint               member_fn
 	colonial          value          uint               member_fn  (colony)
 	trade_goods       value          text               member_fn
 	owner             value          text                member_fn
 	controller        value          text                member_fn
+	culture        value          text                member_fn
+	religion        value          text                member_fn
 	terrain           value          text               member_fn
 	add_core          value          text                member_fn
 	remove_core       value          text                member_fn

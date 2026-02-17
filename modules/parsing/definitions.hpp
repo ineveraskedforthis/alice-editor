@@ -348,8 +348,14 @@ struct projection {
         std::string terrain{};
         std::string is_slave{};
 
+
+        // eu4/meiou imports
         float rural_population;
         float urban_population;
+        std::string culture;
+        std::string religion;
+        uint32_t base_production;
+        uint32_t base_tax;
     };
 
     struct pop_history {

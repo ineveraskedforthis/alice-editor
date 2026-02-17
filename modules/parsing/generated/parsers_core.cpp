@@ -645,6 +645,30 @@ province_history_handler::colony
 }
 
 void
+province_history_handler::base_tax
+(
+    association_type,
+    uint32_t value,
+    error_handler& err,
+    int32_t line,
+    province_history_context& context
+) {
+    context.history.base_tax = value;
+}
+
+void
+province_history_handler::base_production
+(
+    association_type,
+    uint32_t value,
+    error_handler& err,
+    int32_t line,
+    province_history_context& context
+) {
+    context.history.base_production = value;
+}
+
+void
 province_history_handler::trade_goods
 (
     association_type,
@@ -702,6 +726,22 @@ province_history_handler::terrain(
 	province_history_context& context
 ) {
     context.history.terrain = text;
+}
+
+void
+province_history_handler::culture(
+    association_type, std::string_view text, error_handler& err, int32_t line,
+	province_history_context& context
+) {
+    context.history.culture = text;
+}
+
+void
+province_history_handler::religion(
+    association_type, std::string_view text, error_handler& err, int32_t line,
+	province_history_context& context
+) {
+    context.history.religion = text;
 }
 
 void province_history_handler::add_core(association_type, std::string_view value, error_handler& err, int32_t line,
