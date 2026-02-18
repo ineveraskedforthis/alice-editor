@@ -356,6 +356,7 @@ struct projection {
         std::string religion;
         uint32_t base_production;
         uint32_t base_tax;
+        float pop_level;
     };
 
     struct pop_history {

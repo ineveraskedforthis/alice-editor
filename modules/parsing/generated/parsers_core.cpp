@@ -1,4 +1,9 @@
+#include <cassert>
+#include <cstdint>
+#include <numbers>
 #include <string>
+#include <string_view>
+#include <vector>
 #include "parsers_core.hpp"
 #include "generated_parser.hpp"
 #include "../editor-state/content-state.hpp"
@@ -878,5 +883,227 @@ void enter_dated_block(std::string_view name, token_generator& gen, error_handle
 }
 void enter_setter_meiou(token_generator& gen, error_handler& err, province_history_context& context) {
     parse_setter_meiou(gen, err, context);
+}
+
+void make_region_trigger_or(token_generator& gen, error_handler& err, region_trigger_context& context) {
+    auto trigger = bundled_trigger { {}, trigger_environment::pdx_or, false };
+    region_trigger_context new_context {
+        context.map, trigger
+    };
+    parse_region_trigger(gen, err, new_context);
+    context.inputs.push_back(trigger);
+}
+void make_region_trigger_and(token_generator& gen, error_handler& err, region_trigger_context& context) {
+    auto trigger = bundled_trigger { {}, trigger_environment::pdx_and, false };
+    region_trigger_context new_context {
+        context.map, trigger, {}
+    };
+    parse_region_trigger(gen, err, new_context);
+    context.inputs.push_back(trigger);
+}
+void make_region_trigger_not_and(token_generator& gen, error_handler& err, region_trigger_context& context) {
+    auto trigger = bundled_trigger { {}, trigger_environment::pdx_and, true };
+    region_trigger_context new_context {
+        context.map, trigger, {}
+    };
+    parse_region_trigger(gen, err, new_context);
+    context.inputs.push_back(trigger);
+}
+void make_region_trigger(std::string_view name, token_generator& gen, error_handler& err, generic_context& context) {
+    auto actual_name = std::string {name};
+    bundled_trigger data {{}, trigger_environment::pdx_and, false};
+    region_trigger_context new_context {
+        context.map, data, {}
+    };
+    auto trigger = parse_region_trigger(gen, err, new_context);
+    context.map.loading_only_scripted_region_collection[actual_name] = data.included_provinces;
+}
+void region_trigger::province_id(association_type, uint32_t v2id, error_handler& err, int32_t line, region_trigger_context& context) {
+    context.current.included_provinces[v2id] = true;
+}
+void region_trigger::area(association_type, std::string_view text, error_handler& err, int32_t line, region_trigger_context& context) {
+    auto key =  std::string{text};
+    for (auto& item: context.map.loading_only_area_to_collection[key]) {
+        context.current.included_provinces[item] = true;
+    }
+}
+void region_trigger::region(association_type, std::string_view text, error_handler& err, int32_t line, region_trigger_context& context) {
+    auto key =  std::string{text};
+    for (auto& eu4_area: context.map.loading_only_region_to_collection[key]) {
+        for (auto& eu4_province : context.map.loading_only_area_to_collection[eu4_area]) {
+            context.current.included_provinces[eu4_province] = true;
+        }
+    }
+}
+void region_trigger::finish(region_trigger_context& ctx) {
+    // push negation:
+    // we track negation to avoid expensive set negation
+    // assume that non-negated sets are "small"
+    // and negated are "big"
+
+    bool negation_required = false;
+    if (ctx.current.env == trigger_environment::pdx_or) {
+        // we do not want to calculate unions of negated and non-negated sets
+        // so if we see a union and a negation inside, we push it to the top
+        // now we have an intersection of a "small" set and some negated sets which is just set difference
+        for (auto& item: ctx.inputs) {
+            if (item.negation) negation_required = true; // some set is big, ALARM
+        }
+    } else {
+        // we don't want to intersect only "big" sets
+        // we want to have at least one small set as a "base" to remove elements from if they are not included in other inputs
+        // if all inputs are "big", then we can push negation to the top and obtain union of "small" sets
+        for (auto& item: ctx.inputs) {
+            if (!item.negation) negation_required = false; // some set is small, that's GOOD
+        }
+    }
+    if (negation_required) {
+        if (ctx.current.env == trigger_environment::pdx_or)
+            ctx.current.env = trigger_environment::pdx_and;
+        else
+            ctx.current.env = trigger_environment::pdx_or;
+        ctx.current.negation = !ctx.current.negation;
+        for (auto& item: ctx.inputs) {
+            item.negation = !item.negation;
+        }
+    }
+
+    if (ctx.current.env == trigger_environment::pdx_or) {
+        // now we are safe: we know that there are no "big" sets inside
+        // lets build a union, simple and clear
+        ctx.current.included_provinces = {};
+        for (auto& item: ctx.inputs) {
+            assert(!item.negation);
+            for (auto& [prov, _] : item.included_provinces) {
+                ctx.current.included_provinces[prov] = true;
+            }
+        }
+    } else {
+        // here we know that one of sets is small, lets find it:
+        for (auto& item: ctx.inputs) {
+            if (!item.negation) {
+                for (auto& [prov, _] : item.included_provinces) {
+                    ctx.current.included_provinces[prov] = true;
+                }
+                break;
+            }
+        }
+
+        // now we can intersect it with everything else:
+        std::vector<uint32_t> erase;
+        for (auto& [key, value] : ctx.current.included_provinces) {
+            bool remains = true;
+            for (auto& item : ctx.inputs) {
+                auto exists = item.included_provinces.contains(key);
+                if (exists && item.negation) {
+                    remains = false;
+                    break;
+                }
+                if (!exists && !item.negation) {
+                    remains = false;
+                    break;
+                }
+            }
+            if (!remains) {
+                erase.push_back(key);
+            }
+        }
+        for (auto& key : erase) {
+            ctx.current.included_provinces.erase(key);
+        }
+    }
+}
+
+void eu4_region_content::finish(region_context& context) {
+    context.map.loading_only_region_to_collection[context.current_region] = areas.values;
+}
+
+void make_eu4_region_definition(std::string_view name, token_generator& gen, error_handler& err, generic_context& context) {
+    std::string name_value {name};
+    std::cout << "detect eu4 region: " << name_value << "\n";
+
+    context.map.loading_only_region_to_collection[name_value] = {};
+
+    region_context new_context {
+        context.map, name_value
+    };
+
+    auto parsed_continent = parse_eu4_region_content(gen, err, new_context);
+}
+
+
+void meiou_population_distribution_desc::finish(generic_context& ctx) {
+    auto base_pop_weight = [&](float pop_level) {
+        if (pop_level == 0.5f) return lvl_1_points * 0.75f;
+        if (pop_level == 1.f) return lvl_1_points;
+        if (pop_level == 1.5f) return lvl_2_points * 0.75f;
+        if (pop_level == 2.f) return lvl_2_points;
+        if (pop_level == 2.5f) return lvl_3_points * 0.75f;
+        if (pop_level == 3.f) return lvl_3_points;
+        if (pop_level == 3.5f) return lvl_4_points * 0.75f;
+        if (pop_level == 4.f) return lvl_4_points;
+        if (pop_level == 4.5f) return lvl_5_points * 0.75f;
+        if (pop_level == 5.f) return lvl_5_points;
+        if (pop_level == 5.5f) return lvl_6_points * 0.75f;
+        if (pop_level == 6.f) return lvl_6_points;
+        if (pop_level == 6.5f) return lvl_7_points * 0.75f;
+        if (pop_level == 7.f) return lvl_7_points;
+        if (pop_level == 8.f) return lvl_7_points * 1.5f;
+        if (pop_level == 9.f) return lvl_7_points * 2.f;
+        if (pop_level == 10.f) return lvl_7_points * 2.5f;
+        if (pop_level == 11.f) return lvl_7_points * 3.f;
+        if (pop_level == 12.f) return lvl_7_points * 3.5f;
+        if (pop_level == 13.f) return lvl_7_points * 4.f;
+        if (pop_level == 14.f) return lvl_7_points * 5.f;
+        if (pop_level == 15.f) return lvl_7_points * 6.f;
+        return 0.f;
+    };
+
+    ankerl::unordered_dense::map<uint32_t, float> province_sizes {};
+    for (auto& [v2id, vector_index] : ctx.map.v2id_to_vector_position) {
+        province_sizes[v2id] = 0.f;
+    }
+
+    float y_shrink_factor = 1.3;
+    if (ctx.map.provinces_image->full_globe){
+        y_shrink_factor = 1.f;
+    }
+    for (auto x = 0; x < ctx.map.provinces_image->size_x; x++) {
+        for (auto y = 0; y < ctx.map.provinces_image->size_y; y++) {
+            auto prov = ctx.map.provinces_image;
+            auto pixel = ctx.map.provinces_image->coord_to_pixel(glm::ivec2{x, y});
+            auto r = ctx.map.provinces_image->provinces_image_data[pixel * 4];
+            auto g = ctx.map.provinces_image->provinces_image_data[pixel * 4 + 1];
+            auto b = ctx.map.provinces_image->provinces_image_data[pixel * 4 + 2];
+            auto rgb = datatypes::rgb_to_uint(r, g, b);
+            auto ite = ctx.map.rgb_to_v2id.find(rgb);
+            if (ite == ctx.map.rgb_to_v2id.end()) continue;
+            float t = (((float)y + 0.5f) / (float) ctx.map.provinces_image->size_y - 0.5f) * std::numbers::pi_v<float>;
+            auto area_form = cos(t / y_shrink_factor);
+            auto pixel_size =
+                area_form
+                * (1.f / (float)ctx.map.provinces_image->size_y * std::numbers::pi_v<float>)
+                * (1.f / (float)ctx.map.provinces_image->size_x * 2 * std::numbers::pi_v<float>);
+            province_sizes[ite->second] += pixel_size;
+        }
+    }
+
+    auto pop_weight = [&](uint32_t v2id) {
+        auto& def = ctx.map.province_history[v2id];
+        auto base  = base_pop_weight(def.pop_level);
+        auto adjusted= base * province_sizes[v2id];
+        return adjusted;
+    };
+
+    float total_weight = 0.f;
+    for (auto& [item, _] : ctx.map.loading_only_scripted_region_collection[limit_trigger]) {
+        total_weight += pop_weight(item);
+    }
+
+    if (total_weight > 0.f) {
+        for (auto& [item, _] : ctx.map.loading_only_scripted_region_collection[limit_trigger]) {
+            ctx.map.province_history[item].rural_population += pop_total * pop_weight(item) / total_weight;
+        }
+    }
 }
 }

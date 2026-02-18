@@ -145,6 +145,7 @@ struct layer {
     std::vector<legacy_localisation_file> loc_legacy {};
     std::vector<alice_localisation_folder> loc_alice {};
 
+
     std::vector<std::string> poptypes{};
 
     ankerl::unordered_dense::map<uint32_t, std::string> v2id_to_continent {};
@@ -187,6 +188,9 @@ struct layer {
     // history/pops/ DATE / *.txt
     std::vector<game_definition::pops_setups> province_population {};
 
+    //
+    bool loaded_from_eu4_content = false;
+
     // region.txt
 
     std::vector<game_definition::state> states {};
@@ -196,6 +200,12 @@ struct layer {
     void load_state_texture_to_gpu();
     void commit_state_texture_to_gpu();
 
+    // do not use outside loading data
+    ankerl::unordered_dense::map<std::string, std::vector<uint32_t>> loading_only_area_to_collection;
+    // do not use outside loading data
+    ankerl::unordered_dense::map<std::string, std::vector<std::string>> loading_only_region_to_collection;
+    // loading only
+    ankerl::unordered_dense::map<std::string,ankerl::unordered_dense::map<uint32_t, bool>> loading_only_scripted_region_collection;
 
     std::vector<game_definition::nation_definition> nations{};
     ankerl::unordered_dense::map<int32_t, uint32_t> tag_to_vector_position{};

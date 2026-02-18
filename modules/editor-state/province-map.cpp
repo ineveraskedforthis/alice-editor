@@ -111,17 +111,19 @@ int province_map::coord_to_pixel(glm::vec2 coord) {
 }
 
 // constructor from dim
-province_map::province_map(int x, int y) {
+province_map::province_map(int x, int y, bool full_globe) {
 	size_x = x;
 	size_y = y;
 	provinces_image_data = new uint8_t[size_x * size_y * 4];
+	full_globe = full_globe;
 }
 
 // constructor from dim and data
-province_map::province_map(int x, int y, uint8_t* data) {
+province_map::province_map(int x, int y, uint8_t* data, bool full_globe) {
 	size_x = x;
 	size_y = y;
 	provinces_image_data = data;
+	full_globe = full_globe;
 }
 
 // destructor
@@ -145,6 +147,7 @@ province_map::province_map(const province_map& source) {
 	available_r = source.available_r;
 	available_g = source.available_g;
 	available_b = source.available_b;
+	full_globe = source.full_globe;
 }
 
 // copy assignment
@@ -163,19 +166,24 @@ province_map& province_map::operator=(province_map& source) {
 	available_r = source.available_r;
 	available_g = source.available_g;
 	available_b = source.available_b;
+	full_globe = source.full_globe;
 
 	return *this;
 }
 
 // move constructor
-province_map::province_map(province_map&& source) noexcept :
-size_x(std::move(source.size_x)),
-size_y(std::move(source.size_y)),
-available_r(std::move(source.available_r)),
-available_g(std::move(source.available_g)),
-available_b(std::move(source.available_b)),
-color_present(std::move(source.color_present)),
-provinces_image_data(source.provinces_image_data) {
+province_map::province_map
+	(province_map&& source)
+noexcept :
+	full_globe(std::move(source.full_globe)),
+	size_x(std::move(source.size_x)),
+	size_y(std::move(source.size_y)),
+	available_r(std::move(source.available_r)),
+	available_g(std::move(source.available_g)),
+	available_b(std::move(source.available_b)),
+	color_present(std::move(source.color_present)),
+	provinces_image_data(source.provinces_image_data)
+{
 	source.clear();
 }
 

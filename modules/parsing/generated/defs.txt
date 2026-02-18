@@ -288,3 +288,47 @@ continent_definition
 continent_file
 #generic_context
 	#any           extern     make_continent_definition discard
+
+eu4_region_areas
+	#free value text member_fn
+
+eu4_region_content
+#region_context
+	areas  group eu4_region_areas  member
+
+eu4_regions_file
+#generic_context
+	#any extern make_eu4_region_definition discard
+
+region_triggers_file
+#generic_context
+	#any  extern  make_region_trigger  discard
+
+region_trigger
+#region_trigger_context
+	or extern make_region_trigger_or discard
+	and extern make_region_trigger_and discard
+	not extern make_region_trigger_not_and discard
+	province_id value uint member_fn
+	area value text member_fn
+	region value text member_fn
+
+meiou_population_distribution_desc
+#generic_context
+	limit_trigger value text member
+	pop_total value float member
+	lvl_1_points value float member
+	lvl_2_points value float member
+	lvl_3_points value float member
+	lvl_4_points value float member
+	lvl_5_points value float member
+	lvl_6_points value float member
+	lvl_7_points value float member
+
+meiou_population_distribution_list
+#generic_context
+	pop_distribute_total group meiou_population_distribution_desc discard
+
+meiou_population_distribution_file
+#generic_context
+	pop_1350_distributions group meiou_population_distribution_list discard

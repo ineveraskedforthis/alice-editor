@@ -203,6 +203,8 @@ namespace parsers{
             if (map.province_state[2 * index] == 0 && map.province_state[2 * index + 1] == 0) {
                 map.province_state[2 * index] = current_state_def % 256;
                 map.province_state[2 * index + 1] = current_state_def >> 8;
+
+                map.loading_only_area_to_collection[map.states[current_state_def].name].push_back(index);
             } else {
                 // todo: detect metaregions and move them elsewhere
             }
@@ -233,6 +235,7 @@ namespace parsers{
             case REGIONS_PARSER_TASK::READING_STATE_NAME: {
                 if (parser::nothing(c) || c == '=') {
                     game_definition::state def {current_word};
+                    map.loading_only_area_to_collection[current_word] = {};
                     map.states.push_back(def);
                     current_state_def = map.states.size() - 1;
                     task = REGIONS_PARSER_TASK::AWAIT_PROVINCE_NAME;
@@ -305,7 +308,7 @@ namespace parsers{
             );
 
             state::province_map result {
-                size_x, size_y, map
+                size_x, size_y, map, true
             };
             result.recalculate_present_colors();
             result.update_available_colors();
@@ -321,7 +324,7 @@ namespace parsers{
             );
 
             state::province_map result {
-                size_x, size_y, map
+                size_x, size_y, map, false
             };
             result.recalculate_present_colors();
             result.update_available_colors();
@@ -543,6 +546,7 @@ namespace parsers{
 
         if (areas_file_exist) {
             file.open(path + "/map/area.txt");
+            layer.loaded_from_eu4_content = true;
         } else if (region_file_exist) {
             file.open(path + "/map/region.txt");
         } else {
@@ -1266,7 +1270,8 @@ namespace parsers{
 
                 file << "\t\tcolor = { " << culture_def.r << " " << culture_def.g << " " << culture_def.b << " }\n";
                 file << "\t\tradicalism = " << culture_def.radicalism << "\n";
-                file << "\t\tprimary = " << culture_def.primary << "\n";
+                if (culture_def.primary.length() > 0)
+                    file << "\t\tprimary = " << culture_def.primary << "\n";
 
                 file << "\t\tfirst_names = {";
                 for (int i = 0; i < culture_def.first_names.size(); i++) {
@@ -1311,25 +1316,44 @@ namespace parsers{
     void register_religions(state::layer &layer, std::string path, parsers::error_handler& errors) {
         std::cout << "registration of religions\n";
         if (!std::filesystem::exists(path + "/common/religion.txt")) {
-            std::cout << "no religions found\n";
-            return;
+            std::cout << "no religions found, check for modern folders\n";
+            if (!std::filesystem::exists(path+"/common/religions")){
+                std::cout << "no religions found\n";
+                return;
+            }
+            for (auto& entry : std::filesystem::directory_iterator  {path + "/common/religions"}) {
+                if (!entry.is_directory() && entry.path().filename().string().ends_with(".txt")) {
+                    errors.file_name = entry.path().filename().string();
+                    layer.has_religions = true;
+                    std::ifstream file(entry.path());
+                    std::stringstream buffer;
+                    buffer << file.rdbuf();
+                    auto str = buffer.str();
+                    parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+                    generic_context ctx {
+                        layer
+                    };
+                    parsers::parse_religion_file(tk, errors, ctx);
+                }
+            }
+        } else  {
+            errors.file_name = "/common/religion.txt";
+
+            layer.has_religions = true;
+
+            std::ifstream file(path + "/common/religion.txt");
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+            auto str = buffer.str();
+            parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+
+            generic_context ctx {
+                layer
+            };
+
+            parsers::parse_religion_file(tk, errors, ctx);
         }
 
-        errors.file_name = "/common/religion.txt";
-
-        layer.has_religions = true;
-
-        std::ifstream file(path + "/common/religion.txt");
-        std::stringstream buffer;
-        buffer << file.rdbuf();
-        auto str = buffer.str();
-        parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
-
-        generic_context ctx {
-            layer
-        };
-
-        parsers::parse_religion_file(tk, errors, ctx);
     }
 
     void unload_province_defs(state::layer &layer, std::string path) {
@@ -2083,8 +2107,18 @@ border_cutoff = 1100.0
         load_nation_history(state, layer, layer.path, errors);
         load_province_history(layer, layer.path, errors);
         load_province_population(layer, layer.path, errors);
-        if (layer.province_population.empty()) {
+        if (layer.province_population.empty() && layer.loaded_from_eu4_content) {
             layer.province_population.push_back({});
+            std::ifstream file(layer.path + "/map/region.txt");
+            parsers::generic_context ctx_generic {
+                layer
+            };
+
+            std::stringstream buffer;
+            buffer << file.rdbuf();
+            auto str = buffer.str();
+            parsers::token_generator tk(str.c_str(), str.c_str() + buffer.str().length());
+            parse_eu4_regions_file(tk, errors, ctx_generic);
 
             auto& dummy = layer.province_population[0];
             dummy.data.push_back({});

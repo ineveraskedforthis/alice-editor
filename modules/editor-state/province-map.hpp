@@ -10,6 +10,8 @@ struct province_map {
 	int size_y = 0;
 	uint8_t* provinces_image_data = nullptr;
 
+	bool full_globe = true;
+
 	uint32_t available_color = 0;
 	uint8_t available_r = 0;
 	uint8_t available_g = 0;
@@ -26,10 +28,10 @@ struct province_map {
 	int coord_to_pixel(glm::vec2 coord);
 
 	// constructor from dim
-	province_map(int x, int y);
+	province_map(int x, int y, bool full_globe);
 
 	// constructor from dim and data
-	province_map(int x, int y, uint8_t* data);
+	province_map(int x, int y, uint8_t* data, bool full_globe);
 
 	// destructor
 	~province_map();

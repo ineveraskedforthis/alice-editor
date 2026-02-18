@@ -1,6 +1,8 @@
 #pragma once
 #include <array>
+#include <cassert>
 #include <cstdint>
+#include <optional>
 #include <string>
 #include <vector>
 #include "parsers.hpp"
@@ -177,8 +179,108 @@ struct culture_group {
 struct province_history_context {
 	game_definition::province_history& history;
 	// game_definition::pops_history_file& extrapolated_population;
+	std::optional<ankerl::unordered_dense::map<uint32_t, bool>> data;
 };
 
+struct finite_predicate {
+	// none if total
+	std::optional<ankerl::unordered_dense::map<uint32_t, bool>> data;
+};
+inline void multiply(finite_predicate& a, const finite_predicate& b) {
+	if (b.data && a.data) {
+		for (auto& [key, value] : b.data.value()) {
+			auto a_it = a.data->find(key);
+			if (a_it != a.data->end())
+				a.data.value()[key] = true;
+		}
+		std::vector<uint32_t> to_erase;
+		for (auto& [key, value] : a.data.value()) {
+			auto b_it = b.data->find(key);
+			if (b_it == b.data->end())
+				to_erase.push_back(key);
+		}
+		for (auto& key : to_erase) {
+			a.data->erase(key);
+		}
+	} else if (b.data) {
+		a.data = b.data;
+	}
+}
+inline void unite(finite_predicate& a, const finite_predicate& b) {
+	if (a.data && b.data) {
+		for (auto& [key, value] : b.data.value()) {
+			a.data.value()[key] = true;
+		}
+	}
+}
+inline void exclude(finite_predicate& a, const finite_predicate& b) {
+	assert(a.data.has_value());
+	assert(b.data.has_value());
+	for (auto& [key, value] : b.data.value()) {
+		if (a.data->contains(key)){
+			a.data->erase(key);
+		}
+	}
+}
+
+enum class trigger_environment {
+	pdx_or, pdx_and
+};
+struct bundled_trigger {
+	ankerl::unordered_dense::map<uint32_t, bool> included_provinces {};
+	trigger_environment env;
+	bool negation;
+};
+struct region_trigger_context {
+	state::layer& map;
+	bundled_trigger& current;
+	std::vector<bundled_trigger> inputs;
+};
+
+struct region_triggers_file {
+	void finish(generic_context& ctx) {}
+};
+
+struct region_trigger {
+	void finish(region_trigger_context& ctx);
+
+	void province_id(association_type, uint32_t v2id, error_handler& err, int32_t line, region_trigger_context& context);
+	void area(association_type, std::string_view text, error_handler& err, int32_t line, region_trigger_context& context);
+	void region(association_type, std::string_view text, error_handler& err, int32_t line, region_trigger_context& context);
+};
+
+void make_region_trigger_or(token_generator& gen, error_handler& err, region_trigger_context& context);
+void make_region_trigger_and(token_generator& gen, error_handler& err, region_trigger_context& context);
+void make_region_trigger_not_and(token_generator& gen, error_handler& err, region_trigger_context& context);
+void make_region_trigger(std::string_view name, token_generator& gen, error_handler& err, generic_context& context);
+
+
+struct region_context {
+	state::layer& map;
+	std::string current_region;
+};
+
+
+struct eu4_region_areas {
+	std::vector<std::string> values;
+	template<typename C>
+	void free_value(std::string_view v, error_handler& err, int32_t line, C& context) {
+		auto vr = std::string{v};
+		values.push_back(vr);
+	}
+
+	template<typename C>
+	void finish(C& context) {};
+};
+
+struct eu4_region_content {
+	eu4_region_areas areas;
+	void finish(region_context& context);
+};
+
+struct eu4_regions_file {
+	void finish(generic_context& context) {};
+};
 
 struct setter_meiou {
 	std::string lhs;
@@ -192,6 +294,9 @@ struct setter_meiou {
 		}
 		if (lhs == "starting_urban_pop") {
 			context.history.urban_population += value * 1000.f;
+		}
+		if (lhs == "pop_level") {
+			context.history.pop_level = value;
 		}
 	}
 };
@@ -585,6 +690,7 @@ struct foreign_investment_handler {
 };
 
 void enter_country_file_dated_block(std::string_view label, token_generator& gen, error_handler& err, nation_history_file& context);
+void make_eu4_region_definition(std::string_view name, token_generator& gen, error_handler& err, generic_context& context) ;
 
 struct nation_handler {
 	void finish(nation_history_file&);
@@ -614,4 +720,30 @@ struct nation_handler {
 	void ruling_party(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
 	void decision(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
 };
+
+
+struct meiou_population_distribution_desc {
+	std::string limit_trigger;
+	float pop_total;
+	float lvl_1_points;
+	float lvl_2_points;
+	float lvl_3_points;
+	float lvl_4_points;
+	float lvl_5_points;
+	float lvl_6_points;
+	float lvl_7_points;
+	void finish(generic_context& ctx);
+};
+
+struct meiou_population_distribution_list {
+	void finish(generic_context& ctx) {};
+};
+
+struct meiou_population_distribution_file {
+	void finish(generic_context& ctx) {};
+};
+
+
+
+
 };
