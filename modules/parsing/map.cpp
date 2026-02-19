@@ -514,7 +514,8 @@ namespace parsers{
                         }
                         case PARSER_MODE_DEFAULT::SEA_STARTS_BRACKET: {
                             if (parser.last_word == "}") {
-                                found = true;
+                                parser.mode = PARSER_MODE_DEFAULT::NONE;
+                                // found = true;
                             } else {
                                 auto index = std::stoi(parser.last_word);
                                 layer.province_is_sea[index] = 255;
@@ -2157,63 +2158,68 @@ border_cutoff = 1100.0
                     history.rural_population += history.base_tax * 10000.f;
                 }
                 if (history.urban_population == 0) {
-                    history.urban_population += history.base_tax * 10000.f;
+                    history.urban_population += history.base_production * 10000.f;
                 }
 
-                game_definition::pop_history farmers {
-                    .poptype = "farmers",
-                    .culture = history.culture,
-                    .religion = history.religion,
-                    .rebel_type = "",
-                    .size = (int)(history.rural_population * 0.95f),
-                    .militancy = 0
-                };
-                dummy_file.data[p.v2id].push_back(farmers);
-                game_definition::pop_history clergy {
-                    .poptype = "clergymen",
-                    .culture = history.culture,
-                    .religion = history.religion,
-                    .rebel_type = "",
-                    .size = (int)(history.rural_population * 0.03f),
-                    .militancy = 0
-                };
-                dummy_file.data[p.v2id].push_back(clergy);
-                game_definition::pop_history aristocracy {
-                    .poptype = "aristocrats",
-                    .culture = history.culture,
-                    .religion = history.religion,
-                    .rebel_type = "",
-                    .size = (int)(history.rural_population * 0.02f),
-                    .militancy = 0
-                };
-                dummy_file.data[p.v2id].push_back(aristocracy);
-                game_definition::pop_history artisans {
-                    .poptype = "artisans",
-                    .culture = history.culture,
-                    .religion = history.religion,
-                    .rebel_type = "",
-                    .size = (int)(history.urban_population * 0.9f),
-                    .militancy = 0
-                };
-                dummy_file.data[p.v2id].push_back(artisans);
-                game_definition::pop_history soldiers {
-                    .poptype = "soldiers",
-                    .culture = history.culture,
-                    .religion = history.religion,
-                    .rebel_type = "",
-                    .size = (int)(history.urban_population * 0.05f),
-                    .militancy = 0
-                };
-                dummy_file.data[p.v2id].push_back(soldiers);
-                game_definition::pop_history bureaucrats {
-                    .poptype = "bureaucrats",
-                    .culture = history.culture,
-                    .religion = history.religion,
-                    .rebel_type = "",
-                    .size = (int)(history.urban_population * 0.05f),
-                    .militancy = 0
-                };
-                dummy_file.data[p.v2id].push_back(bureaucrats);
+                if (history.rural_population > 0) {
+                    game_definition::pop_history farmers {
+                        .poptype = "farmers",
+                        .culture = history.culture,
+                        .religion = history.religion,
+                        .rebel_type = "",
+                        .size = (int)(history.rural_population * 0.95f),
+                        .militancy = 0
+                    };
+                    dummy_file.data[p.v2id].push_back(farmers);
+                    game_definition::pop_history clergy {
+                        .poptype = "clergymen",
+                        .culture = history.culture,
+                        .religion = history.religion,
+                        .rebel_type = "",
+                        .size = (int)(history.rural_population * 0.03f),
+                        .militancy = 0
+                    };
+                    dummy_file.data[p.v2id].push_back(clergy);
+                    game_definition::pop_history aristocracy {
+                        .poptype = "aristocrats",
+                        .culture = history.culture,
+                        .religion = history.religion,
+                        .rebel_type = "",
+                        .size = (int)(history.rural_population * 0.02f),
+                        .militancy = 0
+                    };
+                    dummy_file.data[p.v2id].push_back(aristocracy);
+                }
+
+                if (history.rural_population > 0) {
+                    game_definition::pop_history artisans {
+                        .poptype = "artisans",
+                        .culture = history.culture,
+                        .religion = history.religion,
+                        .rebel_type = "",
+                        .size = (int)(history.urban_population * 0.9f),
+                        .militancy = 0
+                    };
+                    dummy_file.data[p.v2id].push_back(artisans);
+                    game_definition::pop_history soldiers {
+                        .poptype = "soldiers",
+                        .culture = history.culture,
+                        .religion = history.religion,
+                        .rebel_type = "",
+                        .size = (int)(history.urban_population * 0.05f),
+                        .militancy = 0
+                    };
+                    dummy_file.data[p.v2id].push_back(soldiers);
+                    game_definition::pop_history bureaucrats {
+                        .poptype = "bureaucrats",
+                        .culture = history.culture,
+                        .religion = history.religion,
+                        .rebel_type = "",
+                        .size = (int)(history.urban_population * 0.05f),
+                        .militancy = 0
+                    };
+                    dummy_file.data[p.v2id].push_back(bureaucrats);
+                }
             }
 
         }
