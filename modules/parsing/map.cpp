@@ -501,7 +501,7 @@ namespace parsers{
                 else if (parser.task == PARSER_TASK::READING_WORD) {
                     switch (parser.mode) {
                         case PARSER_MODE_DEFAULT::NONE: {
-                            if (parser.last_word == "sea_starts") {
+                            if (parser.last_word == "sea_starts" || parser.last_word == "lakes") {
                                 parser.mode = PARSER_MODE_DEFAULT::SEA_STARTS;
                             }
                             break;
@@ -779,6 +779,11 @@ namespace parsers{
                 file << data.government << " = { " << (int)data.color.R << " " << (int)data.color.G << " " << (int)data.color.B << " }\n";
             }
             file << "graphical_culture = " << value.graphical_culture << "\n";
+
+            if (value.parties.size() == 0) {
+                game_definition::basic_parties_common(value);
+            }
+
             for (auto& party : value.parties) {
                 file << "party = {\n";
                 file << "\tname = \"" << party.name << "\"\n";
@@ -1353,7 +1358,26 @@ namespace parsers{
 
             parsers::parse_religion_file(tk, errors, ctx);
         }
+    }
 
+    void unload_religions(state::layer &layer, std::string path) {
+        if (!layer.has_religions) return;
+        std::filesystem::create_directory(path + "/common");
+        std::ofstream file(path + "/common/religion.txt");
+        for (auto& group: layer.religion_groups) {
+            file << group << " = {\n";
+            for (auto& religion_name : layer.religions) {
+                if (layer.religion_to_group[religion_name] != group) {
+                    continue;
+                }
+                auto& religion_def = layer.religion_defs[religion_name];
+                file << "\t" << religion_name << " = {\n";
+                file << "\t\tcolor = { " << religion_def.r << " " << religion_def.g << " " << religion_def.b << " }\n";
+                file << "\t\ticon = " << religion_def.icon << "\n";
+                file << "\t}\n";
+            }
+            file << "}\n";
+        }
     }
 
     void unload_province_defs(state::layer &layer, std::string path) {
@@ -1590,16 +1614,17 @@ border_cutoff = 1100.0
                 file << "add_core = " << core << std::endl;
             }
 
-            if (val.main_trade_good.length() > 0)
-                file << "trade_goods = " << val.main_trade_good << std::endl;
 
-
-            file << "colonial = " << val.colonial << std::endl;
-            file << "colony = " << val.colony << std::endl;
-            file << "life_rating = " << val.life_rating << std::endl;
-            file << "naval_base = " << val.naval_base << std::endl;
-            file << "railroad = " << val.railroad << std::endl;
-            file << "fort = " << val.fort << std::endl;
+            if(!layer.province_is_sea[key]) {
+                if (val.main_trade_good.length() > 0)
+                    file << "trade_goods = " << val.main_trade_good << std::endl;
+                file << "colonial = " << val.colonial << std::endl;
+                file << "colony = " << val.colony << std::endl;
+                file << "life_rating = " << val.life_rating << std::endl;
+                file << "naval_base = " << val.naval_base << std::endl;
+                file << "railroad = " << val.railroad << std::endl;
+                file << "fort = " << val.fort << std::endl;
+            }
 
             for (auto& building : val.buildings) {
                 file << "state_building = {" << std::endl;
@@ -2209,6 +2234,7 @@ border_cutoff = 1100.0
         unload_legacy_loc(layer, path);
         unload_loc(layer, path);
         unload_cultures(layer, path);
+        unload_religions(layer, path);
         unload_continents(layer, path);
         unload_province_defs(layer, path);
         unload_default_dot_map(layer, path);

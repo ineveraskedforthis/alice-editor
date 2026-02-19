@@ -175,7 +175,7 @@ struct projection {
         std::string government{};
         float plurality = 0.f;
         float prestige = 0.f;
-        std::string nationalvalue{};
+        std::string nationalvalue = "nv_order";
         float literacy = 0.f;
         float non_state_culture_literacy = 0.f;
         bool civilized = false;
@@ -183,7 +183,7 @@ struct projection {
         std::vector<scripted_flag> govt_flag{};
         ankerl::unordered_dense::map<std::string, float> foreign_investment{};
         ankerl::unordered_dense::map<std::string, float> upper_house{};
-        std::string ruling_party{};
+        std::string ruling_party = "default_conservative";
         std::string schools{};
         float consciousness = 0.f;
         float nonstate_consciousness = 0.f;
@@ -222,11 +222,12 @@ struct projection {
         bool is_overseas = true;
     };
 
-    inline void define_nation_common(nation_common& n) {
-        n.R = 0;
-        n.G = 0;
-        n.B = 0;
-        n.graphical_culture = "BritishGC";
+    struct religion {
+        uint32_t icon;
+        int r; int g; int b;
+    };
+
+    inline void basic_parties_common(nation_common& n) {
         party conservative = {
             .name = "default_conservative",
             .start = "1800.1.1",
@@ -308,6 +309,14 @@ struct projection {
         n.parties = {
             conservative, liberal, reactionary, socialist, anarcho_liberal, communist, fascist
         };
+    }
+
+    inline void define_nation_common(nation_common& n) {
+        n.R = 0;
+        n.G = 0;
+        n.B = 0;
+        n.graphical_culture = "BritishGC";
+        basic_parties_common(n);
     }
 
     inline int32_t string_to_int(std::string tag) {

@@ -239,7 +239,10 @@ struct layer {
     bool has_cultures = false;
 
     // religions
+    std::vector<std::string> religion_groups{};
     std::vector<std::string> religions {};
+    ankerl::unordered_dense::map<std::string, game_definition::religion> religion_defs {};
+    ankerl::unordered_dense::map<std::string, std::string> religion_to_group {};
     bool has_religions = false;
 
     // interface description

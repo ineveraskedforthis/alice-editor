@@ -83,7 +83,11 @@ struct religion_group_context {
 	state::layer& map;
 	std::string name;
 };
-
+struct religion {
+	uint32_t icon;
+	color_from_3i color;
+	void finish(religion_group_context&) {};
+};
 struct culture_context {
 	state::layer& map;
 	game_definition::culture& culture;

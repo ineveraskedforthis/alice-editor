@@ -269,9 +269,15 @@ culture_file
 #culture_file_context
 	#any           extern     make_culture_group    discard
 
+religion
+#religion_group_context
+	icon value uint member
+	color group color_from_3i member
 
 religion_group
 #religion_group_context
+	flags_with_emblem_percentage value uint discard
+	flag_emblem_index_range group color_from_3i discard
 	#any           extern     make_religion    discard
 
 religion_file

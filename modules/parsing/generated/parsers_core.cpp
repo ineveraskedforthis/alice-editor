@@ -565,6 +565,7 @@ void make_culture(std::string_view name, token_generator& gen, error_handler& er
 
 void make_religion_group(std::string_view name, token_generator& gen, error_handler& err, generic_context& context) {
     std::string actual_string {name};
+    context.map.religion_groups.push_back(actual_string);
     religion_group_context next_context {
         context.map, actual_string
     };
@@ -574,8 +575,12 @@ void make_religion_group(std::string_view name, token_generator& gen, error_hand
 void make_religion(std::string_view name, token_generator& gen, error_handler& err, religion_group_context& context) {
     std::string actual_string {name};
     context.map.religions.push_back(actual_string);
+    context.map.religion_to_group[actual_string] = context.name;
     std::cout << "religion " << actual_string << " was detected\n";
-    gen.discard_group();
+    auto religion = parse_religion(gen, err, context);
+    context.map.religion_defs[actual_string] = {
+        religion.icon, religion.color.colors[0], religion.color.colors[1], religion.color.colors[2]
+    };
 }
 
 void pop_province_list::finish(pop_history_context&){
