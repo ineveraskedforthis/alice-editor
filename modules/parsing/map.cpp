@@ -993,7 +993,7 @@ namespace parsers{
                     province_history_context ctx {
                         p
                     };
-                    std::ifstream file(entry.path());
+                    std::ifstream file(province_description.path());
                     std::stringstream buffer;
                     buffer << file.rdbuf();
                     auto str = buffer.str();
@@ -1577,6 +1577,7 @@ border_cutoff = 1100.0
                 for (auto& [v2id, pops] : pops_file.data) {
                     file << v2id << " = {\n";
                     for (auto& pop : pops) {
+                        if (pop.size <= 0) continue;
                         file << "\t" << pop.poptype << " = {\n";
                         file << "\t\tculture = " << pop.culture << "\n";
                         file << "\t\treligion = " << pop.religion << "\n";

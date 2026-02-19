@@ -2,6 +2,7 @@
 #include "imgui.h"
 #include "misc/cpp/imgui_stdlib.h"
 #include "../editor-state/editor-state.hpp"
+#include "pop-mass-edit.hpp"
 #include "window-wrapper.hpp"
 #include "selection_widget.hpp"
 
@@ -208,6 +209,11 @@ namespace widgets {
                 ImGui::EndCombo();
             }
         }
+
+        if (ImGui::Button("POP MASS EDITOR")) {
+            ImGui::OpenPopup("Mass pop operation");
+        }
+        modal::pop_query(layers);
 
         ImGui::Text("Layers:");
 

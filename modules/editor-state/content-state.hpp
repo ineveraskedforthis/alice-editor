@@ -1217,6 +1217,16 @@ struct layers_stack {
         return result;
     }
 
+    ankerl::unordered_dense::map<uint32_t, uint32_t> * get_v2ids() {
+        ankerl::unordered_dense::map<uint32_t, uint32_t> * result = nullptr;
+        for (auto& l : data) {
+            if (l.has_province_definitions) {
+                result = &l.v2id_to_vector_position;
+            }
+        }
+        return result;
+    }
+
     int get_commodities_count() {
         int result = 1;
         for (auto& l: data) {
