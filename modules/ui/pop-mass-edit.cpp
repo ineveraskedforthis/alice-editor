@@ -30,16 +30,28 @@ void pop_query(state::layers_stack& layers) {
 		ImGui::Checkbox("Ignore culture", &ignore_culture);
 		widgets::auto_complete::culture(layers, selected_culture);
 
+		static std::string selected_owner;
+		static bool ignore_owner;
+		ImGui::Checkbox("Ignore ownership", &ignore_owner);
+		ImGui::InputText("Owner TAG", &selected_owner);
+
 		auto pop_types = layers.retrieve_poptypes();
 
+		int column = 0;
 		for (auto& pt:pop_types) {
 			if (!selected_pop_types.contains(pt)) {
 				selected_pop_types[pt] = true;
 			}
 			ImGui::Checkbox(pt.c_str(), &selected_pop_types[pt]);
+			column++;
+			if (column < 3) {
+				ImGui::SameLine();
+			} else {
+				column = 0;
+			}
 		}
 
-
+		ImGui::NewLine();
 		ImGui::Separator();
 		static int selection = 0;
 		static std::string changes[] = {"Set to zero", "Resize", "Convert"};
@@ -75,6 +87,9 @@ void pop_query(state::layers_stack& layers) {
 
 		if (ImGui::Button("Calculate stats")) {
 			for (auto& [v2id, value] : *layers.get_v2ids()) {
+				auto history = layers.get_province_history(v2id);
+				if (history->owner_tag != selected_owner && !ignore_owner) continue;
+
 				auto pops = layers.get_pops(v2id, selected_date);
 				if (!pops) continue;
 				for (auto& pop : *pops) {
@@ -96,6 +111,8 @@ void pop_query(state::layers_stack& layers) {
 		if (selection == 0) {
 			if (ImGui::Button("Confirm deletion")) {
 				for (auto& [v2id, value] : *layers.get_v2ids()) {
+					auto history = layers.get_province_history(v2id);
+					if (history->owner_tag != selected_owner && !ignore_owner) continue;
 					bool exist = false;
 					{
 						// copy if exist
@@ -130,6 +147,8 @@ void pop_query(state::layers_stack& layers) {
 			ImGui::InputFloat("Multiply by", &mult);
 			if (ImGui::Button("Confirm multiplication")) {
 				for (auto& [v2id, value] : *layers.get_v2ids()) {
+					auto history = layers.get_province_history(v2id);
+					if (history->owner_tag != selected_owner && !ignore_owner) continue;
 					bool exist = false;
 					{
 						// copy if exist
@@ -172,6 +191,8 @@ void pop_query(state::layers_stack& layers) {
 
 			if (ImGui::Button("Confirm conversion")) {
 				for (auto& [v2id, value] : *layers.get_v2ids()) {
+					auto history = layers.get_province_history(v2id);
+					if (history->owner_tag != selected_owner && !ignore_owner) continue;
 
 					bool exist = false;
 					{
