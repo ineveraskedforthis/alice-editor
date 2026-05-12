@@ -373,7 +373,7 @@ struct projection {
         std::string culture{};
         std::string religion{};
         std::string rebel_type{};
-        int size = 0;
+        int64_t size = 0;
         float militancy = 0;
     };
 

@@ -82,14 +82,24 @@ void pop_query(state::layers_stack& layers) {
 
 
 		static bool calculated_stats;
-		static float total_size;
-		static int count;
+		static float total_size =0;
+		static int count = 0;
 
 		if (ImGui::Button("Calculate stats")) {
+			total_size = 0;
+			count = 0;
 			for (auto& [v2id, value] : *layers.get_v2ids()) {
 				auto history = layers.get_province_history(v2id);
-				if (!history) continue;
-				if (history->owner_tag != selected_owner && !ignore_owner) continue;
+				if (
+					!ignore_owner
+					&&
+					(
+						history == nullptr
+						|| history->owner_tag != selected_owner
+					)
+				) {
+					continue;
+				}
 
 				auto pops = layers.get_pops(v2id, selected_date);
 				if (!pops) continue;
@@ -113,7 +123,18 @@ void pop_query(state::layers_stack& layers) {
 			if (ImGui::Button("Confirm deletion")) {
 				for (auto& [v2id, value] : *layers.get_v2ids()) {
 					auto history = layers.get_province_history(v2id);
-					if (history->owner_tag != selected_owner && !ignore_owner) continue;
+
+					if (
+						!ignore_owner
+						&&
+						(
+							history == nullptr
+							|| history->owner_tag != selected_owner
+						)
+					) {
+						continue;
+					}
+
 					bool exist = false;
 					{
 						// copy if exist
@@ -149,7 +170,16 @@ void pop_query(state::layers_stack& layers) {
 			if (ImGui::Button("Confirm multiplication")) {
 				for (auto& [v2id, value] : *layers.get_v2ids()) {
 					auto history = layers.get_province_history(v2id);
-					if (history->owner_tag != selected_owner && !ignore_owner) continue;
+					if (
+						!ignore_owner
+						&&
+						(
+							history == nullptr
+							|| history->owner_tag != selected_owner
+						)
+					) {
+						continue;
+					}
 					bool exist = false;
 					{
 						// copy if exist
@@ -193,7 +223,16 @@ void pop_query(state::layers_stack& layers) {
 			if (ImGui::Button("Confirm conversion")) {
 				for (auto& [v2id, value] : *layers.get_v2ids()) {
 					auto history = layers.get_province_history(v2id);
-					if (history->owner_tag != selected_owner && !ignore_owner) continue;
+					if (
+						!ignore_owner
+						&&
+						(
+							history == nullptr
+							|| history->owner_tag != selected_owner
+						)
+					) {
+						continue;
+					}
 
 					bool exist = false;
 					{
