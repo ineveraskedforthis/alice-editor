@@ -1135,6 +1135,7 @@ struct layers_stack {
                     game_definition::pops_history_file file {
                         "editor-pops.txt", {}
                     };
+                    file.data[v2id] = {};
                     if (pops != nullptr)
                         for (auto& pop : *pops) {
                             file.data[v2id].push_back(pop);
@@ -1205,6 +1206,45 @@ struct layers_stack {
             }
         }
         return result;
+    }
+
+    game_definition::pops_history_file* get_pops_file(uint32_t v2id, int date) {
+        game_definition::pops_history_file* result = nullptr;
+        for (auto& l : data) {
+            for (auto& folder: l.province_population) {
+                if (folder.date != date) {
+                    continue;
+                }
+                for (auto& file : folder.data) {
+                    auto iterator = file.data.find(v2id);
+                    if (iterator != file.data.end())
+                        result = &file;
+                }
+            }
+        }
+        return result;
+    }
+
+    void move_province_pops_file(uint32_t v2id, int date, game_definition::pops_history_file* target) {
+        if (target == nullptr) return;
+
+        auto origin_file = get_pops_file(v2id, date);
+        if (origin_file == nullptr) return;
+
+        auto iterator = origin_file->data.find(v2id);
+        if (iterator == origin_file->data.end()) return;
+
+        auto target_iterator = target->data.find(v2id);
+
+        if (target_iterator == target->data.end()) {
+            target->data[v2id] = iterator->second;
+        } else {
+            for (auto& item : iterator->second) {
+                target->data[v2id].push_back(item);
+            }
+        }
+
+        origin_file->data.erase(v2id);
     }
 
     std::vector<game_definition::province> * get_provinces() {

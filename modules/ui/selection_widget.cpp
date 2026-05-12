@@ -715,6 +715,7 @@ namespace widgets {
 
                     static std::vector<size_t> pops_indices;
                     static uint32_t selected_province = 0;
+                    static uint32_t selected_date = 0;
 
                     if (ImGui::Button("Add empty pop")) {
                         game_definition::pop_history item {};
@@ -844,12 +845,16 @@ namespace widgets {
                         selected_province = 0;
                     }
 
-                    if (selected_province != v2id) {
+                    if (
+                        selected_province != v2id
+                        || selected_date != d
+                    ) {
                         pops_indices.clear();
                         for (auto i = 0; i < pops->size(); i++) {
                             pops_indices.push_back(i);
                         }
                         selected_province = v2id;
+                        selected_date = d;
                     }
 
                     static ImGuiTableFlags flags =

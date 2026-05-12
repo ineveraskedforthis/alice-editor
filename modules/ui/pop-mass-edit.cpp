@@ -16,7 +16,7 @@ void pop_query(state::layers_stack& layers) {
 		ImGui::Text("Choose pops you want to change");
 
 		auto poptypes = layers.retrieve_poptypes();
-                auto religions = layers.retrieve_religions();
+		auto religions = layers.retrieve_religions();
 
 		static ankerl::unordered_dense::map<std::string, bool> selected_pop_types {};
 
@@ -88,6 +88,7 @@ void pop_query(state::layers_stack& layers) {
 		if (ImGui::Button("Calculate stats")) {
 			for (auto& [v2id, value] : *layers.get_v2ids()) {
 				auto history = layers.get_province_history(v2id);
+				if (!history) continue;
 				if (history->owner_tag != selected_owner && !ignore_owner) continue;
 
 				auto pops = layers.get_pops(v2id, selected_date);
