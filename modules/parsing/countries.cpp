@@ -137,7 +137,7 @@ namespace parser {
                     while (parser::until_close_bracket(c) && file.get(c));
                 } else if (key.data == "random_nation_chance") {
                     while (parser::until_close_bracket(c) && file.get(c));
-                } else {
+                } else if (key.data == "color") {
                     game_definition::color_government_row new_rule {};
                     new_rule.government = key.data;
                     while (parser::until_open_bracket(c) && file.get(c));
@@ -157,6 +157,10 @@ namespace parser {
                     new_rule.color.B = std::stoi(value.data);
                     while (parser::until_close_bracket(c) && file.get(c));
                     n.special_colors.push_back(new_rule);
+                } else if (key.data == "revolutionary_colors") {
+                    while (parser::until_close_bracket(c) && file.get(c));
+                } else {
+                    std::cout << "INVALID KEY: " << key.data << "\n";
                 }
             }
             while (!parser::strict_end_of_the_line(c)) {

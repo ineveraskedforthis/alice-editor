@@ -223,7 +223,7 @@ void layers_stack::save_population_texture() {
             if (population == nullptr) {
                 continue;
             }
-            auto total = 0;
+            int64_t total = 0;
             for (auto& pop: *population) {
                 if (pop.culture == "north_german" && pop.religion == "protestant" && pop.poptype == "artisans") {
                     total += pop.size;

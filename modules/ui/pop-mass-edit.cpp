@@ -82,7 +82,7 @@ void pop_query(state::layers_stack& layers) {
 
 
 		static bool calculated_stats;
-		static float total_size =0;
+		static int64_t total_size =0;
 		static int count = 0;
 
 		if (ImGui::Button("Calculate stats")) {
@@ -115,7 +115,7 @@ void pop_query(state::layers_stack& layers) {
 			calculated_stats = true;
 		}
 		if (calculated_stats) {
-			ImGui::Text("%f people and %d pops were selected during last recalculation", total_size, count);
+			ImGui::Text("%lld people and %d pops were selected during last recalculation", total_size, count);
 		}
 
 

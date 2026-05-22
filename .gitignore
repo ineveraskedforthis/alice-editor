@@ -33,6 +33,9 @@ build/SDL2.dll
 build/shaders
 build/shaders/*
 
+*.pdb
+*.ilk
+
 build/editor-output/*
 build/editor-input/*
 build/base-game*

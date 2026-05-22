@@ -695,7 +695,7 @@ namespace widgets {
                         continue;
                     }
 
-                    int total_pop = 0;
+                    int64_t total_pop = 0;
                     for (auto& pop : *pops) {
                         total_pop += pop.size;
                     }
@@ -1040,7 +1040,8 @@ namespace widgets {
 
                                 ImGui::TableNextColumn();
                                 ImGui::SetNextItemWidth(100.f);
-                                ImGui::InputInt("##size", &pop.size, 0);
+                                // ImGui::InputInt("##size", &pop.size, 0);
+                                ImGui::InputScalar("##size", ImGuiDataType_S64, (void*)pop.size, NULL, NULL, "%d", 0);
 
                                 ImGui::SameLine();
                                 auto ratio = (float) pop.size / (float) total_pop;
@@ -1621,7 +1622,7 @@ namespace widgets {
                 static std::vector<std::string> cultures {};
                 static int selected_tag = 0;
                 static int selected_date = 0;
-                static int total_population = 0;
+                static int64_t total_population = 0;
 
                 static bool update_required = true;
 
@@ -1684,7 +1685,7 @@ namespace widgets {
                                 );
                             }
 
-                            ImGui::Text("Total population: %d", total_population);
+                            ImGui::Text("Total population: %lld", total_population);
 
                             for (auto& culture : cultures) {
                                 auto val = population_per_culture[culture];

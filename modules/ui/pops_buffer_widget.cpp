@@ -228,7 +228,9 @@ void display_pop_table_row(
 
     ImGui::TableNextColumn();
     ImGui::SetNextItemWidth(100.f);
-    ImGui::InputInt("##size", &pop.size, 0);
+    // ImGui::InputInt("##size", &pop.size, 0);
+    ImGui::InputScalar("##size", ImGuiDataType_S64, (void*)pop.size, NULL, NULL, "%d", 0);
+
 
     ImGui::TableNextColumn();
     ImGui::SetNextItemWidth(60.f);
@@ -333,7 +335,7 @@ void pops_buffer_widget(state::layers_stack& layers, state::control& control) {
                                     && pop.rebel_type.size() == 0
                                 ) {
                                     pop_already_exists = true;
-                                    candidate.size += (int) (pop.size * priority);
+                                    candidate.size += (int64_t) (pop.size * priority);
                                     break;
                                 }
                             }
@@ -345,7 +347,7 @@ void pops_buffer_widget(state::layers_stack& layers, state::control& control) {
                                 split_pop.poptype = pop.poptype;
                                 split_pop.rebel_type = pop.rebel_type;
                                 split_pop.religion = pop.religion;
-                                split_pop.size = (int) (pop.size * priority);
+                                split_pop.size = (int64_t) (pop.size * priority);
                                 if (split_pop.size == 0 && pop.size > 0) {
                                     split_pop.size = 1;
                                 }

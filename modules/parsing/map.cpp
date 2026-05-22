@@ -422,6 +422,8 @@ namespace parsers{
             return;
         }
 
+        errors.file_name = "/map/continent.txt";
+
         layer.has_continent_txt = true;
 
         std::ifstream file(path + "/map/continent.txt");
@@ -585,7 +587,11 @@ namespace parsers{
         parser::adj parser {};
         if (file) {
             layer.has_adjacencies = true;
-            parser.parse(file, layer.adjacencies);
+            if (layer.loaded_from_eu4_content) {
+                parser.parse_eu4(file, layer.adjacencies);
+            } else {
+                parser.parse(file, layer.adjacencies);
+            }
         } else
             std::cout << "bad /map/adjacencies.csv" << std::endl;
     }
@@ -1548,7 +1554,7 @@ border_cutoff = 1100.0
             }
 
             if (!adj.mark_for_delete) {
-                file << adj.from << ";" << adj.to << ";" << type << ";" << adj.through << ";" << adj.data << "#" << adj.comment << "\n";
+                file << adj.from << ";" << adj.to << ";" << type << ";" << adj.through << ";" << adj.data << ";#" << adj.comment << "\n";
             }
         }
     }
@@ -1636,22 +1642,44 @@ border_cutoff = 1100.0
                 file << "}" << std::endl;
             }
 
-            std::vector<std::string> local_rgo;
-            for (auto const& [key, val] : val.secondary_rgo_size) {
-                local_rgo.push_back(key);
-            }
-
-            if (local_rgo.size() > 0) {
-                file << "rgo_distribution = {" << std::endl;
-
-                for (auto key : local_rgo) {
-                    file << "\tentry = {" << std::endl;
-                    file << "\t\ttrade_good = " << key << std::endl;
-                    file << "\t\tmax_employment = " << val.secondary_rgo_size[key] << std::endl;
-                    file << "\t}" << std::endl;
+            {
+                std::vector<std::string> local_rgo;
+                for (auto const& [key, val] : val.secondary_rgo_size) {
+                    local_rgo.push_back(key);
                 }
 
-                file << "}" << std::endl;
+                if (local_rgo.size() > 0) {
+                    file << "rgo_distribution = {" << std::endl;
+
+                    for (auto key : local_rgo) {
+                        file << "\tentry = {" << std::endl;
+                        file << "\t\ttrade_good = " << key << std::endl;
+                        file << "\t\tmax_employment = " << val.secondary_rgo_size[key] << std::endl;
+                        file << "\t}" << std::endl;
+                    }
+
+                    file << "}" << std::endl;
+                }
+            }
+
+            {
+                std::vector<std::string> local_rgo_add;
+                for (auto const& [key, val] : val.secondary_rgo_size_add) {
+                    local_rgo_add.push_back(key);
+                }
+
+                if (local_rgo_add.size() > 0) {
+                    file << "rgo_distribution_add = {" << std::endl;
+
+                    for (auto key : local_rgo_add) {
+                        file << "\tentry = {" << std::endl;
+                        file << "\t\ttrade_good = " << key << std::endl;
+                        file << "\t\tmax_employment = " << val.secondary_rgo_size_add[key] << std::endl;
+                        file << "\t}" << std::endl;
+                    }
+
+                    file << "}" << std::endl;
+                }
             }
 
             if (val.terrain.length() > 0)
@@ -2124,6 +2152,8 @@ border_cutoff = 1100.0
         load_default_dot_map(layer, layer.path);
         load_provinces_map(layer, layer.path);
         load_regions(layer, layer.path);
+        // at this point we are aware of loading eu4 content
+
         load_adjacencies(layer, layer.path);
         load_governments_list(layer, layer.path, errors);
         load_technology_list(layer, conversions::u8_to_w(layer.path), errors);
@@ -2133,6 +2163,29 @@ border_cutoff = 1100.0
         load_nations_common(layer, layer.path, errors);
         load_nation_history(state, layer, layer.path, errors);
         load_province_history(layer, layer.path, errors);
+
+        if (layer.loaded_from_eu4_content) {
+            // SET WASTELANDS AS LACK OF ADJACENCIES
+            for (auto& [key, p] : layer.province_history) {
+                if (p.wasteland && layer.province_is_sea[key] == 0) {
+                    p.main_trade_good = "unknown";
+                    game_definition::adjacency impassable {};
+                    impassable.from = key;
+                    impassable.to = 0;
+                    impassable.type = game_definition::ADJACENCY_TYPE::IMPASSABLE;
+                    impassable.through = 0;
+                    impassable.comment = "wasteland";
+                    layer.adjacencies.push_back(impassable);
+                }
+            }
+            // NO UNCIVS IN EU4
+            for (auto& [key, p] : layer.tag_to_nation_history) {
+                p.civilized = true;
+            }
+        }
+
+
+
         load_province_population(layer, layer.path, errors);
         if (layer.province_population.empty() && layer.loaded_from_eu4_content) {
             layer.province_population.push_back({});

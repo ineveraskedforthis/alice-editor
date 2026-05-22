@@ -11,5 +11,6 @@ struct adj {
     bool ignore_line = false;
     bool reading_comment;
     int parse(std::ifstream& file, std::vector<game_definition::adjacency>& storage);
+    int parse_eu4(std::ifstream& file, std::vector<game_definition::adjacency>& storage);
 };
 }

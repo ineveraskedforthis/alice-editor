@@ -305,12 +305,20 @@ struct setter_meiou {
 	}
 };
 
+struct permanent_province_modifier {
+	std::string name;
+	void finish(province_history_context& context);
+};
+
 struct dated_block {
+	void set_province_flag(association_type, std::string_view value, error_handler& err, int32_t line, province_history_context& context);
+	void add_core(association_type, std::string_view value, error_handler& err, int32_t line, province_history_context& context);
 	void finish(province_history_context&) { }
 };
 
 void enter_dated_block(std::string_view name, token_generator& gen, error_handler& err, province_history_context& context);
 void enter_setter_meiou(token_generator& gen, error_handler& err, province_history_context& context);
+void handle_permanent_province_modifier(token_generator& gen, error_handler& err, province_history_context& context);
 
 struct pv_party_loyalty {
 	int32_t loyalty_value = 0;
@@ -382,6 +390,7 @@ struct province_history_handler {
 	void rgo_distribution_add(province_rgo_ext_2 const& value, error_handler& err, int32_t line, province_history_context& context);
 	// void factory_limit(province_factory_limit const& value, error_handler& err, int32_t line, province_history_context& context);
 	void revolt(province_revolt const& rev, error_handler& err, int32_t line, province_history_context& context);
+	void set_province_flag(association_type, std::string_view value, error_handler& err, int32_t line, province_history_context& context);
 	void any_value(std::string_view name, association_type, uint32_t value, error_handler& err, int32_t line, province_history_context& context);
 	void finish(province_history_context&) { }
 };
@@ -460,7 +469,10 @@ struct continent_definition {
 		std::string name_value {name};
 		modifiers.push_back({name_value, value});
 	};
-
+	template<typename C>
+	void free_value(int32_t v, error_handler& err, int32_t line, C& context) {
+		provinces.provinces_v2ids.push_back(v);
+	}
 	template<typename C>
 	void finish(C&) { };
 };
@@ -708,6 +720,7 @@ struct nation_handler {
 	void any_value(std::string_view label, association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
 	void primary_culture(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
 	void culture(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
+	void add_accepted_culture(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
 	void remove_culture(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
 	void religion(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);
 	void government(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context);

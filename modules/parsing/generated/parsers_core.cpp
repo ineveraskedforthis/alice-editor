@@ -1,5 +1,6 @@
 #include <cassert>
 #include <cstdint>
+#include <iostream>
 #include <numbers>
 #include <string>
 #include <string_view>
@@ -138,6 +139,10 @@ void nation_handler::primary_culture(association_type, std::string_view value, e
     context.nation.primary_culture = value;
 };
 void nation_handler::culture(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
+    std::string actual_value = {value.begin(), value.end()};
+    context.nation.culture.push_back(actual_value);
+};
+void nation_handler::add_accepted_culture(association_type, std::string_view value, error_handler& err, int32_t line, nation_history_file& context){
     std::string actual_value = {value.begin(), value.end()};
     context.nation.culture.push_back(actual_value);
 };
@@ -664,6 +669,7 @@ province_history_handler::base_tax
     province_history_context& context
 ) {
     context.history.base_tax = value;
+    context.history.wasteland = false;
 }
 
 void
@@ -676,6 +682,7 @@ province_history_handler::base_production
     province_history_context& context
 ) {
     context.history.base_production = value;
+    context.history.wasteland = false;
 }
 
 void
@@ -688,6 +695,190 @@ province_history_handler::trade_goods
 	province_history_context& context
 ) {
     context.history.main_trade_good = text;
+}
+
+void handle_province_flag(std::string_view value, error_handler& err, int32_t line, province_history_context& context) {
+    bool add_rgo = false;
+    bool add_building = false;
+    std::string data;
+    float multiplier = 1.f;
+    if (value == "wine") {
+        add_rgo = true;
+        data = value;
+    } else if (value == "fruits") {
+        add_rgo = true;
+        data = "wine";
+        multiplier = 0.5f;
+    } else if (value == "silver") {
+        add_rgo = true;
+        data = value;
+    } else if (value == "fur_medium") {
+        add_rgo = true;
+        data = "fur";
+    } else if (value == "salt" ||value == "seasalt" || value == "supersalt" || value == "smallsalt") {
+        add_rgo = true;
+        data = "salt";
+    } else if (value == "gems") {
+        add_rgo = true;
+        data = "gems";
+    } else if (value == "hemp") {
+        add_rgo = true;
+        data = "hemp";
+    } else if (value == "coal") {
+        add_rgo = true;
+        data = "coal";
+    } else if (value == "lead") {
+        add_rgo = true;
+        data = "lead";
+    } else if (value == "copper") {
+        add_rgo = true;
+        data = "copper";
+    } else if (value == "tin") {
+        add_rgo = true;
+        data = "tin";
+    } else if (value == "olive") {
+        add_rgo = true;
+        data = "olive";
+    } else if (
+        value == "fish"
+        || value == "Fish_Medium"
+    ) {
+        add_rgo = true;
+        data = "fish";
+    } else if (value == "cotton") {
+        add_rgo = true;
+        data = "cotton";
+    } else if (value == "cacao") {
+        add_rgo = true;
+        data = "cacao";
+    } else if (value == "iron") {
+        add_rgo = true;
+        data = "iron";
+    } else if (value == "ivory_medium") {
+        add_rgo = true;
+        data = "ivory";
+    } else if (value == "ivory_low") {
+        add_rgo = true;
+        multiplier = 0.5f;
+        data = "ivory";
+    } else if (value == "fur_low") {
+        add_rgo = true;
+        multiplier = 0.5f;
+        data = "fur";
+    } else if (value == "game") {
+        add_rgo = true;
+        data = "fur";
+    } else if (value == "sugar") {
+        add_rgo = true;
+        data = "sugar";
+    } else if (value == "pearls_low") {
+        add_rgo = true;
+        data = "pearls";
+    } else if (value == "dates") {
+        add_rgo = true;
+        data = "palm_date";
+    } else if (value == "marble") {
+        add_rgo = true;
+        data = "marble";
+    } else if (value == "gold") {
+        add_rgo = true;
+        data = "gold";
+    } else if (value == "honey") {
+        add_rgo = true;
+        data = "wax";
+    } else if (value == "tea" || value == "spices") {
+        add_rgo = true;
+        data = "tea";
+    } else if (value == "urban_goods_naval_supplies") {
+        add_building = true;
+        data = "ammunitions_factory";
+    } else if (value == "urban_goods_luxury_cloth") {
+        add_building = true;
+        data = "luxury_cloth_factory";
+    } else if (value == "urban_goods_steel") {
+        add_building = true;
+        data = "steel_factory";
+    } else if (value == "urban_goods_paper") {
+        add_building = true;
+        data = "paper_factory";
+    } else if (value == "urban_goods_metalwork") {
+        add_building = true;
+        data = "hardware_factory";
+    } else if (value == "urban_goods_linen") {
+        add_rgo = true;
+        data = "linen";
+    } else if (
+        value == "catholic_archbishopric"
+        || value == "TN_Major"
+        || value == "TN_Port"
+        || value == "TN_Natural_Minor"
+        || value == "TN_Minor"
+        || value == "TN_Important"
+        || value == "TN_Natural_Important"
+        || value == "TN_Harbour_Important"
+        || value == "TN_Harbour_Major"
+        || value == "TN_RiverSea"
+        || value == "TN_Harbour_Minor"
+        || value == "mined_goods"
+        || value == "no_mines"
+        || value == "tribals_control_province"
+        || value == "TN_NorthernSilk"
+        || value == "TN_RiverJoint"
+        || value == "TN_Silk"
+        || value == "TN_Island"
+        || value == "polish_estates"
+        || value == "hungarian_estates"
+        || value == "lithuanian_estates"
+        || value == "freeholders_control_province"
+        || value == "Teuton_Commandery_Low"
+        || value == "Teuton_Commandery_Med"
+        || value == "Teuton_Commandery_High"
+        || value == "Knights_Commandery_Low"
+        || value == "Knights_Commandery_Med"
+        || value == "Knights_Commandery_High"
+        || value == "greek_name"
+        || value == "medium_university"
+        || value == "small_university"
+        || value == "oasis_route"
+        || value == "bhaddaiyan_raj_state"
+        || value == "lack_of_harbour"
+        || value == "jaswan_state"
+    ) {
+        return;
+    } else {
+        std::cout << "UNKNOWN PROVINCE FLAG: " << value << "\n";
+    }
+
+    float base_rgo_add = 50'000.f * multiplier;
+
+    if (add_rgo) {
+        auto it = context.history.secondary_rgo_size_add.find(data);
+        if (it == context.history.secondary_rgo_size_add.end()) {
+            context.history.secondary_rgo_size_add[data] = base_rgo_add;
+        } else {
+            it->second += base_rgo_add;
+        }
+    }
+    if (add_building ) {
+        game_definition::state_building building;
+        building.building_type = data;
+        building.level = 1;
+        building.upgrade = "yes";
+        context.history.buildings.push_back(building);
+    }
+}
+
+void dated_block::set_province_flag(association_type, std::string_view value, error_handler& err, int32_t line, province_history_context& context) {
+    handle_province_flag(value, err, line, context);
+}
+
+void province_history_handler::set_province_flag(
+    association_type, std::string_view value , error_handler& err, int32_t line, province_history_context& context
+) {
+    handle_province_flag(value, err, line, context);
+}
+
+void permanent_province_modifier::finish(province_history_context& context) {
 }
 
 void province_history_handler::rgo_distribution(province_rgo_ext const& value, error_handler& err, int32_t line, province_history_context& context) {
@@ -754,6 +945,12 @@ province_history_handler::religion(
     context.history.religion = text;
 }
 
+void dated_block::add_core(association_type, std::string_view value, error_handler& err, int32_t line,
+	province_history_context& context
+) {
+    auto v = std::string{value};
+    context.history.cores.push_back(v);
+}
 void province_history_handler::add_core(association_type, std::string_view value, error_handler& err, int32_t line,
 	province_history_context& context
 ) {
@@ -805,8 +1002,13 @@ void province_history_handler::any_value(std::string_view name, association_type
     if (name == "railroad") {
         context.history.railroad = value;
     }
-    if (name == "fort") {
+    if (
+        name == "fort"
+    ) {
         context.history.fort = value;
+    }
+    if (name == "fort_14") {
+        context.history.fort = 1;
     }
     if (name == "naval_base") {
         context.history.naval_base = value;
@@ -888,6 +1090,10 @@ void enter_dated_block(std::string_view name, token_generator& gen, error_handle
 }
 void enter_setter_meiou(token_generator& gen, error_handler& err, province_history_context& context) {
     parse_setter_meiou(gen, err, context);
+}
+void handle_permanent_province_modifier(token_generator& gen, error_handler& err, province_history_context& context) {
+    auto result = parse_permanent_province_modifier(gen, err, context);
+    handle_province_flag(result.name, err, 9999, context);
 }
 
 void make_region_trigger_or(token_generator& gen, error_handler& err, region_trigger_context& context) {

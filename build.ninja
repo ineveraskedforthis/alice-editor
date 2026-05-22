@@ -9,7 +9,7 @@ rule cc
   depfile = $out.d
 
 rule cc_simple
-  command = clang++ -std=c++20 -O3 -o $out $in
+  command = clang++ -std=c++20 -O0 -g -gdwarf-3 -gcodeview -o $out $in
   description = compile $out without complex flags
 
 rule link

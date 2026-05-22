@@ -359,6 +359,7 @@ struct projection {
 
 
         // eu4/meiou imports
+        bool wasteland = true;
         float rural_population;
         float urban_population;
         std::string culture;

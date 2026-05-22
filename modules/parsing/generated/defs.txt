@@ -37,6 +37,7 @@ sprite
 	font_size value int member_fn
 	font value text member_fn
 	offset2 group color_from_3f member_fn
+	legacy_lazy_load value none discard
 
 sprites_group
 #gfx_file_context
@@ -112,6 +113,7 @@ nation_handler
 	#any                            value      text                              member_fn
 	primary_culture                 value      text                              member_fn
 	culture                         value      text                              member_fn
+	add_accepted_culture value text member_fn
 	remove_culture					value	   text								 member_fn
 	religion                        value      text                              member_fn
 	government                      value      text                              member_fn
@@ -136,6 +138,15 @@ nation_handler
 	set_country_flag                value      text                              member_fn
 	set_global_flag               value      text                              member_fn
 	decision                        value      text                              member_fn
+	add_government_reform value none discard
+	technology_group value none discard
+	historical_rival value none discard
+	historical_neutral value none discard
+	historical_friend value none discard
+	mercantilism value none discard
+	government_rank value none discard
+	add_army_professionalism value none discard
+
 
 
 good
@@ -234,9 +245,31 @@ setter_meiou
 	lhs  value text member
 	value value float member
 
+permanent_province_modifier
+#province_history_context
+	name value text member
+	duration value none discard
+
 dated_block
 #province_history_context
-	set_key	extern enter_setter_meiou discard
+	set_key extern enter_setter_meiou discard
+	set_province_flag value text member_fn
+	add_permanent_province_modifier extern handle_permanent_province_modifier discard
+	add_province_modifier group none discard
+	add_core value none discard
+	owner value none discard
+	controller value none discard
+	remove_core value none discard
+	add_claim          value          none                discard
+	add_permanent_claim value          none                discard
+	discovered_by value none discard
+	unrest value none discard
+	revolt value none discard
+	capital value none discard
+	rename_capital value none discard
+	hre value none discard
+	fort_14th value none discard
+	citysize value none discard
 
 province_history_handler
 #province_history_context
@@ -252,16 +285,27 @@ province_history_handler
 	religion        value          text                member_fn
 	terrain           value          text               member_fn
 	add_core          value          text                member_fn
+	add_claim          value          none                discard
+	add_permanent_claim value          none                discard
+	is_city value none discard
 	remove_core       value          text                member_fn
 	party_loyalty     group          pv_party_loyalty   member_fn
 	state_building    group          pv_state_building  member_fn
 	revolt            value          none               discard
 	revolt            group          province_revolt    member_fn
 	is_slave          value          bool               member_fn
-	set_province_flag value          none               discard
+	set_province_flag value text member_fn
+	set_key extern enter_setter_meiou discard
+	add_permanent_province_modifier extern handle_permanent_province_modifier discard
+	add_province_modifier group none discard
 	clr_province_flag value          none               discard
+	discovered_by value none discard
 	rgo_distribution  group          province_rgo_ext   member_fn
 	rgo_distribution_add  group      province_rgo_ext_2 member_fn
+	capital value none discard
+	hre value none discard
+	unrest value none discard
+	citysize value none discard
 	#any              value          uint               member_fn
 	#any              extern         enter_dated_block  discard
 
@@ -273,6 +317,16 @@ religion
 #religion_group_context
 	icon value uint member
 	color group color_from_3i member
+	province group none discard
+	country  group none discard
+	country_as_secondary  group none discard
+	can_have_secondary_religion value none discard
+	on_convert  group none discard
+	uses_piety value none discard
+	has_patriarchs value none discard
+	fervor value none discard
+	misguided_heretic value none discard
+	heretic group none discard
 
 religion_group
 #religion_group_context
@@ -289,7 +343,8 @@ continent_provinces
 
 continent_definition
 	provinces      group   continent_provinces       member
-	#any   value   float   member_fn
+	#free value int member_fn
+	#any value   float   member_fn
 
 continent_file
 #generic_context
