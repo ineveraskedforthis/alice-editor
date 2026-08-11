@@ -1041,7 +1041,7 @@ namespace widgets {
                                 ImGui::TableNextColumn();
                                 ImGui::SetNextItemWidth(100.f);
                                 // ImGui::InputInt("##size", &pop.size, 0);
-                                ImGui::InputScalar("##size", ImGuiDataType_S64, (void*)pop.size, NULL, NULL, "%d", 0);
+                                ImGui::InputScalar("##size", ImGuiDataType_S64, (void*)(&pop.size), NULL, NULL, "%d", 0);
 
                                 ImGui::SameLine();
                                 auto ratio = (float) pop.size / (float) total_pop;

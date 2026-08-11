@@ -229,7 +229,7 @@ void display_pop_table_row(
     ImGui::TableNextColumn();
     ImGui::SetNextItemWidth(100.f);
     // ImGui::InputInt("##size", &pop.size, 0);
-    ImGui::InputScalar("##size", ImGuiDataType_S64, (void*)pop.size, NULL, NULL, "%d", 0);
+    ImGui::InputScalar("##size", ImGuiDataType_S64, (void*)(&pop.size), NULL, NULL, "%d", 0);
 
 
     ImGui::TableNextColumn();

@@ -1,3 +1,3 @@
-optimisation_flag = -O2
+optimisation_flag = -Os -fuse-ld=lld -flto
 debug_flags =
 debug_flags_link =
