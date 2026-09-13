@@ -24,6 +24,8 @@ struct province_map {
 	void recalculate_present_colors();
 	void populate_adjacent_colors(uint32_t rgb, std::vector<uint32_t> & result);
 
+	void replace_color(uint8_t from[3], uint8_t to[3]);
+
 	int coord_to_pixel(glm::ivec2 coord);
 	int coord_to_pixel(glm::vec2 coord);
 

@@ -51,6 +51,24 @@ void province_map::recalculate_present_colors() {
 	}
 }
 
+void province_map::replace_color(uint8_t from[3], uint8_t to[3]) {
+	for (auto i = 0; i < size_x * size_y; i++) {
+		// std::cout << i << " ";
+		auto r = provinces_image_data[4 * i + 0];
+		auto g = provinces_image_data[4 * i + 1];
+		auto b = provinces_image_data[4 * i + 2];
+
+		if ((r == from[0]) && (g == from[1]) && (b == from [2])) {
+			provinces_image_data[4 * i + 0] = to[0];
+			provinces_image_data[4 * i + 1] = to[1];
+			provinces_image_data[4 * i + 2] = to[2];
+		}
+	}
+
+	recalculate_present_colors();
+	update_available_colors();
+}
+
 void province_map::populate_adjacent_colors(uint32_t rgb, std::vector<uint32_t> & result) {
 	ankerl::unordered_dense::map<uint32_t, bool> temp_result {};
 	for (auto x = 0; x < size_x - 1; x++) {

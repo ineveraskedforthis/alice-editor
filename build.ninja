@@ -1,5 +1,5 @@
 include build-inputs/release_flags.ninja
-#include build-inputs/debug_flags.ninja
+include build-inputs/debug_flags.ninja
 
 cflags = -std=c++20 $optimisation_flag -DWIN32 -D_AMD64_ -DSDL_MAIN_HANDLED -I./modules/sdl -I./modules/imgui -I./modules/glew -I./SOIL2/src/SOIL2 -I./modules/OS
 

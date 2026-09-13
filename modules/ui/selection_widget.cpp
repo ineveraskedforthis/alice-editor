@@ -6,6 +6,7 @@
 #include <cstddef>
 #include <cstdint>
 #include <iostream>
+#include <optional>
 #include <string>
 #include <filesystem>
 #include "selection_widget.hpp"
@@ -1129,6 +1130,71 @@ namespace widgets {
         if (ImGui::BeginTabBar("ProvinceTabs", tab_bar_flags)) {
             if (ImGui::BeginTabItem("Definition")) {
                 selection_province_history(layers, control, editor);
+                ImGui::EndTabItem();
+            }
+            if (ImGui::BeginTabItem("Color")) {
+                auto v2id = control.selected_province_id;
+                auto has_definition = layers.can_edit_province_definition(v2id);
+                auto has_map = layers.has_province_map();
+
+                auto can_edit_color = has_definition && has_map;
+
+                if (!can_edit_color) {
+                    ImGui::BeginDisabled();
+                }
+
+                auto def = layers.get_province_definition(v2id);
+                if (def) {
+                    ImVec4 color {(float)def->r / 255.f, (float)def->g / 255.f, (float)def->b / 255.f, 1.f};
+                    ImGui::ColorButton("Current color", color);
+                    static float selected_color[3];
+                    ImGui::ColorEdit3("New province color", selected_color);
+
+                    uint8_t new_r = selected_color[0] * 255.f;
+                    uint8_t new_g = selected_color[1] * 255.f;
+                    uint8_t new_b = selected_color[2] * 255.f;
+
+                    auto old_v2id = layers.rgb_to_v2id(datatypes::rgb_to_uint(new_r, new_g, new_b));
+                    if (old_v2id == std::nullopt) {
+                        ImGui::Text("Caution: this operation might take a while for larger maps. It scans every pixel of the map and changes its color to the new one.");
+                        if (ImGui::Button("Change color")) {
+                            auto& active = layers.data[layers.current_layer_index];
+                            uint8_t from[3] = {def->r, def->g, def->b};
+                            uint8_t to[3] ={new_r, new_g, new_b};
+                            active.provinces_image->replace_color(from, to);
+
+                            auto old_rgb = datatypes::rgb_to_uint(def->r, def->g, def->b);
+                            active.rgb_to_v2id.erase(old_rgb);
+
+                            def->r = new_r;
+                            def->g = new_g;
+                            def->b = new_b;
+                            auto new_rgb = datatypes::rgb_to_uint(def->r, def->g, def->b);
+
+                            active.rgb_to_v2id[new_rgb] = def->v2id;
+                        }
+                    } else {
+                        ImGui::Text("This color is already in use");
+                    }
+                } else {
+                    ImGui::Text("This is not a valid province.");
+                }
+
+                if (!can_edit_color) {
+                    ImGui::EndDisabled();
+                    layers.copy_province_map_to_current_layer();
+                    ImGui::Text("To edit color, you have to copy province definitions and the color map to current layer first");
+                    if (!has_definition) {
+                        if (ImGui::Button("Copy province definitions")) {
+                            layers.copy_province_definitions();
+                        }
+                    }
+                    if (!has_map) {
+                        if (ImGui::Button("Copy province colors")) {
+                            layers.copy_province_map_to_current_layer();
+                        }
+                    }
+                }
                 ImGui::EndTabItem();
             }
             if (ImGui::BeginTabItem("Population")) {

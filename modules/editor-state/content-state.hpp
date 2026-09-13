@@ -156,7 +156,7 @@ struct layer {
 
     // provinces part of the layer
     bool province_map_is_alice = false;
-    std::optional<province_map> provinces_image {};
+    std::optional<province_map> provinces_image = std::nullopt;
 
     // rivers part of the layer
     bool has_rivers_map = false;
@@ -1894,6 +1894,31 @@ struct layers_stack {
         active_layer.filename_to_nation_common[filename] = c;
     };
 
+    void copy_province_definitions() {
+        auto& active_layer = data[current_layer_index];
+        // copy province definitions
+        if (!active_layer.has_province_definitions) {
+            layer* latest_layer_with_definitions = nullptr;
+            for (auto& l: data) {
+                if (l.visible && l.has_province_definitions) {
+                    latest_layer_with_definitions = &l;
+                }
+            }
+            if (latest_layer_with_definitions != nullptr) {
+                active_layer.province_definitions = latest_layer_with_definitions->province_definitions;
+                active_layer.v2id_to_vector_position = latest_layer_with_definitions->v2id_to_vector_position;
+                active_layer.is_used = latest_layer_with_definitions->is_used;
+                active_layer.rgb_to_v2id = latest_layer_with_definitions->rgb_to_v2id;
+                active_layer.has_province_definitions = true;
+            }
+        }
+    }
+
+    bool has_province_map() {
+        auto& active_layer = data[current_layer_index];
+        return active_layer.provinces_image != std::nullopt;
+    }
+
     game_definition::province& new_province(uint32_t pixel, std::string name) {
 
         // when we create a new province, we have to:
@@ -1911,22 +1936,7 @@ struct layers_stack {
             copy_province_map_to_current_layer();
         }
 
-        // copy province definitions
-        if (!active_layer.has_province_definitions) {
-            layer* latest_layer_with_definitions = nullptr;
-            for (auto& l: data) {
-                if (l.visible && l.has_province_definitions) {
-                    latest_layer_with_definitions = &l;
-                }
-            }
-            if (latest_layer_with_definitions != nullptr) {
-                active_layer.province_definitions = latest_layer_with_definitions->province_definitions;
-                active_layer.v2id_to_vector_position = latest_layer_with_definitions->v2id_to_vector_position;
-                active_layer.is_used = latest_layer_with_definitions->is_used;
-                active_layer.rgb_to_v2id = latest_layer_with_definitions->rgb_to_v2id;
-                active_layer.has_province_definitions = true;
-            }
-        }
+        copy_province_definitions();
 
         // copy default dot map
         if (!active_layer.has_default_map) {
