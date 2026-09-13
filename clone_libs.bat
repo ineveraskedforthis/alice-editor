@@ -1,1 +1,1 @@
-git clone https://github.com/SpartanJ/SOIL2.git
+git clone https://github.com/ineveraskedforthis/SOIL2.git
